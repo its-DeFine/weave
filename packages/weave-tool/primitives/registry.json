@@ -1,0 +1,89 @@
+{
+  "schema": "weave/primitives/v0.1",
+  "application": "live-visual-studio",
+  "runtimeMode": "local-browser-first",
+  "futureAdapterTarget": "live-video-to-video",
+  "primitives": [
+    {
+      "id": "signal-field",
+      "name": "Signal Field",
+      "lifecycleStage": "engineering-integration",
+      "pipelineIntent": "runtime-telemetry",
+      "availability": "local-runtime",
+      "customerUse": "Shows that the app is alive and reactive before any media pipeline runs.",
+      "futureAdapterMapping": "Map gateway heartbeat and availability telemetry into visual field behavior."
+    },
+    {
+      "id": "pulse-core",
+      "name": "Pulse Core",
+      "lifecycleStage": "engineering-integration",
+      "pipelineIntent": "visual-mixing",
+      "availability": "local-runtime",
+      "customerUse": "Shows decisive state changes such as job accepted, output ready, or approval pending.",
+      "futureAdapterMapping": "Map job and payment-ticket state into pulse events after live gateway proof."
+    },
+    {
+      "id": "braid-lattice",
+      "name": "Braid Lattice",
+      "lifecycleStage": "engineering-integration",
+      "pipelineIntent": "visual-mixing",
+      "availability": "local-runtime",
+      "customerUse": "Composes multiple visual streams for comparison or layered creative direction.",
+      "futureAdapterMapping": "Map candidate pipelines, sinks, or style branches into lattice strands."
+    },
+    {
+      "id": "focus-lens",
+      "name": "Focus Lens",
+      "lifecycleStage": "qa-readiness",
+      "pipelineIntent": "qa-review-loop",
+      "availability": "local-runtime",
+      "customerUse": "Creates a calmer review state for operator approval and QA.",
+      "futureAdapterMapping": "Map QA pass or fail, reviewer notes, and claim limits into review state."
+    },
+    {
+      "id": "palette-drift",
+      "name": "Palette Drift",
+      "lifecycleStage": "engineering-integration",
+      "pipelineIntent": "realtime-style-transfer",
+      "availability": "adapter-ready",
+      "customerUse": "Turns creative intent changes into visible palette shifts.",
+      "futureAdapterMapping": "Map model, capability, or output classification into palette selection."
+    },
+    {
+      "id": "latency-tide",
+      "name": "Latency Tide",
+      "lifecycleStage": "kpi-feedback",
+      "pipelineIntent": "runtime-telemetry",
+      "availability": "local-runtime",
+      "customerUse": "Makes runtime performance legible through tempo and density.",
+      "futureAdapterMapping": "Map measured gateway latency and timeout state into visible tempo changes."
+    },
+    {
+      "id": "review-gate",
+      "name": "Review Gate",
+      "lifecycleStage": "qa-readiness",
+      "pipelineIntent": "qa-review-loop",
+      "availability": "local-runtime",
+      "customerUse": "Marks when an app is waiting for evidence or owner approval before promotion.",
+      "futureAdapterMapping": "Map funded-job approval, accounting receipt, and output evidence into gate state."
+    },
+    {
+      "id": "motion-mask",
+      "name": "Motion Mask",
+      "lifecycleStage": "engineering-integration",
+      "pipelineIntent": "motion-reactive-overlay",
+      "availability": "local-runtime",
+      "customerUse": "Turns movement intent into a mask-like control signal for browser effects.",
+      "futureAdapterMapping": "Map frame-difference or segmentation output into mask density."
+    },
+    {
+      "id": "style-transfer-plane",
+      "name": "Style Transfer Plane",
+      "lifecycleStage": "engineering-integration",
+      "pipelineIntent": "live-video-to-video",
+      "availability": "adapter-ready",
+      "customerUse": "Provides the browser-side control plane for future live video-to-video style transforms.",
+      "futureAdapterMapping": "Replace local shader controls with gateway job parameters after proof."
+    }
+  ]
+}
