@@ -85,5 +85,4 @@ Start with [WEAVE Replication Architecture](docs/replication-architecture.md).
 
 ## License
 
-License selection is pending. Until a `LICENSE` file is added, do not assume an
-open-source license grant.
+MIT. See [LICENSE](LICENSE).

@@ -5,7 +5,7 @@ slug: weave
 name: WEAVE
 description: AI-operated application business that turns realtime media primitives into usable products.
 version: 0.1.0
-license: LicenseRef-Pending
+license: MIT
 homepage: https://github.com/its-DeFine/weave
 goals:
   - Build commercially viable WEAVE applications through the lifecycle.
