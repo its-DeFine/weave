@@ -1,5 +1,7 @@
 # WEAVE
 
+![WEAVE runtime hero](assets/weave-hero.png)
+
 WEAVE is a runtime and agent-company package for building applications from
 realtime media primitives.
 
