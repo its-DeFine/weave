@@ -1,22 +1,28 @@
 # WEAVE Tool Company Package
 
 Status: public package skeleton
-Target runtime: Paperclip-compatible agent company
+Target runtime: OpenClaw solo
 CEO agent: OpenClaw
 
 This directory packages WEAVE as an AI-operated business that can be imported
-or translated into a company runtime.
+or translated into an agent runtime.
+
+Current public package version: `2026.05.13`.
+Intended release tag: `v2026.05.13`.
 
 The package keeps three layers separate:
 
-- Paperclip-compatible company shape: company, agents, projects, tasks, and routines.
+- OpenClaw-first runtime shape: company, agents, projects, tasks, and lifecycle gates.
 - OpenClaw execution identity: the CEO/operator agent and lifecycle instructions.
 - WEAVE domain logic: lifecycle gates, primitive registry, evidence boundaries, and future Livepeer adapter mapping.
 
-This package has been validated against a temporary local Paperclip import and
-OpenClaw marker proof. It is not yet deployed into a persistent public or
-production Paperclip server. It does not contain gateway URLs, tokens, API keys,
-private keys, funding instructions, or production service configuration.
+This package validates as an OpenClaw-first lifecycle package. Legacy
+runtime import hints are outside this public package. The package does not
+contain gateway URLs, tokens, API keys, private keys, funding instructions, or
+production service configuration.
+
+Agent skills are public capability contracts. A private runtime may map those
+contracts to concrete tools, but those tool mappings stay outside this package.
 
 ## Validate
 
@@ -26,12 +32,21 @@ From the repository root:
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
 ```
 
+The repository-level runtime smoke also checks the public-safe operator UI
+sample:
+
+```bash
+python3 scripts/runtime_smoke.py
+```
+
 Expected output:
 
 ```text
 valid WEAVE company package: weave
+version: 2026.05.13
 agents: 6
-tasks: 6
+tasks: 9
+skills: 11
 primitives: 9
 ```
 
@@ -40,11 +55,11 @@ primitives: 9
 - `COMPANY.md`: WEAVE company definition.
 - `agents/ceo-openclaw/AGENTS.md`: OpenClaw CEO identity and operating rules.
 - `agents/*/AGENTS.md`: lifecycle role shells that report to the CEO.
-- `projects/live-visual-studio/PROJECT.md`: first admitted application project.
-- `projects/live-visual-studio/tasks/*/TASK.md`: starter lifecycle task graph.
-- `skills/*/SKILL.md`: portable skills referenced by agents and tasks.
+- `projects/askuno-runtime-proof/PROJECT.md`: first admitted application project.
+- `projects/askuno-runtime-proof/tasks/*/TASK.md`: starter lifecycle task graph.
+- `skills/*/SKILL.md`: portable development and lifecycle skill contracts
+  referenced by agents and tasks.
 - `primitives/registry.json`: local primitive catalog and future adapter mapping.
-- `.paperclip.yaml`: non-secret runtime hints for routines and import mapping.
 - `scripts/validate_company_package.py`: local package validator.
 
 ## Runtime Boundary
@@ -54,13 +69,14 @@ Allowed now:
 - edit package files
 - validate package completeness
 - map lifecycle stages to tasks and routines
-- keep primitive registry aligned with the browser-native runtime
+- keep primitive registry aligned with the operator-console runtime
+- run the OpenClaw-first lifecycle package locally
+- inspect the public-safe operator UI sample from the repository root
 
 Approval-gated later:
 
-- Paperclip import into a live server
 - OpenClaw gateway pairing
 - adding gateway URLs or gateway credentials
 - paid Livepeer/PymtHouse jobs
-- public outreach or external sends
+- public marketing or external sends
 - funding, top-ups, swaps, or production deploys

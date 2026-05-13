@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -24,8 +25,10 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         summary = validator.validate_package(PACKAGE_ROOT)
 
         self.assertEqual(summary.slug, "weave")
+        self.assertEqual(summary.version, "2026.05.13")
         self.assertEqual(summary.agent_count, 6)
-        self.assertEqual(summary.task_count, 6)
+        self.assertEqual(summary.task_count, 9)
+        self.assertEqual(summary.skill_count, 11)
         self.assertEqual(summary.primitive_count, 9)
 
     def test_openclaw_is_the_only_ceo(self) -> None:
@@ -36,17 +39,42 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(ceos[0]["slug"], "ceo-openclaw")
         self.assertEqual(ceos[0]["adapterType"], "openclaw_gateway")
 
-    def test_paperclip_extension_uses_openclaw_gateway_agents(self) -> None:
-        validator.validate_paperclip_extension(PACKAGE_ROOT)
+    def test_company_declares_openclaw_solo_runtime(self) -> None:
+        fields = validator.validate_company(PACKAGE_ROOT)
+
+        self.assertEqual(fields["runtime"], "openclaw-solo")
+        self.assertEqual(fields["version"], "2026.05.13")
+        self.assertEqual(fields["releaseDate"], "2026-05-13")
+        self.assertEqual(fields["releaseTag"], "v2026.05.13")
+
+    def test_repo_version_file_matches_company(self) -> None:
+        fields = validator.validate_company(PACKAGE_ROOT)
+        version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+
+        self.assertEqual(version, fields["version"])
+
+    def test_agent_skill_references_are_shipped(self) -> None:
+        skills = validator.validate_skills(PACKAGE_ROOT)
+        agents = validator.validate_agents(PACKAGE_ROOT, skills)
+
+        self.assertIn("engineering-execution", skills)
+        self.assertIn("security-release-review", skills)
+        for agent in agents:
+            path = PACKAGE_ROOT / "agents" / agent["slug"] / "AGENTS.md"
+            for skill in validator.parse_sequence_field(path, "skills"):
+                self.assertIn(skill, skills)
 
     def test_lifecycle_dependencies_are_ordered(self) -> None:
         tasks = {task["slug"]: task for task in validator.validate_tasks(PACKAGE_ROOT)}
 
-        self.assertEqual(tasks["engineering-first-primitive"]["dependsOn"], "research-gate")
+        self.assertEqual(tasks["research-gate"]["dependsOn"], "intent-contract")
+        self.assertEqual(tasks["selection-gate"]["dependsOn"], "research-gate")
+        self.assertEqual(tasks["plan-gate"]["dependsOn"], "selection-gate")
+        self.assertEqual(tasks["engineering-first-primitive"]["dependsOn"], "plan-gate")
         self.assertEqual(tasks["qa-runtime-readiness"]["dependsOn"], "engineering-first-primitive")
-        self.assertEqual(tasks["outreach-distribution-gate"]["dependsOn"], "qa-runtime-readiness")
-        self.assertEqual(tasks["kpi-analytics-loop"]["dependsOn"], "outreach-distribution-gate")
-        self.assertEqual(tasks["iteration-from-analytics"]["dependsOn"], "kpi-analytics-loop")
+        self.assertEqual(tasks["kpi-setup-gate"]["dependsOn"], "qa-runtime-readiness")
+        self.assertEqual(tasks["marketing-gate"]["dependsOn"], "kpi-setup-gate")
+        self.assertEqual(tasks["iteration-from-analytics"]["dependsOn"], "marketing-gate")
 
     def test_validator_rejects_host_specific_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -59,6 +87,18 @@ class WeaveCompanyPackageTests(unittest.TestCase):
 
             with self.assertRaises(validator.PackageValidationError):
                 validator.scan_forbidden_text(root)
+
+    def test_public_operator_ui_sample_is_instantiable(self) -> None:
+        ui_root = REPO_ROOT / "operator-ui"
+        for name in ("index.html", "styles.css", "app.js", "sample-runtime.json"):
+            self.assertTrue((ui_root / name).exists(), name)
+
+        sample = json.loads((ui_root / "sample-runtime.json").read_text(encoding="utf-8"))
+        self.assertEqual(sample["runtime"]["name"], "OpenClaw solo")
+        self.assertEqual(sample["runtime"]["releaseVersion"], "2026.05.13")
+        self.assertEqual(sample["runtime"]["externalRuntimeBoundary"], "public-safe dry-run")
+        self.assertEqual(sample["apps"][0]["currentStage"], "marketing")
+        self.assertIn("approval", sample["apps"][0]["blocker"]["title"].lower())
 
 
 if __name__ == "__main__":

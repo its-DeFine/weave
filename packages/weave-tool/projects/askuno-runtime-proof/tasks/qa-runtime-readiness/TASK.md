@@ -4,7 +4,7 @@ kind: task
 slug: qa-runtime-readiness
 name: QA Runtime Readiness
 assignee: qa
-project: live-visual-studio
+project: askuno-runtime-proof
 lifecycleStage: qa-readiness
 priority: high
 dependsOn: engineering-first-primitive
@@ -22,3 +22,4 @@ Acceptance:
 - visual evidence exists when UI changed
 - unavailable live-pipeline stages are emitted as unavailable
 - no Livepeer runtime proof is claimed without real output evidence
+- release verdict names passed, blocked, deferred, or owner-required state

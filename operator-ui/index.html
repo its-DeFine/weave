@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WEAVE Operator UI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">WEAVE runtime</p>
+          <h1>Operator console</h1>
+        </div>
+        <div class="runtime-state">
+          <span></span>
+          <strong data-runtime-name>Loading</strong>
+        </div>
+      </header>
+
+      <section class="grid">
+        <aside class="apps">
+          <div class="section-head">
+            <h2>Apps</h2>
+            <small data-app-count>0</small>
+          </div>
+          <div data-app-list></div>
+        </aside>
+
+        <section class="workspace">
+          <div class="workspace-head">
+            <div>
+              <p class="eyebrow">Selected app</p>
+              <h2 data-app-name>Loading</h2>
+            </div>
+            <span class="status-pill" data-app-status>--</span>
+          </div>
+
+          <ol class="stage-track" data-stage-track></ol>
+
+          <section class="blocker" data-blocker>
+            <p class="eyebrow">Active blocker</p>
+            <h3 data-blocker-title>None</h3>
+            <p data-blocker-body>No blocker loaded.</p>
+            <dl>
+              <div>
+                <dt>Waiting on</dt>
+                <dd data-blocker-waiting>--</dd>
+              </div>
+              <div>
+                <dt>Next action</dt>
+                <dd data-blocker-next>--</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="panels">
+            <article>
+              <div class="section-head">
+                <h2>KPI snapshot</h2>
+                <small>public-safe</small>
+              </div>
+              <ol class="kv-list" data-kpis></ol>
+            </article>
+
+            <article>
+              <div class="section-head">
+                <h2>Evidence</h2>
+                <small>references</small>
+              </div>
+              <ol class="kv-list" data-evidence></ol>
+            </article>
+          </section>
+        </section>
+
+        <aside class="agent">
+          <div class="section-head">
+            <h2>Runtime messages</h2>
+            <small>append-only</small>
+          </div>
+          <ol class="message-list" data-messages></ol>
+          <form data-message-form>
+            <textarea data-message-text rows="4" placeholder="Draft a runtime message"></textarea>
+            <button type="submit">Draft message</button>
+          </form>
+          <pre data-command-preview></pre>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

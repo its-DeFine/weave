@@ -1,16 +1,25 @@
 # WEAVE Month 1 Overview
 
-Month 1 is the runtime-first version of WEAVE. The goal is to get to a real working application path quickly, using the agent as the main operator of the lifecycle and using existing Livepeer workloads as the substrate.
+Month 1 is the lifecycle-first version of WEAVE. The goal is to get to a real working application path quickly, using an execution runtime to do the work and WEAVE to guide the lifecycle, evidence, gates, approvals, KPIs, and iteration history.
 
 This is the low-hanging-fruit path. It keeps operating costs low, lets the application be offered cheaply, and aligns the runtime with orchestrator benefit.
 
-The current delivery target is **Friday 2026-05-01**. If needed, the delivery window can slip by one additional week to **Friday 2026-05-08**.
+As of **Saturday 2026-05-09**, the Month 1 work is in evidence packaging and
+review mode after the Friday 2026-05-08 delivery window.
+
+## Runtime authority
+
+The active Month 1 runtime operator is OpenClaw. The operator-facing lifecycle
+surface should make OpenClaw's app selection, lifecycle stage state, agent
+activity, evidence paths, and approval gates visible.
 
 ## What Month 1 delivers
 
-### M1-D1. The WEAVE tool
+Live KPI dashboard: <https://atumera.com/kpis>.
 
-The WEAVE tool is the open-source capability layer. It should be able to support the full application lifecycle end to end.
+### M1-D1. The WEAVE tool and method
+
+The WEAVE tool is the lifecycle wrapper for agent-run product work. It should be able to support the full application lifecycle end to end while keeping stage state, evidence, review gates, owner approvals, KPI signals, and iteration history visible.
 
 That means it should be able to:
 - study existing Livepeer pipelines and understand what they can do
@@ -18,22 +27,27 @@ That means it should be able to:
 - identify viable applications from those primitives
 - engineer applications on top of existing Livepeer workloads
 - QA those applications
-- generate and run outreach workflows
+- set KPI capture before marketing starts
+- generate marketing workflows
 - collect KPI and feedback data
 - support iteration from the resulting evidence
 
-In practical terms, Month 1 should leave behind a real open-source tool, not a placeholder shell, with tests that show the lifecycle capabilities actually work.
+In practical terms, Month 1 should leave behind a clear lifecycle contract, stage model, gate model, evidence model, owner approval model, and Askuno worked example.
 
-### M1-D2. The WEAVE runtime
+### M1-D2. Runtime proof
 
-The WEAVE runtime is the deployed realization of the tool.
+The execution runtime performs the work. WEAVE wraps that runtime with a state machine, evidence ledger, review gates, and public KPI reporting.
 
 Month 1 should deliver:
-- a deployed runtime
 - a website or hosted runtime surface
+- OpenClaw as the execution runtime
+- an operator lifecycle surface backed by runtime evidence
 - at least one real application
-- authentic outreach run by the agent
-- a real payment path inside the runtime
+- engineering and QA evidence attached to lifecycle stages
+- KPI setup and marketing evidence tracked honestly
+- review gates marked as passed, blocked, deferred, or owner-required
+
+Current Askuno URL state: the app is live at <https://askuno.app>.
 
 ### M1-D3. Public KPI reporting
 
@@ -43,7 +57,7 @@ That reporting should cover:
 - what applications were researched and selected
 - what was built
 - what passed QA
-- what outreach happened
+- what marketing or distribution work happened
 - what real usage or payment evidence exists
 - what changed based on the resulting evidence
 
@@ -59,6 +73,8 @@ It gives WEAVE:
 
 For the economics model behind that claim, see [Orchestrator Economics](orchestrator-economics.md).
 For the public accountability boundary, see [Program Transparency](program-transparency.md).
+For the lifecycle contract, see [WEAVE Lifecycle Contract v0](weave-lifecycle-contract-v0.md).
+For the agent runtime contract, see [WEAVE Agent Operating Contract v0](weave-agent-operating-contract-v0.md).
 
 ## Governance and timing
 
@@ -69,5 +85,7 @@ Month 2 is intentionally not fixed yet. Month 1 will be reviewed first, and Mont
 ## Related document
 
 - [Application Lifecycle Summary](app-lifecycle.md)
+- [WEAVE Lifecycle Contract v0](weave-lifecycle-contract-v0.md)
+- [WEAVE Agent Operating Contract v0](weave-agent-operating-contract-v0.md)
 - [Orchestrator Economics](orchestrator-economics.md)
 - [Program Transparency](program-transparency.md)

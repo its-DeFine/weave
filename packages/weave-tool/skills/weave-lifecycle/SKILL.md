@@ -5,14 +5,48 @@ description: Operate the WEAVE application lifecycle in stage order with explici
 
 # WEAVE Lifecycle
 
+## Use When
+
 Use this skill when operating a WEAVE company, project, or task.
 
-Rules:
+## Inputs
 
-- Research unlocks Engineering.
+- target app
+- current lifecycle stage
+- prior stage evidence
+- open gates
+- owner constraints
+
+## Outputs
+
+- current stage verdict
+- next stage or blocker
+- evidence requirement
+- approval requirement
+- overwrite record when returning to an earlier stage
+
+## Rules
+
+- Intent unlocks Research.
+- Research unlocks Selection.
+- Selection unlocks Plan.
+- Plan unlocks Engineering.
 - Engineering unlocks QA.
-- QA unlocks Outreach and Distribution.
-- Outreach and Distribution unlock KPI collection.
-- KPI evidence unlocks Iteration.
+- QA unlocks KPI Setup.
+- KPI Setup unlocks Marketing.
+- Marketing and KPI evidence unlock Iteration.
 - Missing live stages must be emitted as unavailable or omitted with a reason.
 - Approval-gated actions must stop before execution.
+- Returning to an earlier stage requires an overwrite record that names the
+  reason and affected downstream stages.
+
+## Stop Conditions
+
+- A requested stage skip lacks evidence.
+- A stage regression lacks an overwrite record.
+- A public or external action lacks owner approval.
+
+## Verification
+
+The stage state is valid when the dependency chain, evidence, and next review
+action are all explicit.

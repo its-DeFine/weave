@@ -2,19 +2,19 @@
 schema: agentcompanies/v1
 kind: task
 slug: research-gate
-name: Research Gate For Live Visual Studio
+name: Research Gate For Askuno Runtime Proof
 assignee: research
-project: live-visual-studio
+project: askuno-runtime-proof
 lifecycleStage: research-analysis
 priority: high
-dependsOn: none
+dependsOn: intent-contract
 recurring: false
 evidenceRequired: market-analysis
 ---
 
-# Research Gate For Live Visual Studio
+# Research Gate For Askuno Runtime Proof
 
-Confirm that Live Visual Studio is still the single admitted first application.
+Confirm that Askuno Runtime Proof is still the single admitted first application.
 
 Acceptance:
 
@@ -23,3 +23,4 @@ Acceptance:
 - competitor and pricing evidence are summarized
 - primitive fit mapping exists
 - admit or park decision is explicit
+- evidence packet records assumptions and missing questions

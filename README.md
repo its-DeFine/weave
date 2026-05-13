@@ -3,21 +3,40 @@
 ![WEAVE runtime hero](assets/weave-hero.png)
 
 WEAVE is a runtime and agent-company package for building applications from
-realtime media primitives.
+agent-run product lifecycle work.
+
+## Quickstart
+
+Clone the repo and follow [docs/quickstart.md](docs/quickstart.md) to validate
+the package, run the test suite, and execute a lifecycle dry-run — no API keys
+or network access required.
+
+## Version
+
+Current public package version: `2026.05.13`.
+Intended release tag: `v2026.05.13`.
+
+## Missions
+
+A WEAVE mission is a scoped unit of work dispatched to an agent, tracked
+through the nine lifecycle stages, and settled with a credit grant on verified
+completion. See [docs/missions/MISSION_TEMPLATE.md](docs/missions/MISSION_TEMPLATE.md)
+for the mission format, required fields, and a worked example.
 
 The current release shape is deliberately narrow:
 
-- WEAVE is a standalone repository, not a Paperclip fork.
-- Paperclip is the upstream company control plane dependency.
-- OpenClaw is the runtime agent dependency.
+- WEAVE is a standalone repository.
+- OpenClaw is the active runtime and CEO agent dependency.
 - WEAVE supplies the company package, lifecycle, primitives, adapter boundaries,
-  and validation tests.
+  agent skill contracts, and validation tests.
 
 ## Repository Layout
 
 ```text
 docs/                  Public documentation and replication architecture.
-packages/weave-tool/   Paperclip-compatible WEAVE company package.
+operator-ui/           Public-safe local operator console sample.
+packages/weave-tool/   OpenClaw-first WEAVE company package.
+scripts/               Local validation, smoke, and UI serving scripts.
 tests/                 Public-safe validation tests.
 ```
 
@@ -35,12 +54,20 @@ Run the public-safe test suite:
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
+Run the lifecycle and operator UI smoke:
+
+```bash
+python3 scripts/runtime_smoke.py
+```
+
 Expected package shape:
 
 ```text
 valid WEAVE company package: weave
+version: 2026.05.13
 agents: 6
-tasks: 6
+tasks: 9
+skills: 11
 primitives: 9
 ```
 
@@ -51,29 +78,43 @@ WEAVE is packaged as an importable AI-operated company:
 ```text
 WEAVE repo
   -> packages/weave-tool
-  -> Paperclip company import
-  -> openclaw_gateway adapter
+  -> operator-ui
   -> OpenClaw CEO/runtime agent
-  -> WEAVE lifecycle tasks and primitives
+  -> WEAVE lifecycle tasks, skills, and primitives
 ```
+
+The operator UI is a static public-safe console that reads
+`operator-ui/sample-runtime.json`. Run it locally with:
+
+```bash
+python3 scripts/run_operator_ui.py
+```
+
+This proves a local instantiation path for the lifecycle console. It does not
+claim that a VM service, hosted runtime, paid model route, or production
+deployment is installed.
 
 The first lifecycle is:
 
-1. Research.
-2. Engineering.
-3. QA.
-4. Outreach and distribution.
-5. KPI and analytics.
-6. Iteration.
+1. Intent.
+2. Research.
+3. Selection.
+4. Plan.
+5. Engineering.
+6. QA.
+7. KPI Setup.
+8. Marketing.
+9. Iteration.
 
-Engineering starts only after Research admits one opportunity.
+Research starts only after Intent is explicit. Engineering starts only after
+Selection and Plan are recorded.
 
 ## Boundaries
 
 This repository intentionally does not include:
 
 - private WEAVE operating substrate
-- treasury, Safe, payment, funding, or accounting material
+- private payment, custody, funding, or accounting material
 - VM, SSH, VPN, private-network, or host-specific proof details
 - API keys, gateway tokens, OAuth tokens, private keys, or seed material
 - generated private proof logs

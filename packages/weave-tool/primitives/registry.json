@@ -1,89 +1,89 @@
 {
   "schema": "weave/primitives/v0.1",
-  "application": "live-visual-studio",
-  "runtimeMode": "local-browser-first",
-  "futureAdapterTarget": "live-video-to-video",
+  "application": "askuno-runtime-proof",
+  "runtimeMode": "operator-console-first",
+  "futureAdapterTarget": "livepeer-app-lifecycle",
   "primitives": [
     {
-      "id": "signal-field",
-      "name": "Signal Field",
-      "lifecycleStage": "engineering-integration",
-      "pipelineIntent": "runtime-telemetry",
+      "id": "intent-contract",
+      "name": "Intent Contract",
+      "lifecycleStage": "intent",
+      "pipelineIntent": "lifecycle-state",
       "availability": "local-runtime",
-      "customerUse": "Shows that the app is alive and reactive before any media pipeline runs.",
-      "futureAdapterMapping": "Map gateway heartbeat and availability telemetry into visual field behavior."
+      "customerUse": "Names the target user, app intent, authority boundary, and truthful proof standard.",
+      "futureAdapterMapping": "Can later initialize a terminal skill or hosted operator session."
     },
     {
-      "id": "pulse-core",
-      "name": "Pulse Core",
-      "lifecycleStage": "engineering-integration",
-      "pipelineIntent": "visual-mixing",
+      "id": "research-brief",
+      "name": "Research Brief",
+      "lifecycleStage": "research-analysis",
+      "pipelineIntent": "evidence-capture",
       "availability": "local-runtime",
-      "customerUse": "Shows decisive state changes such as job accepted, output ready, or approval pending.",
-      "futureAdapterMapping": "Map job and payment-ticket state into pulse events after live gateway proof."
+      "customerUse": "Records demand, infrastructure, pricing, competitors, and risks before selection.",
+      "futureAdapterMapping": "Can later pull approved sources and runtime telemetry into the brief."
     },
     {
-      "id": "braid-lattice",
-      "name": "Braid Lattice",
-      "lifecycleStage": "engineering-integration",
-      "pipelineIntent": "visual-mixing",
+      "id": "selection-record",
+      "name": "Selection Record",
+      "lifecycleStage": "selection",
+      "pipelineIntent": "decision-record",
       "availability": "local-runtime",
-      "customerUse": "Composes multiple visual streams for comparison or layered creative direction.",
-      "futureAdapterMapping": "Map candidate pipelines, sinks, or style branches into lattice strands."
+      "customerUse": "Explains why one application wedge is selected and what alternatives are deferred.",
+      "futureAdapterMapping": "Can later feed owner review and public reporting."
     },
     {
-      "id": "focus-lens",
-      "name": "Focus Lens",
+      "id": "execution-plan",
+      "name": "Execution Plan",
+      "lifecycleStage": "plan",
+      "pipelineIntent": "task-planning",
+      "availability": "local-runtime",
+      "customerUse": "Turns the selected wedge into bounded engineering, QA, KPI setup, marketing, and review tasks.",
+      "futureAdapterMapping": "Can later dispatch task packets to approved execution lanes."
+    },
+    {
+      "id": "engineering-evidence",
+      "name": "Engineering Evidence",
+      "lifecycleStage": "engineering-integration",
+      "pipelineIntent": "implementation-proof",
+      "availability": "local-runtime",
+      "customerUse": "Links implementation work, changed files, command output, and claim limits.",
+      "futureAdapterMapping": "Can later attach pull requests, deployment logs, or workload outputs."
+    },
+    {
+      "id": "qa-result",
+      "name": "QA Result",
       "lifecycleStage": "qa-readiness",
-      "pipelineIntent": "qa-review-loop",
+      "pipelineIntent": "quality-gate",
       "availability": "local-runtime",
-      "customerUse": "Creates a calmer review state for operator approval and QA.",
-      "futureAdapterMapping": "Map QA pass or fail, reviewer notes, and claim limits into review state."
+      "customerUse": "Records tests, live checks, failure cases, and readiness judgment.",
+      "futureAdapterMapping": "Can later attach browser checks, API checks, and payment-path checks."
     },
     {
-      "id": "palette-drift",
-      "name": "Palette Drift",
-      "lifecycleStage": "engineering-integration",
-      "pipelineIntent": "realtime-style-transfer",
-      "availability": "adapter-ready",
-      "customerUse": "Turns creative intent changes into visible palette shifts.",
-      "futureAdapterMapping": "Map model, capability, or output classification into palette selection."
-    },
-    {
-      "id": "latency-tide",
-      "name": "Latency Tide",
-      "lifecycleStage": "kpi-feedback",
-      "pipelineIntent": "runtime-telemetry",
+      "id": "kpi-setup",
+      "name": "KPI Setup",
+      "lifecycleStage": "kpi-setup",
+      "pipelineIntent": "metric-definition",
       "availability": "local-runtime",
-      "customerUse": "Makes runtime performance legible through tempo and density.",
-      "futureAdapterMapping": "Map measured gateway latency and timeout state into visible tempo changes."
+      "customerUse": "Defines public and private metrics before marketing starts.",
+      "futureAdapterMapping": "Can later bind aggregate app metrics to a public dashboard."
     },
     {
-      "id": "review-gate",
-      "name": "Review Gate",
-      "lifecycleStage": "qa-readiness",
-      "pipelineIntent": "qa-review-loop",
+      "id": "marketing-plan",
+      "name": "Marketing Plan",
+      "lifecycleStage": "marketing",
+      "pipelineIntent": "distribution-support",
+      "availability": "owner-gated",
+      "customerUse": "Prepares audience, channel, message angle, KPI capture path, and approval state.",
+      "futureAdapterMapping": "Can later create approved ads, posts, or distribution tasks."
+    },
+    {
+      "id": "iteration-record",
+      "name": "Iteration Record",
+      "lifecycleStage": "iteration",
+      "pipelineIntent": "learning-loop",
       "availability": "local-runtime",
-      "customerUse": "Marks when an app is waiting for evidence or owner approval before promotion.",
-      "futureAdapterMapping": "Map funded-job approval, accounting receipt, and output evidence into gate state."
-    },
-    {
-      "id": "motion-mask",
-      "name": "Motion Mask",
-      "lifecycleStage": "engineering-integration",
-      "pipelineIntent": "motion-reactive-overlay",
-      "availability": "local-runtime",
-      "customerUse": "Turns movement intent into a mask-like control signal for browser effects.",
-      "futureAdapterMapping": "Map frame-difference or segmentation output into mask density."
-    },
-    {
-      "id": "style-transfer-plane",
-      "name": "Style Transfer Plane",
-      "lifecycleStage": "engineering-integration",
-      "pipelineIntent": "live-video-to-video",
-      "availability": "adapter-ready",
-      "customerUse": "Provides the browser-side control plane for future live video-to-video style transforms.",
-      "futureAdapterMapping": "Replace local shader controls with gateway job parameters after proof."
+      "customerUse": "Records what changed because of QA, KPI, marketing, feedback, or payment evidence.",
+      "futureAdapterMapping": "Can later restart the lifecycle from new evidence."
     }
   ]
 }

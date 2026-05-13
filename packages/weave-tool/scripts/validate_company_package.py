@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Validate the WEAVE Paperclip-compatible company package.
+"""Validate the WEAVE OpenClaw-first company package.
 
 The validator intentionally avoids third-party YAML dependencies. It checks the
 small portable subset used by the package frontmatter and validates the runtime
-boundaries that matter before Paperclip import.
+boundaries that matter before local runtime use.
 """
 
 from __future__ import annotations
@@ -16,21 +16,46 @@ from pathlib import Path
 
 
 REQUIRED_STAGES = [
+    "intent",
     "research-analysis",
+    "selection",
+    "plan",
     "engineering-integration",
     "qa-readiness",
-    "outreach-distribution",
-    "kpi-feedback",
+    "kpi-setup",
+    "marketing",
     "iteration",
 ]
 
 REQUIRED_DEPENDENCIES = {
-    "engineering-first-primitive": "research-gate",
+    "research-gate": "intent-contract",
+    "selection-gate": "research-gate",
+    "plan-gate": "selection-gate",
+    "engineering-first-primitive": "plan-gate",
     "qa-runtime-readiness": "engineering-first-primitive",
-    "outreach-distribution-gate": "qa-runtime-readiness",
-    "kpi-analytics-loop": "outreach-distribution-gate",
-    "iteration-from-analytics": "kpi-analytics-loop",
+    "kpi-setup-gate": "qa-runtime-readiness",
+    "marketing-gate": "kpi-setup-gate",
+    "iteration-from-analytics": "marketing-gate",
 }
+
+REQUIRED_SKILLS = {
+    "codebase-orientation",
+    "implementation-planning",
+    "engineering-execution",
+    "qa-verification",
+    "security-release-review",
+    "evidence-packet",
+    "runtime-bridge",
+    "weave-lifecycle",
+    "primitive-market-research",
+    "lifecycle-runtime-builder",
+    "livepeer-adapter-boundary",
+}
+
+EXPECTED_VERSION = "2026.05.13"
+EXPECTED_RELEASE_DATE = "2026-05-13"
+EXPECTED_RELEASE_TAG = "v2026.05.13"
+EXPECTED_RELEASE_CHANNEL = "public-d1"
 
 ABSOLUTE_PATH_PATTERN = r"(?:/" + "Users/|/" + "home/|/" + "var/lib/|/" + "tmp/)"
 LOOPBACK_PATTERN = r"\b(?:" + r"127\.0\.0\.1|" + "local" + "host|" + "host" + r"\.docker\.internal)\b"
@@ -52,8 +77,10 @@ class PackageValidationError(Exception):
 @dataclass(frozen=True)
 class PackageSummary:
     slug: str
+    version: str
     agent_count: int
     task_count: int
+    skill_count: int
     primitive_count: int
 
 
@@ -82,6 +109,31 @@ def parse_frontmatter(path: Path) -> dict[str, str]:
     return fields
 
 
+def parse_sequence_field(path: Path, key: str) -> list[str]:
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"):
+        raise PackageValidationError(f"{path}: missing frontmatter")
+    try:
+        block = text.split("---\n", 2)[1]
+    except IndexError as exc:
+        raise PackageValidationError(f"{path}: malformed frontmatter") from exc
+
+    lines = block.splitlines()
+    try:
+        start = lines.index(f"{key}:")
+    except ValueError:
+        return []
+
+    values: list[str] = []
+    for line in lines[start + 1 :]:
+        if line.startswith("  - "):
+            values.append(line.split("- ", 1)[1].strip())
+            continue
+        if line and not line.startswith(" "):
+            break
+    return values
+
+
 def scan_forbidden_text(package_root: Path) -> None:
     for path in package_root.rglob("*"):
         if not path.is_file():
@@ -107,10 +159,45 @@ def validate_company(package_root: Path) -> dict[str, str]:
         raise PackageValidationError("COMPANY.md kind must be company")
     if fields.get("slug") != "weave":
         raise PackageValidationError("COMPANY.md slug must be weave")
+    if fields.get("version") != EXPECTED_VERSION:
+        raise PackageValidationError(f"COMPANY.md version must be {EXPECTED_VERSION}")
+    if fields.get("releaseDate") != EXPECTED_RELEASE_DATE:
+        raise PackageValidationError(f"COMPANY.md releaseDate must be {EXPECTED_RELEASE_DATE}")
+    if fields.get("releaseTag") != EXPECTED_RELEASE_TAG:
+        raise PackageValidationError(f"COMPANY.md releaseTag must be {EXPECTED_RELEASE_TAG}")
+    if fields.get("releaseChannel") != EXPECTED_RELEASE_CHANNEL:
+        raise PackageValidationError(f"COMPANY.md releaseChannel must be {EXPECTED_RELEASE_CHANNEL}")
+    if fields.get("runtime") != "openclaw-solo":
+        raise PackageValidationError("COMPANY.md runtime must be openclaw-solo")
     return fields
 
 
-def validate_agents(package_root: Path) -> list[dict[str, str]]:
+def validate_skills(package_root: Path) -> set[str]:
+    skill_paths = sorted((package_root / "skills").glob("*/SKILL.md"))
+    if not skill_paths:
+        raise PackageValidationError("at least one skill is required")
+
+    skill_slugs: set[str] = set()
+    for path in skill_paths:
+        fields = parse_frontmatter(path)
+        slug = path.parent.name
+        if fields.get("name") != slug:
+            raise PackageValidationError(f"{path}: skill name must match directory {slug}")
+        if not fields.get("description"):
+            raise PackageValidationError(f"{path}: skill description is required")
+        text = path.read_text(encoding="utf-8")
+        for heading in ("## Use When", "## Inputs", "## Outputs", "## Rules", "## Stop Conditions", "## Verification"):
+            if heading not in text:
+                raise PackageValidationError(f"{path}: missing {heading}")
+        skill_slugs.add(slug)
+
+    missing = sorted(REQUIRED_SKILLS - skill_slugs)
+    if missing:
+        raise PackageValidationError(f"missing required skills: {', '.join(missing)}")
+    return skill_slugs
+
+
+def validate_agents(package_root: Path, skill_slugs: set[str] | None = None) -> list[dict[str, str]]:
     agent_paths = sorted((package_root / "agents").glob("*/AGENTS.md"))
     if not agent_paths:
         raise PackageValidationError("at least one agent is required")
@@ -126,6 +213,13 @@ def validate_agents(package_root: Path) -> list[dict[str, str]]:
         if slug in slugs:
             raise PackageValidationError(f"duplicate agent slug: {slug}")
         slugs.add(slug)
+        skills = parse_sequence_field(path, "skills")
+        if not skills:
+            raise PackageValidationError(f"{path}: at least one skill is required")
+        if skill_slugs is not None:
+            unknown = sorted(set(skills) - skill_slugs)
+            if unknown:
+                raise PackageValidationError(f"{path}: unknown skills: {', '.join(unknown)}")
         if fields.get("reportsTo") == "null":
             ceos.append(fields)
         elif fields.get("reportsTo") not in slugs and fields.get("reportsTo") != "ceo-openclaw":
@@ -191,59 +285,9 @@ def validate_primitives(package_root: Path) -> int:
     ids = [item.get("id") for item in primitives if isinstance(item, dict)]
     if len(ids) != len(set(ids)):
         raise PackageValidationError("primitive ids must be unique")
-    if data.get("application") != "live-visual-studio":
-        raise PackageValidationError("primitive registry must target live-visual-studio")
+    if data.get("application") != "askuno-runtime-proof":
+        raise PackageValidationError("primitive registry must target askuno-runtime-proof")
     return len(primitives)
-
-
-def validate_paperclip_extension(package_root: Path) -> None:
-    extension_path = package_root / ".paperclip.yaml"
-    if not extension_path.exists():
-        raise PackageValidationError(".paperclip.yaml is required")
-    text = extension_path.read_text(encoding="utf-8")
-    required_lines = [
-        "schema: paperclip/v1",
-        "preferredCeoAgent: ceo-openclaw",
-        "preferredAdapterType: openclaw_gateway",
-        "containsSecrets: false",
-        "containsGatewayEndpoint: false",
-        "containsHostSpecificPaths: false",
-    ]
-    for line in required_lines:
-        if line not in text:
-            raise PackageValidationError(f".paperclip.yaml missing {line}")
-    lines = text.splitlines()
-    try:
-        agents_start = lines.index("agents:")
-    except ValueError as exc:
-        raise PackageValidationError(".paperclip.yaml missing agents section") from exc
-    agents_end = next(
-        (
-            index
-            for index in range(agents_start + 1, len(lines))
-            if lines[index] and not lines[index].startswith(" ")
-        ),
-        len(lines),
-    )
-    agent_lines = lines[agents_start:agents_end]
-    for slug in ("ceo-openclaw", "research", "engineering", "qa", "growth", "analytics"):
-        try:
-            slug_start = agent_lines.index(f"  {slug}:")
-        except ValueError as exc:
-            raise PackageValidationError(f".paperclip.yaml missing agents.{slug}") from exc
-        slug_end = next(
-            (
-                index
-                for index in range(slug_start + 1, len(agent_lines))
-                if agent_lines[index].startswith("  ") and not agent_lines[index].startswith("    ")
-            ),
-            len(agent_lines),
-        )
-        slug_block = agent_lines[slug_start:slug_end]
-        if "    adapter:" not in slug_block or "      type: openclaw_gateway" not in slug_block:
-            raise PackageValidationError(
-                f".paperclip.yaml must set agents.{slug}.adapter.type to openclaw_gateway"
-            )
 
 
 def validate_package(package_root: Path) -> PackageSummary:
@@ -252,14 +296,16 @@ def validate_package(package_root: Path) -> PackageSummary:
         raise PackageValidationError(f"package root does not exist: {package_root}")
     scan_forbidden_text(root)
     company = validate_company(root)
-    agents = validate_agents(root)
+    skill_slugs = validate_skills(root)
+    agents = validate_agents(root, skill_slugs)
     tasks = validate_tasks(root)
     primitive_count = validate_primitives(root)
-    validate_paperclip_extension(root)
     return PackageSummary(
         slug=company["slug"],
+        version=company["version"],
         agent_count=len(agents),
         task_count=len(tasks),
+        skill_count=len(skill_slugs),
         primitive_count=primitive_count,
     )
 
@@ -274,8 +320,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(f"valid WEAVE company package: {summary.slug}")
+    print(f"version: {summary.version}")
     print(f"agents: {summary.agent_count}")
     print(f"tasks: {summary.task_count}")
+    print(f"skills: {summary.skill_count}")
     print(f"primitives: {summary.primitive_count}")
     return 0
 

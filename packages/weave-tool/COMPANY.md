@@ -3,48 +3,54 @@ schema: agentcompanies/v1
 kind: company
 slug: weave
 name: WEAVE
-description: AI-operated application business that turns realtime media primitives into usable products.
-version: 0.1.0
+description: AI-operated application business that turns agent-run product lifecycle work into usable products.
+version: "2026.05.13"
+releaseDate: "2026-05-13"
+releaseTag: "v2026.05.13"
+releaseChannel: public-d1
 license: MIT
 homepage: https://github.com/its-DeFine/weave
+runtime: openclaw-solo
 goals:
   - Build commercially viable WEAVE applications through the lifecycle.
-  - Start with Live Visual Studio using browser-native primitives.
+  - Start with Askuno Runtime Proof using lifecycle evidence primitives.
   - Preserve a clean future swap path to Livepeer-native pipelines.
 requirements:
   secrets:
-    - paperclip_openclaw_gateway_credentials
     - livepeer_gateway_credentials
 metadata:
-  lifecycle: weave-six-stage
-  primaryRuntime: paperclip-company
+  lifecycle: weave-nine-stage
+  primaryRuntime: openclaw-solo
   ceoAgent: ceo-openclaw
 ---
 
 # WEAVE
 
-WEAVE is an AI-operated business runtime for creating applications from realtime
-media primitives.
+WEAVE is an AI-operated business runtime for guiding agent-run product work
+from intent to shipped application with evidence, gates, KPI setup, marketing,
+and iteration tracked as first-class state.
 
 The company operates in lifecycle order:
 
 1. Research and analysis.
-2. Engineering and commercial integration.
-3. QA and readiness.
-4. Outreach and distribution.
-5. KPI, feedback, and interpretation.
-6. Iteration.
+2. Selection.
+3. Plan.
+4. Engineering and commercial integration.
+5. QA and readiness.
+6. KPI setup and public/reporting instrumentation.
+7. Marketing and distribution.
+8. Iteration.
 
-OpenClaw is the CEO agent for this package. Paperclip supplies the company
-control plane: tasks, routines, approvals, budgets, activity, and org structure.
-WEAVE supplies the business logic: primitives, lifecycle gates, application
-selection, evidence contracts, and future Livepeer adapter boundaries.
+OpenClaw is the CEO agent and active runtime for this package. WEAVE supplies
+the business logic: primitives, lifecycle gates, application selection,
+evidence contracts, agent skill contracts, command-bus boundaries, and future
+Livepeer adapter boundaries.
 
 ## Current Mission
 
-Create the first controlled WEAVE application from the admitted Research gate:
-Live Visual Studio.
+Replay the first controlled WEAVE application proof through the lifecycle:
+Askuno Runtime Proof.
 
-The first implementation remains browser-native. Future Livepeer gateway or
-PymtHouse jobs must be connected only after a separate approval and evidence
-gate.
+The first implementation is a lifecycle wrapper and review surface around
+Askuno. Future Livepeer gateway, payment, or compute-warrant adapters must be
+connected only after a separate approval and evidence gate.

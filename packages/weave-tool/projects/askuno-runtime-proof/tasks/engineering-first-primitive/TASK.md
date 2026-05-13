@@ -4,22 +4,23 @@ kind: task
 slug: engineering-first-primitive
 name: Engineer First Primitive Runtime
 assignee: engineering
-project: live-visual-studio
+project: askuno-runtime-proof
 lifecycleStage: engineering-integration
 priority: high
-dependsOn: research-gate
+dependsOn: plan-gate
 recurring: false
 evidenceRequired: local-runtime-proof
 ---
 
-# Engineer First Primitive Runtime
+# Engineer Askuno Runtime Proof
 
-Build or improve the browser-native primitive runtime for the admitted Live
-Visual Studio application.
+Build or improve the local Askuno lifecycle proof surface and runtime evidence
+contracts.
 
 Acceptance:
 
 - runtime artifact exists
-- selected primitives map to future pipeline intent
+- selected primitives map to lifecycle evidence intent
 - local build or smoke command passes
 - claim limits are visible in the artifact
+- changed files and validation commands are recorded

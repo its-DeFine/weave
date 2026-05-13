@@ -1,12 +1,34 @@
 # WEAVE Application Lifecycle Summary
 
-WEAVE is built around a six-stage application lifecycle.
+WEAVE is built around an application lifecycle for agent-run product work.
 
-The important point is that this lifecycle is primarily operated by the agent. Humans can remain in the loop for steering, review, and approval-gated actions, but the runtime is meant to perform the actual work of researching, building, QAing, distributing, reading feedback, and iterating.
+The important point is that WEAVE is the lifecycle wrapper, not the execution
+runtime itself. OpenClaw and approved local execution tools do the actual
+work. WEAVE tracks the target, stage, plan, evidence, review gates, owner
+approvals, KPI signals, and iteration history around that work.
 
-## Stage 1. Research and analysis
+For Month 1, the active runtime operator is OpenClaw. The lifecycle console
+should expose OpenClaw's selected app, lifecycle stage state, agent activity,
+evidence paths, and owner approval gates.
 
-Purpose: understand the Livepeer capability surface and the market opportunity surface well enough to identify viable applications.
+For the formal lifecycle contract, see [WEAVE Lifecycle Contract v0](weave-lifecycle-contract-v0.md).
+For the runtime agent behavior contract, see [WEAVE Agent Operating Contract v0](weave-agent-operating-contract-v0.md).
+
+## Stage 1. Intent
+
+Purpose: define the product target, user, constraints, authority boundary, and
+owner goal before the runtime starts changing code or publishing work.
+
+This includes:
+- who the application is for
+- what problem or workflow it targets
+- what external actions are approval-gated
+- what counts as a truthful proof
+
+## Stage 2. Research
+
+Purpose: understand the Livepeer capability surface and the market opportunity
+surface well enough to identify viable applications.
 
 This includes:
 - mapping existing pipelines and what they can do
@@ -19,9 +41,31 @@ Primitive note:
 - a stacked primitive layers multiple pipelines in the same path or modality
 - a coordinated primitive uses multiple pipelines together across different paths or modalities inside the same application behavior
 
-## Stage 2. Engineering and commercial integration
+## Stage 3. Selection
 
-Purpose: compose the chosen pipelines into a working application and wire the payment and orchestrator flow correctly.
+Purpose: choose the simplest shippable application wedge and state why it is
+being selected now.
+
+This includes:
+- selecting one application target
+- naming deferred alternatives
+- recording the smallest credible proof path
+- recording known risks or missing data
+
+## Stage 4. Plan
+
+Purpose: translate the selected application into scoped runtime work.
+
+This includes:
+- tasks and done criteria
+- review gates
+- approval boundaries
+- evidence expected from the runtime
+
+## Stage 5. Engineering
+
+Purpose: compose the chosen pipelines into a working application and wire the
+payment, credit, or orchestrator flow correctly where that is in scope.
 
 This includes:
 - using the relevant existing pipelines correctly
@@ -29,7 +73,7 @@ This includes:
 - implementing user payment flow and orchestrator routing
 - connecting the runtime to the hosted or documented product surface as needed
 
-## Stage 3. QA and readiness
+## Stage 6. QA
 
 Purpose: test the built application, identify issues, and determine whether it is ready for user exposure.
 
@@ -40,39 +84,45 @@ This includes:
 - failure-case QA
 - readiness judgment
 
-## Stage 4. Outreach and distribution
+## Stage 7. KPI Setup
 
-Purpose: put the application in front of real consumers through a repeatable workflow.
-
-This includes:
-- creating the outreach workflow
-- having the agent operate that workflow as the primary actor
-- advertising or distributing to target consumers in a controlled way
-- keeping human review or approval only where a boundary is intentionally retained
-
-## Stage 5. KPI, feedback, and interpretation
-
-Purpose: read market truth from usage, public KPIs, analytics, and customer responses.
+Purpose: define what will be measured before marketing or distribution starts.
 
 This includes:
-- tracking public KPIs
-- collecting analytics and customer feedback
-- interpreting whether the problem is product, market, pricing, onboarding, quality, or positioning
+- naming the KPI source or reporting surface
+- defining public and private metrics
+- recording omissions when analytics are not yet available
+- setting the interpretation rule for usage, credits, payments, quality,
+  onboarding, positioning, or market fit
 
-## Stage 6. Iteration
+## Stage 8. Marketing
+
+Purpose: put the application in front of real consumers through a controlled,
+reviewable workflow.
+
+This includes:
+- creating the marketing workflow
+- having the agent operate draft, research, or distribution-support work where
+  approved
+- advertising or distributing to target users in a controlled way
+- keeping human review or approval where a boundary is intentionally retained
+
+## Stage 9. Iteration
 
 Purpose: improve or redirect the product based on real-world evidence.
 
 This includes:
 - making engineering changes
 - re-QAing the changed system
-- returning to outreach or earlier stages as needed
+- returning to marketing or earlier stages as needed
 - rejecting, pausing, or reframing when evidence justifies
 
-## Tool versus runtime
+## Wrapper versus execution runtime
 
 This distinction matters:
-- the WEAVE tool is the open-source capability layer and should be able to support all six lifecycle stages
-- the WEAVE runtime is the deployed realization of that same capability layer, where the lifecycle becomes actualized against real users, real applications, real outreach, real analytics, and real iteration
+- the execution runtime does the work
+- the WEAVE wrapper guides the lifecycle, records evidence, exposes gates, and
+  reports public KPIs
+- the application output is the shipped product, starting with Askuno in Month 1
 
-The tool and the runtime are not two unrelated products. The runtime is the live expression of the tool.
+These are related layers, but they should not be collapsed into one object.

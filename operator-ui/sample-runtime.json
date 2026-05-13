@@ -1,0 +1,59 @@
+{
+  "schema": "weave-operator-ui-sample/v0.1",
+  "runtime": {
+    "name": "OpenClaw solo",
+    "releaseVersion": "2026.05.13",
+    "mode": "local dry-run",
+    "externalRuntimeBoundary": "public-safe dry-run",
+    "claimLimits": [
+      "no secrets",
+      "no paid calls",
+      "no external sends",
+      "no VM service claim"
+    ]
+  },
+  "apps": [
+    {
+      "id": "askuno",
+      "name": "Askuno runtime proof",
+      "status": "Marketing approval pending",
+      "currentStage": "marketing",
+      "summary": "KPI setup is complete; marketing waits for an approved campaign plan and evidence capture path.",
+      "stages": [
+        { "id": "intent", "name": "Intent", "state": "done" },
+        { "id": "research", "name": "Research", "state": "done" },
+        { "id": "selection", "name": "Selection", "state": "done" },
+        { "id": "plan", "name": "Plan", "state": "done" },
+        { "id": "engineering", "name": "Engineering", "state": "done" },
+        { "id": "qa", "name": "QA", "state": "done" },
+        { "id": "kpi", "name": "KPI Setup", "state": "done" },
+        { "id": "marketing", "name": "Marketing", "state": "blocked" },
+        { "id": "iteration", "name": "Iteration", "state": "next" }
+      ],
+      "blocker": {
+        "title": "Marketing waits for approval",
+        "body": "The runtime should record marketing work only after the owner approves the channel, message, and evidence capture.",
+        "waitingOn": "Campaign approval and distribution channel confirmation",
+        "nextAction": "Record a marketing command after approval, then attach campaign evidence."
+      },
+      "kpis": [
+        { "label": "KPI setup", "value": "complete" },
+        { "label": "Public reporting", "value": "defined" },
+        { "label": "Marketing", "value": "blocked" },
+        { "label": "Runtime", "value": "OpenClaw solo" }
+      ],
+      "evidence": [
+        { "label": "Lifecycle contract", "path": "docs/month1/weave-lifecycle-contract-v0.md" },
+        { "label": "Agent contract", "path": "docs/month1/weave-agent-operating-contract-v0.md" },
+        { "label": "Askuno project", "path": "packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md" },
+        { "label": "Runtime smoke", "path": "scripts/runtime_smoke.py" }
+      ],
+      "messages": [
+        {
+          "sender": "WEAVE Runtime",
+          "text": "KPI setup is complete. Marketing remains pending until the campaign approval record exists."
+        }
+      ]
+    }
+  ]
+}

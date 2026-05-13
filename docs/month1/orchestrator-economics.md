@@ -59,7 +59,7 @@ The structure is better because the runtime is not trying to capture a large com
 The orchestrator should get:
 - real users paying for real applications built on Livepeer workloads
 - more value from the same underlying inference path
-- a runtime that handles much of the product, outreach, and iteration burden
+- a runtime that handles much of the product, marketing, and iteration burden
 - clearer public reporting about what the system is doing
 
 The point is not just to route work to orchestrators. The point is to route more of the economic value of that work toward them.
