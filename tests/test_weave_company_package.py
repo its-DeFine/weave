@@ -25,7 +25,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         summary = validator.validate_package(PACKAGE_ROOT)
 
         self.assertEqual(summary.slug, "weave")
-        self.assertEqual(summary.version, "2026.05.13")
+        self.assertEqual(summary.version, "2026.05.13-console")
         self.assertEqual(summary.agent_count, 6)
         self.assertEqual(summary.task_count, 9)
         self.assertEqual(summary.skill_count, 11)
@@ -43,9 +43,9 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         fields = validator.validate_company(PACKAGE_ROOT)
 
         self.assertEqual(fields["runtime"], "openclaw-solo")
-        self.assertEqual(fields["version"], "2026.05.13")
+        self.assertEqual(fields["version"], "2026.05.13-console")
         self.assertEqual(fields["releaseDate"], "2026-05-13")
-        self.assertEqual(fields["releaseTag"], "v2026.05.13")
+        self.assertEqual(fields["releaseTag"], "v2026.05.13-console")
 
     def test_repo_version_file_matches_company(self) -> None:
         fields = validator.validate_company(PACKAGE_ROOT)
@@ -94,11 +94,17 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             self.assertTrue((ui_root / name).exists(), name)
 
         sample = json.loads((ui_root / "sample-runtime.json").read_text(encoding="utf-8"))
+        self.assertEqual(sample["schema"], "weave-operator-ui-sample/v0.2")
         self.assertEqual(sample["runtime"]["name"], "OpenClaw solo")
-        self.assertEqual(sample["runtime"]["releaseVersion"], "2026.05.13")
+        self.assertEqual(sample["runtime"]["releaseVersion"], "2026.05.13-console")
         self.assertEqual(sample["runtime"]["externalRuntimeBoundary"], "public-safe dry-run")
+        self.assertGreaterEqual(len(sample["apps"]), 3)
         self.assertEqual(sample["apps"][0]["currentStage"], "marketing")
         self.assertIn("approval", sample["apps"][0]["blocker"]["title"].lower())
+        self.assertEqual(
+            {card["id"] for card in sample["apps"][0]["workCards"]},
+            {"plan", "review", "execute"},
+        )
 
 
 if __name__ == "__main__":

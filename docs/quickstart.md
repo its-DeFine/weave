@@ -20,7 +20,7 @@ Expected output:
 
 ```text
 valid WEAVE company package: weave
-version: 2026.05.13
+version: 2026.05.13-console
 agents: 6
 tasks: 9
 skills: 11
@@ -60,7 +60,7 @@ WEAVE lifecycle stages:
   9. Iteration
 
 valid WEAVE company package: weave
-version: 2026.05.13
+version: 2026.05.13-console
 agents: 6
 tasks: 9
 skills: 11
@@ -85,6 +85,11 @@ Then open the printed local URL in a browser. The UI loads
 `operator-ui/sample-runtime.json`, shows the Askuno runtime-proof lifecycle, and
 shows the public-safe runtime boundary. This is a public-safe local
 instantiation path, not a claim that a VM service is installed.
+
+The static console includes an app selector, draft app creation, lifecycle
+stage track, runtime-agent message drafts, Plan/Review/Execute cards, blocker
+map, evidence binder, open decisions, KPI snapshot, and command preview. All
+commands stay as local previews.
 
 To validate the UI files without starting a server:
 

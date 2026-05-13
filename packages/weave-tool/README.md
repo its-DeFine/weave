@@ -7,8 +7,8 @@ CEO agent: OpenClaw
 This directory packages WEAVE as an AI-operated business that can be imported
 or translated into an agent runtime.
 
-Current public package version: `2026.05.13`.
-Intended release tag: `v2026.05.13`.
+Current public package version: `2026.05.13-console`.
+Intended release tag: `v2026.05.13-console`.
 
 The package keeps three layers separate:
 
@@ -43,7 +43,7 @@ Expected output:
 
 ```text
 valid WEAVE company package: weave
-version: 2026.05.13
+version: 2026.05.13-console
 agents: 6
 tasks: 9
 skills: 11

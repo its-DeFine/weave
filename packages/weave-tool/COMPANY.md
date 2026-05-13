@@ -4,10 +4,10 @@ kind: company
 slug: weave
 name: WEAVE
 description: AI-operated application business that turns agent-run product lifecycle work into usable products.
-version: "2026.05.13"
+version: "2026.05.13-console"
 releaseDate: "2026-05-13"
-releaseTag: "v2026.05.13"
-releaseChannel: public-d1
+releaseTag: "v2026.05.13-console"
+releaseChannel: public-d1-console
 license: MIT
 homepage: https://github.com/its-DeFine/weave
 runtime: openclaw-solo

@@ -30,20 +30,45 @@ def main() -> int:
             print(f"missing: {path.relative_to(REPO_ROOT)}", file=sys.stderr)
         return 1
 
+    index = (UI_ROOT / "index.html").read_text(encoding="utf-8")
+    app_js = (UI_ROOT / "app.js").read_text(encoding="utf-8")
+    for marker in (
+        "data-create-form",
+        "data-stage-track",
+        "data-work-card=\"plan\"",
+        "data-work-card=\"review\"",
+        "data-work-card=\"execute\"",
+        "data-evidence-list",
+        "data-decision-list",
+        "data-kpi-list",
+        "data-command-list",
+        "data-chat-log",
+        "data-command-preview",
+    ):
+        if marker not in index:
+            print(f"operator UI missing marker: {marker}", file=sys.stderr)
+            return 1
+    if "weave-agent-command-draft/v0.1" not in app_js:
+        print("operator UI app must draft runtime command records", file=sys.stderr)
+        return 1
+
     data = json.loads((UI_ROOT / "sample-runtime.json").read_text(encoding="utf-8"))
     runtime = data.get("runtime", {})
     apps = data.get("apps", [])
+    if data.get("schema") != "weave-operator-ui-sample/v0.2":
+        print("operator UI sample must use schema weave-operator-ui-sample/v0.2", file=sys.stderr)
+        return 1
     if runtime.get("name") != "OpenClaw solo":
         print("operator UI sample must identify OpenClaw solo runtime", file=sys.stderr)
         return 1
-    if runtime.get("releaseVersion") != "2026.05.13":
-        print("operator UI sample must identify release version 2026.05.13", file=sys.stderr)
+    if runtime.get("releaseVersion") != "2026.05.13-console":
+        print("operator UI sample must identify release version 2026.05.13-console", file=sys.stderr)
         return 1
     if runtime.get("externalRuntimeBoundary") != "public-safe dry-run":
         print("operator UI sample must declare the public runtime boundary", file=sys.stderr)
         return 1
-    if not apps:
-        print("operator UI sample must include at least one app", file=sys.stderr)
+    if len(apps) < 3:
+        print("operator UI sample must include at least three app examples", file=sys.stderr)
         return 1
 
     app = apps[0]
@@ -57,6 +82,13 @@ def main() -> int:
         return 1
     if "approval" not in app.get("blocker", {}).get("title", "").lower():
         print("operator UI sample should explain the marketing approval gate", file=sys.stderr)
+        return 1
+    for key in ("workCards", "evidence", "decisions", "kpis", "commands", "chat"):
+        if not app.get(key):
+            print(f"operator UI sample app must include {key}", file=sys.stderr)
+            return 1
+    if {card.get("id") for card in app.get("workCards", [])} != {"plan", "review", "execute"}:
+        print("operator UI sample must include plan/review/execute cards", file=sys.stderr)
         return 1
 
     print("operator-ui smoke: ok")

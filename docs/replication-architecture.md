@@ -10,8 +10,8 @@ WEAVE is a standalone agent-company package and runtime toolkit operated by
 OpenClaw. WEAVE supplies the business lifecycle, agent roles, primitives,
 tasks, evidence contracts, and future Livepeer adapter boundaries.
 
-The current public package version is `2026.05.13`, intended to be tagged as
-`v2026.05.13`.
+The current public package version is `2026.05.13-console`, intended to be
+tagged as `v2026.05.13-console`.
 
 The current architecture is:
 
@@ -112,7 +112,7 @@ Expected shape:
 
 ```text
 valid WEAVE company package: weave
-version: 2026.05.13
+version: 2026.05.13-console
 agents: 6
 tasks: 9
 skills: 11

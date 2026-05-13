@@ -52,10 +52,10 @@ REQUIRED_SKILLS = {
     "livepeer-adapter-boundary",
 }
 
-EXPECTED_VERSION = "2026.05.13"
+EXPECTED_VERSION = "2026.05.13-console"
 EXPECTED_RELEASE_DATE = "2026-05-13"
-EXPECTED_RELEASE_TAG = "v2026.05.13"
-EXPECTED_RELEASE_CHANNEL = "public-d1"
+EXPECTED_RELEASE_TAG = "v2026.05.13-console"
+EXPECTED_RELEASE_CHANNEL = "public-d1-console"
 
 ABSOLUTE_PATH_PATTERN = r"(?:/" + "Users/|/" + "home/|/" + "var/lib/|/" + "tmp/)"
 LOOPBACK_PATTERN = r"\b(?:" + r"127\.0\.0\.1|" + "local" + "host|" + "host" + r"\.docker\.internal)\b"

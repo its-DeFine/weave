@@ -1,58 +1,220 @@
 {
-  "schema": "weave-operator-ui-sample/v0.1",
+  "schema": "weave-operator-ui-sample/v0.2",
   "runtime": {
     "name": "OpenClaw solo",
-    "releaseVersion": "2026.05.13",
+    "releaseVersion": "2026.05.13-console",
     "mode": "local dry-run",
+    "bridgeLabel": "Public sample bridge",
     "externalRuntimeBoundary": "public-safe dry-run",
     "claimLimits": [
       "no secrets",
       "no paid calls",
       "no external sends",
-      "no VM service claim"
+      "no VM service claim",
+      "command drafts are local previews"
     ]
   },
   "apps": [
     {
       "id": "askuno",
-      "name": "Askuno runtime proof",
+      "name": "Askuno Runtime Proof",
       "status": "Marketing approval pending",
+      "tone": "review",
       "currentStage": "marketing",
       "summary": "KPI setup is complete; marketing waits for an approved campaign plan and evidence capture path.",
+      "task": "Review the campaign plan and prepare public-safe distribution evidence.",
+      "owner": "WEAVE operator",
+      "runtime": "OpenClaw solo",
+      "productionUrl": "https://askuno.app",
+      "publicKpiUrl": "https://atumera.com/kpis",
       "stages": [
-        { "id": "intent", "name": "Intent", "state": "done" },
-        { "id": "research", "name": "Research", "state": "done" },
-        { "id": "selection", "name": "Selection", "state": "done" },
-        { "id": "plan", "name": "Plan", "state": "done" },
-        { "id": "engineering", "name": "Engineering", "state": "done" },
-        { "id": "qa", "name": "QA", "state": "done" },
-        { "id": "kpi", "name": "KPI Setup", "state": "done" },
-        { "id": "marketing", "name": "Marketing", "state": "blocked" },
-        { "id": "iteration", "name": "Iteration", "state": "next" }
+        { "id": "intent", "name": "Intent", "state": "done", "summary": "Target and authority set" },
+        { "id": "research", "name": "Research", "state": "done", "summary": "Wedge admitted" },
+        { "id": "selection", "name": "Selection", "state": "done", "summary": "Askuno selected" },
+        { "id": "plan", "name": "Plan", "state": "done", "summary": "Checks scoped" },
+        { "id": "engineering", "name": "Engineering", "state": "done", "summary": "Package shipped" },
+        { "id": "qa", "name": "QA", "state": "done", "summary": "Local checks pass" },
+        { "id": "kpi", "name": "KPI Setup", "state": "done", "summary": "Public surface defined" },
+        { "id": "marketing", "name": "Marketing", "state": "current", "summary": "Approval pending" },
+        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Wait for evidence" }
       ],
       "blocker": {
+        "stage": "marketing",
         "title": "Marketing waits for approval",
-        "body": "The runtime should record marketing work only after the owner approves the channel, message, and evidence capture.",
+        "reason": "The runtime should record marketing work only after the owner approves the channel, message, and evidence capture.",
         "waitingOn": "Campaign approval and distribution channel confirmation",
-        "nextAction": "Record a marketing command after approval, then attach campaign evidence."
+        "nextAction": "Draft a marketing command, review it, then attach campaign evidence after approval."
       },
-      "kpis": [
-        { "label": "KPI setup", "value": "complete" },
-        { "label": "Public reporting", "value": "defined" },
-        { "label": "Marketing", "value": "blocked" },
-        { "label": "Runtime", "value": "OpenClaw solo" }
+      "workCards": [
+        {
+          "id": "plan",
+          "title": "A. Plan",
+          "done": 4,
+          "total": 4,
+          "items": ["Lifecycle contract", "Agent operating contract", "KPI capture path", "Approval boundary"]
+        },
+        {
+          "id": "review",
+          "title": "B. Review",
+          "done": 3,
+          "total": 4,
+          "items": ["Public repo", "Console sample", "Secret scan", "Campaign approval"]
+        },
+        {
+          "id": "execute",
+          "title": "C. Execute",
+          "done": 2,
+          "total": 4,
+          "items": ["Runtime smoke", "UI smoke", "Approved campaign", "Iteration record"]
+        }
       ],
       "evidence": [
-        { "label": "Lifecycle contract", "path": "docs/month1/weave-lifecycle-contract-v0.md" },
-        { "label": "Agent contract", "path": "docs/month1/weave-agent-operating-contract-v0.md" },
-        { "label": "Askuno project", "path": "packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md" },
-        { "label": "Runtime smoke", "path": "scripts/runtime_smoke.py" }
+        { "label": "Lifecycle contract", "path": "docs/month1/weave-lifecycle-contract-v0.md", "scope": "public", "stage": "Plan" },
+        { "label": "Agent contract", "path": "docs/month1/weave-agent-operating-contract-v0.md", "scope": "public", "stage": "Plan" },
+        { "label": "Askuno project", "path": "packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md", "scope": "public", "stage": "Selection" },
+        { "label": "Runtime smoke", "path": "scripts/runtime_smoke.py", "scope": "public", "stage": "QA" },
+        { "label": "Public app", "path": "https://askuno.app", "scope": "public", "stage": "QA" },
+        { "label": "Public KPI surface", "path": "https://atumera.com/kpis", "scope": "public", "stage": "KPI Setup" }
       ],
-      "messages": [
+      "decisions": [
         {
-          "sender": "WEAVE Runtime",
-          "text": "KPI setup is complete. Marketing remains pending until the campaign approval record exists."
+          "label": "D1 package published",
+          "status": "accepted",
+          "evidence": "VERSION",
+          "note": "The public runtime package has a date-versioned release."
+        },
+        {
+          "label": "Campaign plan approval",
+          "status": "owner_required",
+          "evidence": "operator-ui command draft",
+          "note": "Marketing remains approval-gated until campaign details are reviewed."
+        },
+        {
+          "label": "D2 runtime proof",
+          "status": "deferred",
+          "evidence": "public package only",
+          "note": "The package is D1. D2 needs separate runtime execution evidence."
         }
+      ],
+      "kpis": [
+        { "label": "KPI setup", "value": "complete", "delta": "public surface defined" },
+        { "label": "Public reporting", "value": "ready", "delta": "aggregate only" },
+        { "label": "Marketing", "value": "approval pending", "delta": "no external send" },
+        { "label": "Runtime package", "value": "2026.05.13-console", "delta": "local sample" }
+      ],
+      "commands": [
+        { "id": "draft-marketing-review", "title": "request_owner_approval", "status": "Draft", "stage": "marketing" },
+        { "id": "record-kpi-surface", "title": "record_evidence", "status": "Completed", "stage": "kpi" }
+      ],
+      "chat": [
+        {
+          "role": "agent",
+          "label": "WEAVE Runtime",
+          "text": "KPI setup is complete. Marketing remains pending until the campaign approval record exists.",
+          "time": "sample"
+        }
+      ]
+    },
+    {
+      "id": "compute-warrants",
+      "name": "Compute Warrants App",
+      "status": "Intent draft",
+      "tone": "draft",
+      "currentStage": "intent",
+      "summary": "Future WEAVE app concept for capacity-style compute workflows.",
+      "task": "Write the intent contract and define the public proof boundary.",
+      "owner": "WEAVE operator",
+      "runtime": "OpenClaw solo",
+      "stages": [
+        { "id": "intent", "name": "Intent", "state": "current", "summary": "Drafting" },
+        { "id": "research", "name": "Research", "state": "next", "summary": "Pending" },
+        { "id": "selection", "name": "Selection", "state": "next", "summary": "Pending" },
+        { "id": "plan", "name": "Plan", "state": "next", "summary": "Pending" },
+        { "id": "engineering", "name": "Engineering", "state": "next", "summary": "Pending" },
+        { "id": "qa", "name": "QA", "state": "next", "summary": "Pending" },
+        { "id": "kpi", "name": "KPI Setup", "state": "next", "summary": "Pending" },
+        { "id": "marketing", "name": "Marketing", "state": "next", "summary": "Pending" },
+        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Pending" }
+      ],
+      "blocker": {
+        "stage": "intent",
+        "title": "Intent contract needed",
+        "reason": "The app is only a draft until target users, constraints, and approval gates are recorded.",
+        "waitingOn": "Operator intent review",
+        "nextAction": "Ask the runtime for an intent packet."
+      },
+      "workCards": [
+        { "id": "plan", "title": "A. Plan", "done": 1, "total": 4, "items": ["Name users", "State offer", "Define constraints", "Set checks"] },
+        { "id": "review", "title": "B. Review", "done": 0, "total": 3, "items": ["Owner review", "Claim limits", "Evidence refs"] },
+        { "id": "execute", "title": "C. Execute", "done": 0, "total": 3, "items": ["Create tasks", "Run QA", "Publish evidence"] }
+      ],
+      "evidence": [
+        { "label": "Lifecycle contract", "path": "docs/month1/weave-lifecycle-contract-v0.md", "scope": "public", "stage": "Intent" },
+        { "label": "Agent contract", "path": "docs/month1/weave-agent-operating-contract-v0.md", "scope": "public", "stage": "Intent" }
+      ],
+      "decisions": [
+        { "label": "Admit to Research", "status": "owner_required", "evidence": "operator-ui draft", "note": "Needs intent review before Research." }
+      ],
+      "kpis": [
+        { "label": "KPI setup", "value": "not started", "delta": "blocked by Intent" },
+        { "label": "Public reporting", "value": "not started", "delta": "pending" }
+      ],
+      "commands": [
+        { "id": "draft-intent", "title": "brief_stage_context", "status": "Draft", "stage": "intent" }
+      ],
+      "chat": [
+        { "role": "agent", "label": "WEAVE Runtime", "text": "This app is a public-safe draft. Start with Intent.", "time": "sample" }
+      ]
+    },
+    {
+      "id": "livepeer-tooling-demo",
+      "name": "Livepeer Tooling Demo",
+      "status": "Research draft",
+      "tone": "draft",
+      "currentStage": "research",
+      "summary": "A future demo for lifecycle-guided Livepeer app development.",
+      "task": "Map available capabilities and select the smallest public-safe wedge.",
+      "owner": "WEAVE operator",
+      "runtime": "OpenClaw solo",
+      "stages": [
+        { "id": "intent", "name": "Intent", "state": "done", "summary": "Demo target named" },
+        { "id": "research", "name": "Research", "state": "current", "summary": "Capability mapping" },
+        { "id": "selection", "name": "Selection", "state": "next", "summary": "Pending" },
+        { "id": "plan", "name": "Plan", "state": "next", "summary": "Pending" },
+        { "id": "engineering", "name": "Engineering", "state": "next", "summary": "Pending" },
+        { "id": "qa", "name": "QA", "state": "next", "summary": "Pending" },
+        { "id": "kpi", "name": "KPI Setup", "state": "next", "summary": "Pending" },
+        { "id": "marketing", "name": "Marketing", "state": "next", "summary": "Pending" },
+        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Pending" }
+      ],
+      "blocker": {
+        "stage": "research",
+        "title": "Research evidence needed",
+        "reason": "The app should not enter Selection until capability, pricing, and target user evidence exist.",
+        "waitingOn": "Research packet",
+        "nextAction": "Ask the runtime to compile capability and market evidence."
+      },
+      "workCards": [
+        { "id": "plan", "title": "A. Plan", "done": 2, "total": 4, "items": ["Intent", "Research scope", "Selection criteria", "QA checks"] },
+        { "id": "review", "title": "B. Review", "done": 1, "total": 3, "items": ["Source quality", "Opportunity score", "Claim limits"] },
+        { "id": "execute", "title": "C. Execute", "done": 0, "total": 3, "items": ["Select wedge", "Build sample", "Verify"] }
+      ],
+      "evidence": [
+        { "label": "Primitive registry", "path": "packages/weave-tool/primitives/registry.json", "scope": "public", "stage": "Research" },
+        { "label": "Market research skill", "path": "packages/weave-tool/skills/primitive-market-research/SKILL.md", "scope": "public", "stage": "Research" }
+      ],
+      "decisions": [
+        { "label": "Select first wedge", "status": "deferred", "evidence": "research packet", "note": "Selection waits for stronger research evidence." }
+      ],
+      "kpis": [
+        { "label": "Research", "value": "draft", "delta": "source list needed" },
+        { "label": "Selection", "value": "pending", "delta": "no app claim yet" }
+      ],
+      "commands": [
+        { "id": "draft-research", "title": "request_research", "status": "Draft", "stage": "research" }
+      ],
+      "chat": [
+        { "role": "agent", "label": "WEAVE Runtime", "text": "Research is active. Selection remains gated by evidence.", "time": "sample" }
       ]
     }
   ]

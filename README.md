@@ -13,8 +13,8 @@ or network access required.
 
 ## Version
 
-Current public package version: `2026.05.13`.
-Intended release tag: `v2026.05.13`.
+Current public package version: `2026.05.13-console`.
+Intended release tag: `v2026.05.13-console`.
 
 ## Missions
 
@@ -64,7 +64,7 @@ Expected package shape:
 
 ```text
 valid WEAVE company package: weave
-version: 2026.05.13
+version: 2026.05.13-console
 agents: 6
 tasks: 9
 skills: 11
@@ -93,6 +93,11 @@ python3 scripts/run_operator_ui.py
 This proves a local instantiation path for the lifecycle console. It does not
 claim that a VM service, hosted runtime, paid model route, or production
 deployment is installed.
+
+The console includes an app selector, draft app creation, lifecycle stage
+track, runtime-agent message drafts, Plan/Review/Execute cards, blocker map,
+evidence binder, open decisions, KPI snapshot, and command preview. It uses
+sample data only and performs no network writes.
 
 The first lifecycle is:
 
