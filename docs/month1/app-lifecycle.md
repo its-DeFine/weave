@@ -107,15 +107,28 @@ This includes:
 - advertising or distributing to target users in a controlled way
 - keeping human review or approval where a boundary is intentionally retained
 
-## Stage 9. Iteration
+## Parallel Growth Loop. Iteration
 
-Purpose: improve or redirect the product based on real-world evidence.
+Purpose: improve or redirect the product while Marketing is live, based on
+real-world evidence.
 
 This includes:
 - making engineering changes
+- deploying the changed system
 - re-QAing the changed system
-- returning to marketing or earlier stages as needed
+- returning to earlier stages as needed
 - rejecting, pausing, or reframing when evidence justifies
+
+## Parallel Growth Loop. Analysis
+
+Purpose: read analytics and feedback as they arrive and turn them into the next
+iteration recommendation.
+
+This includes:
+- summarizing usage, onboarding, payment, quality, or campaign signals
+- separating public aggregate metrics from private operational metrics
+- recommending continue, change, park, or reject
+- naming the evidence that justifies the next implementation pass
 
 ## Wrapper versus execution runtime
 

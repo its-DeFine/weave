@@ -35,7 +35,7 @@ REQUIRED_DEPENDENCIES = {
     "qa-runtime-readiness": "engineering-first-primitive",
     "kpi-setup-gate": "qa-runtime-readiness",
     "marketing-gate": "kpi-setup-gate",
-    "iteration-from-analytics": "marketing-gate",
+    "iteration-from-analytics": "kpi-setup-gate",
 }
 
 REQUIRED_SKILLS = {

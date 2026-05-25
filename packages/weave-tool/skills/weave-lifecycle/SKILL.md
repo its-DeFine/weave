@@ -34,7 +34,8 @@ Use this skill when operating a WEAVE company, project, or task.
 - Engineering unlocks QA.
 - QA unlocks KPI Setup.
 - KPI Setup unlocks Marketing.
-- Marketing and KPI evidence unlock Iteration.
+- KPI Setup also unlocks the local Iteration and Analysis growth loop under
+  Marketing.
 - Missing live stages must be emitted as unavailable or omitted with a reason.
 - Approval-gated actions must stop before execution.
 - Returning to an earlier stage requires an overwrite record that names the

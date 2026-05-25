@@ -7,8 +7,9 @@ const stageOrder = [
   "qa",
   "kpi",
   "marketing",
-  "iteration",
 ];
+
+const loopOrder = ["iteration", "analysis"];
 
 const controls = {
   runtimeName: document.querySelector("[data-runtime-name]"),
@@ -29,6 +30,7 @@ const controls = {
   metaOwner: document.querySelector("[data-meta-owner]"),
   metaVersion: document.querySelector("[data-meta-version]"),
   stageTrack: document.querySelector("[data-stage-track]"),
+  iterationLoop: document.querySelector("[data-iteration-loop]"),
   currentStageIcon: document.querySelector("[data-current-stage-icon]"),
   currentTask: document.querySelector("[data-current-task]"),
   currentSummary: document.querySelector("[data-current-summary]"),
@@ -148,6 +150,7 @@ function render() {
 
   controls.appList.innerHTML = filteredApps().map(renderAppCard).join("");
   controls.stageTrack.innerHTML = stageOrder.map((stageId) => renderStage(app, stageId)).join("");
+  controls.iterationLoop.innerHTML = renderIterationLoop(app);
   controls.blockerMap.hidden = !app.blocker;
   controls.blockerMap.innerHTML = app.blocker ? renderBlocker(app) : "";
   Object.entries(controls.workCards).forEach(([kind, element]) => {
@@ -197,6 +200,12 @@ function createDraftApp(name, intent) {
       name: labelForStage(stage),
       state: index === 0 ? "current" : "next",
       summary: index === 0 ? intent : "Pending",
+    })),
+    iterationLoop: loopOrder.map((phase) => ({
+      id: phase,
+      name: labelForStage(phase),
+      state: "next",
+      summary: "Starts after KPI setup and marketing launch",
     })),
     blocker: {
       stage: "intent",
@@ -283,6 +292,30 @@ function renderStage(app, stageId) {
   `;
 }
 
+function renderIterationLoop(app) {
+  const phases = app.iterationLoop ?? loopOrder.map((phase) => ({
+    id: phase,
+    name: labelForStage(phase),
+    state: "next",
+    summary: "Pending",
+  }));
+  const items = phases.map((phase) => `
+    <li data-state="${escapeAttr(phase.state)}" data-loop-id="${escapeAttr(phase.id)}">
+      <strong>${escapeHtml(phase.name)}</strong>
+      <span>${escapeHtml(phase.summary)}</span>
+    </li>
+  `).join("");
+  return `
+    <div class="loop-connector" aria-hidden="true"></div>
+    <div class="loop-header">
+      <p class="eyebrow">Parallel growth loop</p>
+      <h2>Iteration and analysis run while Marketing is live</h2>
+      <span>Build and deploy improvements, read usage and feedback, then feed the next implementation pass.</span>
+    </div>
+    <ol class="loop-rail" aria-label="iteration and analysis loop">${items}</ol>
+  `;
+}
+
 function renderBlocker(app) {
   const blocker = app.blocker;
   return `
@@ -362,6 +395,7 @@ function labelForStage(stageId) {
     kpi: "KPI Setup",
     marketing: "Marketing",
     iteration: "Iteration",
+    analysis: "Analysis",
   };
   return labels[stageId] ?? stageId;
 }
@@ -371,6 +405,7 @@ function shortStage(stageId) {
   if (stageId === "selection") return "SEL";
   if (stageId === "marketing") return "MKT";
   if (stageId === "iteration") return "ITR";
+  if (stageId === "analysis") return "ANL";
   return labelForStage(stageId).slice(0, 3).toUpperCase();
 }
 

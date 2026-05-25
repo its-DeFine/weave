@@ -19,7 +19,7 @@ requirements:
   secrets:
     - livepeer_gateway_credentials
 metadata:
-  lifecycle: weave-nine-stage
+  lifecycle: weave-eight-stage-plus-growth-loop
   primaryRuntime: openclaw-solo
   ceoAgent: ceo-openclaw
 ---
@@ -28,7 +28,7 @@ metadata:
 
 WEAVE is an AI-operated business runtime for guiding agent-run product work
 from intent to shipped application with evidence, gates, KPI setup, marketing,
-and iteration tracked as first-class state.
+and a parallel iteration-analysis loop tracked as first-class state.
 
 The company operates in lifecycle order:
 
@@ -39,7 +39,11 @@ The company operates in lifecycle order:
 5. QA and readiness.
 6. KPI setup and public/reporting instrumentation.
 7. Marketing and distribution.
-8. Iteration.
+
+After KPI setup, the growth loop runs under Marketing instead of after it:
+
+- Iteration: implement feedback or arbitrary product improvements and deploy them.
+- Analysis: read analytics and feedback, then recommend the next iteration.
 
 OpenClaw is the CEO agent and active runtime for this package. WEAVE supplies
 the business logic: primitives, lifecycle gates, application selection,

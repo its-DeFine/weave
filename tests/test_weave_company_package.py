@@ -28,7 +28,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(summary.version, "2026.05.13-console")
         self.assertEqual(summary.agent_count, 6)
         self.assertEqual(summary.task_count, 9)
-        self.assertEqual(summary.skill_count, 11)
+        self.assertEqual(summary.skill_count, 12)
         self.assertEqual(summary.primitive_count, 9)
 
     def test_openclaw_is_the_only_ceo(self) -> None:
@@ -58,6 +58,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         agents = validator.validate_agents(PACKAGE_ROOT, skills)
 
         self.assertIn("engineering-execution", skills)
+        self.assertIn("runtime-app-attachment", skills)
         self.assertIn("security-release-review", skills)
         for agent in agents:
             path = PACKAGE_ROOT / "agents" / agent["slug"] / "AGENTS.md"
@@ -74,7 +75,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(tasks["qa-runtime-readiness"]["dependsOn"], "engineering-first-primitive")
         self.assertEqual(tasks["kpi-setup-gate"]["dependsOn"], "qa-runtime-readiness")
         self.assertEqual(tasks["marketing-gate"]["dependsOn"], "kpi-setup-gate")
-        self.assertEqual(tasks["iteration-from-analytics"]["dependsOn"], "marketing-gate")
+        self.assertEqual(tasks["iteration-from-analytics"]["dependsOn"], "kpi-setup-gate")
 
     def test_validator_rejects_host_specific_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -100,7 +101,16 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(sample["runtime"]["externalRuntimeBoundary"], "public-safe dry-run")
         self.assertGreaterEqual(len(sample["apps"]), 3)
         self.assertEqual(sample["apps"][0]["currentStage"], "marketing")
+        self.assertEqual(
+            [stage["id"] for stage in sample["apps"][0]["stages"]],
+            ["intent", "research", "selection", "plan", "engineering", "qa", "kpi", "marketing"],
+        )
+        self.assertEqual(
+            [phase["id"] for phase in sample["apps"][0]["iterationLoop"]],
+            ["iteration", "analysis"],
+        )
         self.assertIn("approval", sample["apps"][0]["blocker"]["title"].lower())
+        self.assertIn("parallel", sample["apps"][0]["summary"].lower())
         self.assertEqual(
             {card["id"] for card in sample["apps"][0]["workCards"]},
             {"plan", "review", "execute"},

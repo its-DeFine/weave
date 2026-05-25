@@ -57,7 +57,9 @@ WEAVE lifecycle stages:
   6. QA
   7. KPI Setup
   8. Marketing
-  9. Iteration
+Parallel growth loop:
+  A. Iteration
+  B. Analysis
 
 valid WEAVE company package: weave
 version: 2026.05.13-console
@@ -124,10 +126,16 @@ A full worked example with body text lives at
 
 ## 7. Lifecycle dry-run
 
-The nine lifecycle stages a mission passes through, in order:
+The main lifecycle stages a mission passes through, in order:
 
 ```text
-Intent → Research → Selection → Plan → Engineering → QA → KPI Setup → Marketing → Iteration
+Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing
+```
+
+After KPI Setup, the growth loop runs under Marketing:
+
+```text
+Iteration <-> Analysis
 ```
 
 Stage rules enforced by the package:
@@ -142,8 +150,8 @@ Stage rules enforced by the package:
   (`engineering-first-primitive` task).
 - KPI Setup starts only after QA clears readiness (`qa-runtime-readiness` task).
 - Marketing starts only after KPI Setup opens the gate (`kpi-setup-gate` task).
-- Iteration starts only after Marketing records the approved or omitted path
-  (`marketing-gate` task).
+- Iteration and Analysis start locally from KPI Setup and run while Marketing
+  gathers evidence (`iteration-from-analytics` task).
 
 To inspect the declared dependency graph:
 

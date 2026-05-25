@@ -37,10 +37,14 @@ WEAVE separates three layers:
 6. QA
 7. KPI Setup
 8. Marketing
-9. Iteration
 
-Each stage records a target, current state, evidence, gates, and the next
-review action.
+After KPI Setup, WEAVE also runs a parallel growth loop under Marketing:
+
+- Iteration
+- Analysis
+
+Each stage or loop phase records a target, current state, evidence, gates, and
+the next review action.
 
 Stage changes should be append-only in evidence. Returning to an earlier stage
 requires an overwrite record that names the reason and affected downstream
@@ -62,7 +66,10 @@ Stage outputs:
   monetization-path metrics before marketing starts.
 - Marketing records docs, ads, onboarding, publication, or approved
   distribution actions.
-- Iteration records what changed because of the evidence.
+- Iteration records what changed because of feedback, QA, usage, payment, or
+  marketing evidence.
+- Analysis records the analytics and feedback interpretation that recommends
+  the next iteration.
 
 ## Review Gates
 
@@ -134,5 +141,5 @@ contract and a convincing replay.
 
 The historical Askuno proof ledger used eight implementation-oriented local
 check categories. For reporting and future work those categories map into the
-nine-stage contract above; new WEAVE work should use the nine-stage contract
-directly.
+main lifecycle plus the parallel growth loop above; new WEAVE work should use
+that contract directly.

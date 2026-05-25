@@ -7,6 +7,7 @@ title: Market And Capability Research Lead
 role: research
 reportsTo: ceo-openclaw
 skills:
+  - runtime-app-attachment
   - primitive-market-research
   - codebase-orientation
   - evidence-packet

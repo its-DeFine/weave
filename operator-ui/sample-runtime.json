@@ -18,11 +18,11 @@
     {
       "id": "askuno",
       "name": "Askuno Runtime Proof",
-      "status": "Marketing approval pending",
+      "status": "Accountless trial launch pending",
       "tone": "review",
       "currentStage": "marketing",
-      "summary": "KPI setup is complete; marketing waits for an approved campaign plan and evidence capture path.",
-      "task": "Review the campaign plan and prepare public-safe distribution evidence.",
+      "summary": "KPI setup is complete for the accountless API trial: Use now, no account, no money required, $10 free credit, with a parallel iteration loop.",
+      "task": "Review the owner-gated GitHub and Discord launch plan while preparing the iteration loop for trial feedback and credit analytics.",
       "owner": "WEAVE operator",
       "runtime": "OpenClaw solo",
       "productionUrl": "https://askuno.app",
@@ -35,15 +35,18 @@
         { "id": "engineering", "name": "Engineering", "state": "done", "summary": "Package shipped" },
         { "id": "qa", "name": "QA", "state": "done", "summary": "Local checks pass" },
         { "id": "kpi", "name": "KPI Setup", "state": "done", "summary": "Public surface defined" },
-        { "id": "marketing", "name": "Marketing", "state": "current", "summary": "Approval pending" },
-        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Wait for evidence" }
+        { "id": "marketing", "name": "Marketing", "state": "current", "summary": "Owner-gated GitHub and Discord launch plan" }
+      ],
+      "iterationLoop": [
+        { "id": "iteration", "name": "Iteration", "state": "current", "summary": "Build and deploy trial-flow changes from user and agent feedback" },
+        { "id": "analysis", "name": "Analysis", "state": "current", "summary": "Read signups, credit burn, abuse signals, and top-up intent" }
       ],
       "blocker": {
         "stage": "marketing",
-        "title": "Marketing waits for approval",
-        "reason": "The runtime should record marketing work only after the owner approves the channel, message, and evidence capture.",
-        "waitingOn": "Campaign approval and distribution channel confirmation",
-        "nextAction": "Draft a marketing command, review it, then attach campaign evidence after approval."
+        "title": "Trial launch waits for approval",
+        "reason": "The runtime should record external marketing only after the owner approves the GitHub and Discord launch path, $10 free-credit claim, and evidence capture; iteration planning can run locally in parallel.",
+        "waitingOn": "Trial offer approval and distribution channel confirmation",
+        "nextAction": "Draft the Use now launch command, review it, prepare the iteration backlog, then attach campaign evidence after approval."
       },
       "workCards": [
         {
@@ -51,21 +54,21 @@
           "title": "A. Plan",
           "done": 4,
           "total": 4,
-          "items": ["Lifecycle contract", "Agent operating contract", "KPI capture path", "Approval boundary"]
+          "items": ["Lifecycle contract", "Agent operating contract", "Trial KPI capture path", "Approval boundary"]
         },
         {
           "id": "review",
           "title": "B. Review",
           "done": 3,
           "total": 4,
-          "items": ["Public repo", "Console sample", "Secret scan", "Campaign approval"]
+          "items": ["Public docs offer", "Console sample", "Secret scan", "Trial offer approval"]
         },
         {
           "id": "execute",
           "title": "C. Execute",
           "done": 2,
           "total": 4,
-          "items": ["Runtime smoke", "UI smoke", "Approved campaign", "Iteration record"]
+          "items": ["Runtime smoke", "UI smoke", "Approved Use now launch", "Iteration loop record"]
         }
       ],
       "evidence": [
@@ -74,7 +77,9 @@
         { "label": "Askuno project", "path": "packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md", "scope": "public", "stage": "Selection" },
         { "label": "Runtime smoke", "path": "scripts/runtime_smoke.py", "scope": "public", "stage": "QA" },
         { "label": "Public app", "path": "https://askuno.app", "scope": "public", "stage": "QA" },
-        { "label": "Public KPI surface", "path": "https://atumera.com/kpis", "scope": "public", "stage": "KPI Setup" }
+        { "label": "Public KPI surface", "path": "https://atumera.com/kpis", "scope": "public", "stage": "KPI Setup" },
+        { "label": "Accountless trial offer", "path": "public Askuno docs/site: Use now / no account / $10 free credit", "scope": "public", "stage": "Marketing" },
+        { "label": "Iteration loop", "path": "operator-ui/sample-runtime.json", "scope": "public", "stage": "Iteration + Analysis" }
       ],
       "decisions": [
         {
@@ -84,10 +89,10 @@
           "note": "The public runtime package has a date-versioned release."
         },
         {
-          "label": "Campaign plan approval",
+          "label": "Trial launch approval",
           "status": "owner_required",
           "evidence": "operator-ui command draft",
-          "note": "Marketing remains approval-gated until campaign details are reviewed."
+          "note": "Marketing remains approval-gated until the GitHub and Discord launch path plus free-credit claim are reviewed."
         },
         {
           "label": "D2 runtime proof",
@@ -99,18 +104,20 @@
       "kpis": [
         { "label": "KPI setup", "value": "complete", "delta": "public surface defined" },
         { "label": "Public reporting", "value": "ready", "delta": "aggregate only" },
-        { "label": "Marketing", "value": "approval pending", "delta": "no external send" },
+        { "label": "Free credit", "value": "$10", "delta": "trial entitlement" },
+        { "label": "Marketing", "value": "approval pending", "delta": "GitHub plus Discord plan" },
+        { "label": "Iteration loop", "value": "active locally", "delta": "feedback plus credit analytics" },
         { "label": "Runtime package", "value": "2026.05.13-console", "delta": "local sample" }
       ],
       "commands": [
-        { "id": "draft-marketing-review", "title": "request_owner_approval", "status": "Draft", "stage": "marketing" },
+        { "id": "draft-trial-launch-review", "title": "request_owner_approval", "status": "Draft", "stage": "marketing" },
         { "id": "record-kpi-surface", "title": "record_evidence", "status": "Completed", "stage": "kpi" }
       ],
       "chat": [
         {
           "role": "agent",
           "label": "WEAVE Runtime",
-          "text": "KPI setup is complete. Marketing remains pending until the campaign approval record exists.",
+          "text": "KPI setup is complete. Marketing is the active launch stage for the accountless $10 trial; iteration and analysis run locally in parallel until approved campaign evidence arrives.",
           "time": "sample"
         }
       ]
@@ -133,8 +140,11 @@
         { "id": "engineering", "name": "Engineering", "state": "next", "summary": "Pending" },
         { "id": "qa", "name": "QA", "state": "next", "summary": "Pending" },
         { "id": "kpi", "name": "KPI Setup", "state": "next", "summary": "Pending" },
-        { "id": "marketing", "name": "Marketing", "state": "next", "summary": "Pending" },
-        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Pending" }
+        { "id": "marketing", "name": "Marketing", "state": "next", "summary": "Pending" }
+      ],
+      "iterationLoop": [
+        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Pending feedback implementation" },
+        { "id": "analysis", "name": "Analysis", "state": "next", "summary": "Pending analytics review" }
       ],
       "blocker": {
         "stage": "intent",
@@ -184,8 +194,11 @@
         { "id": "engineering", "name": "Engineering", "state": "next", "summary": "Pending" },
         { "id": "qa", "name": "QA", "state": "next", "summary": "Pending" },
         { "id": "kpi", "name": "KPI Setup", "state": "next", "summary": "Pending" },
-        { "id": "marketing", "name": "Marketing", "state": "next", "summary": "Pending" },
-        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Pending" }
+        { "id": "marketing", "name": "Marketing", "state": "next", "summary": "Pending" }
+      ],
+      "iterationLoop": [
+        { "id": "iteration", "name": "Iteration", "state": "next", "summary": "Pending feedback implementation" },
+        { "id": "analysis", "name": "Analysis", "state": "next", "summary": "Pending analytics review" }
       ],
       "blocker": {
         "stage": "research",

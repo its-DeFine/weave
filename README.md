@@ -19,9 +19,10 @@ Intended release tag: `v2026.05.13-console`.
 ## Missions
 
 A WEAVE mission is a scoped unit of work dispatched to an agent, tracked
-through the nine lifecycle stages, and settled with a credit grant on verified
-completion. See [docs/missions/MISSION_TEMPLATE.md](docs/missions/MISSION_TEMPLATE.md)
-for the mission format, required fields, and a worked example.
+through the lifecycle plus the post-KPI growth loop, and settled with a credit
+grant on verified completion. See
+[docs/missions/MISSION_TEMPLATE.md](docs/missions/MISSION_TEMPLATE.md) for the
+mission format, required fields, and a worked example.
 
 The current release shape is deliberately narrow:
 
@@ -60,6 +61,12 @@ Run the lifecycle and operator UI smoke:
 python3 scripts/runtime_smoke.py
 ```
 
+Validate the public-safe workstation context sync sample:
+
+```bash
+python3 scripts/context_sync_contract_smoke.py
+```
+
 Expected package shape:
 
 ```text
@@ -94,12 +101,18 @@ This proves a local instantiation path for the lifecycle console. It does not
 claim that a VM service, hosted runtime, paid model route, or production
 deployment is installed.
 
-The console includes an app selector, draft app creation, lifecycle stage
-track, runtime-agent message drafts, Plan/Review/Execute cards, blocker map,
-evidence binder, open decisions, KPI snapshot, and command preview. It uses
-sample data only and performs no network writes.
+The public workstation context sync contract in
+`docs/workstation-context-sync.md` shows how completed local work can be
+recorded into a runtime ledger as evidence and decisions. The included sample
+uses public-safe paths only and performs no network writes.
 
-The first lifecycle is:
+The console includes an app selector, draft app creation, lifecycle stage
+track, a parallel iteration-analysis loop below Marketing, runtime-agent
+message drafts, Plan/Review/Execute cards, blocker map, evidence binder, open
+decisions, KPI snapshot, and command preview. It uses sample data only and
+performs no network writes.
+
+The main lifecycle is:
 
 1. Intent.
 2. Research.
@@ -109,10 +122,15 @@ The first lifecycle is:
 6. QA.
 7. KPI Setup.
 8. Marketing.
-9. Iteration.
+
+After KPI Setup, the growth loop can run under Marketing:
+
+- Iteration: build, deploy, and record feedback-driven changes.
+- Analysis: read usage and feedback, then recommend the next iteration.
 
 Research starts only after Intent is explicit. Engineering starts only after
-Selection and Plan are recorded.
+Selection and Plan are recorded. Marketing and the local growth loop both start
+from KPI Setup; external distribution remains approval-gated.
 
 ## Boundaries
 

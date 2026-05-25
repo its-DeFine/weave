@@ -35,6 +35,7 @@ def main() -> int:
     for marker in (
         "data-create-form",
         "data-stage-track",
+        "data-iteration-loop",
         "data-work-card=\"plan\"",
         "data-work-card=\"review\"",
         "data-work-card=\"execute\"",
@@ -73,12 +74,19 @@ def main() -> int:
 
     app = apps[0]
     stages = [stage.get("id") for stage in app.get("stages", [])]
-    expected = ["intent", "research", "selection", "plan", "engineering", "qa", "kpi", "marketing", "iteration"]
+    expected = ["intent", "research", "selection", "plan", "engineering", "qa", "kpi", "marketing"]
     if stages != expected:
         print(f"operator UI lifecycle stages mismatch: {stages}", file=sys.stderr)
         return 1
+    loop = [phase.get("id") for phase in app.get("iterationLoop", [])]
+    if loop != ["iteration", "analysis"]:
+        print(f"operator UI iteration loop mismatch: {loop}", file=sys.stderr)
+        return 1
     if app.get("currentStage") != "marketing":
         print("operator UI sample should show marketing as the current blocked stage", file=sys.stderr)
+        return 1
+    if "parallel" not in app.get("summary", "").lower():
+        print("operator UI sample should explain the parallel marketing iteration loop", file=sys.stderr)
         return 1
     if "approval" not in app.get("blocker", {}).get("title", "").lower():
         print("operator UI sample should explain the marketing approval gate", file=sys.stderr)

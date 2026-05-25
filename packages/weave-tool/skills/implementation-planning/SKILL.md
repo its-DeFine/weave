@@ -7,8 +7,8 @@ description: Convert a lifecycle goal into a bounded work packet with acceptance
 
 ## Use When
 
-Use this skill before Engineering, QA, KPI Setup, Marketing, or Iteration work
-that changes artifacts, makes claims, or requests owner approval.
+Use this skill before Engineering, QA, KPI Setup, Marketing, Iteration, or
+Analysis work that changes artifacts, makes claims, or requests owner approval.
 
 ## Inputs
 
@@ -46,4 +46,3 @@ that changes artifacts, makes claims, or requests owner approval.
 
 The plan is ready when another agent can execute it without guessing the target,
 scope, boundaries, or checks.
-

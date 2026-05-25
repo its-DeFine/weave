@@ -77,10 +77,14 @@ new agent can reproduce the state without reading a private transcript.
 
 ## Stage Movement
 
-Stages advance in this order:
+Main stages advance in this order:
 
 Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup ->
-Marketing -> Iteration.
+Marketing.
+
+After KPI Setup, Iteration and Analysis run as a parallel growth loop under
+Marketing. Iteration records implementation and deployment changes; Analysis
+records analytics and feedback interpretation for the next pass.
 
 Returning to an earlier stage is allowed only through an explicit overwrite
 record. The overwrite record must name the reason, the evidence being replaced,
@@ -143,4 +147,3 @@ An agent should not mark a task complete unless:
 - public claims are constrained by evidence
 - the next action is clear
 - repeated blockers are not retried without a new input or changed plan
-

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Local runtime smoke test.
 
-Prints the 9 WEAVE lifecycle stages, validates the company package, and checks
-that the public-safe operator UI can be instantiated locally. No network access.
-No secrets. Exits 0 on success.
+Prints the WEAVE lifecycle plus parallel growth loop, validates the company
+package, and checks that the public-safe operator UI can be instantiated
+locally. No network access. No secrets. Exits 0 on success.
 
 Usage:
     python3 scripts/runtime_smoke.py
@@ -29,7 +29,11 @@ LIFECYCLE_STAGES = [
     "6. QA",
     "7. KPI Setup",
     "8. Marketing",
-    "9. Iteration",
+]
+
+GROWTH_LOOP = [
+    "A. Iteration",
+    "B. Analysis",
 ]
 
 
@@ -37,6 +41,9 @@ def print_lifecycle() -> None:
     print("WEAVE lifecycle stages:")
     for stage in LIFECYCLE_STAGES:
         print(f"  {stage}")
+    print("Parallel growth loop:")
+    for phase in GROWTH_LOOP:
+        print(f"  {phase}")
     print()
 
 

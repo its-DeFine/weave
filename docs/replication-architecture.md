@@ -39,7 +39,7 @@ public repository provides the package and operating layer.
 |---|---|---|
 | Product shape | AI-operated application business focused on agent-run product lifecycle work. |
 | Company content | A concrete WEAVE company with CEO, research, engineering, QA, growth, and analytics roles. |
-| Lifecycle | Defines Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing -> Iteration. |
+| Lifecycle | Defines Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing, with Iteration and Analysis as a parallel growth loop under Marketing. |
 | Primitives | Ships a primitive registry and operator-console runtime path that can later map to Livepeer pipelines. |
 | Runtime agent | Uses OpenClaw as the CEO/runtime agent directly. |
 | Evidence | Requires lifecycle-stage evidence, omission records, boundary notes, and acceptance gates. |
