@@ -30,6 +30,7 @@
         <div class="top-actions">
           <span><em>Review</em><strong data-review-count>--</strong></span>
           <span><em>Boundary</em><strong data-health-state>--</strong></span>
+          <button class="secondary-button theme-toggle" data-theme-toggle type="button">Light</button>
           <button class="create-button" data-toggle-create type="button">Create app</button>
         </div>
       </header>
@@ -97,10 +98,27 @@
               </div>
             </section>
 
-            <figure class="visual-panel">
-              <img src="./assets/weave-runtime-console-preview.png" alt="Dark WEAVE runtime console preview" />
-              <figcaption>Runtime timeline, approval queue, and evidence receipts in one operator view.</figcaption>
-            </figure>
+            <section class="object-panel" aria-label="runtime object details">
+              <div class="object-head">
+                <div class="object-icon" aria-hidden="true"></div>
+                <div>
+                  <p class="eyebrow">Object details</p>
+                  <h2>Runtime handoff</h2>
+                  <span>obj_runtime_console</span>
+                </div>
+              </div>
+              <dl class="object-list">
+                <div><dt>Status</dt><dd>Owner review</dd></div>
+                <div><dt>Policy</dt><dd>Public-safe dry run</dd></div>
+                <div><dt>Evidence</dt><dd>6 receipts</dd></div>
+                <div><dt>Command</dt><dd>Draft only</dd></div>
+              </dl>
+              <ol class="object-timeline">
+                <li data-state="done"><span></span><strong>Agent task</strong><em>Completed</em></li>
+                <li data-state="review"><span></span><strong>Owner approval</strong><em>Pending</em></li>
+                <li data-state="next"><span></span><strong>Evidence receipt</strong><em>Waiting</em></li>
+              </ol>
+            </section>
           </div>
 
           <ol class="stage-rail" data-stage-track aria-label="lifecycle stages"></ol>
@@ -139,8 +157,19 @@
               <ol class="decision-list" data-decision-list></ol>
             </article>
 
-            <article class="panel visual-ledger">
-              <img src="./assets/weave-runtime-ledger-flow.png" alt="WEAVE runtime ledger flow showing task approval and verified evidence" />
+            <article class="panel ledger-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Ledger</p>
+                  <h2>Integrity flow</h2>
+                </div>
+                <small>native UI</small>
+              </div>
+              <ol class="ledger-flow">
+                <li data-state="done"><span></span><strong>Task executed</strong><em>policy matched</em></li>
+                <li data-state="review"><span></span><strong>Approval captured</strong><em>owner gate</em></li>
+                <li data-state="next"><span></span><strong>Evidence verified</strong><em>receipt pending</em></li>
+              </ol>
             </article>
 
             <article class="panel">
