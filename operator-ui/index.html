@@ -16,17 +16,20 @@
             <span>Runtime Console</span>
           </div>
         </div>
-        <div class="global-state">
-          <span class="status-dot" aria-hidden="true"></span>
-          <strong data-runtime-name>Loading runtime</strong>
-        </div>
+
         <label class="search-box">
           <span>Search</span>
           <input data-search-input placeholder="Search apps, evidence, commands..." />
         </label>
+
+        <div class="runtime-chip">
+          <span class="status-dot" aria-hidden="true"></span>
+          <strong data-runtime-name>Loading runtime</strong>
+        </div>
+
         <div class="top-actions">
           <span><em>Review</em><strong data-review-count>--</strong></span>
-          <span><em>Health</em><strong data-health-state>--</strong></span>
+          <span><em>Boundary</em><strong data-health-state>--</strong></span>
           <button class="create-button" data-toggle-create type="button">Create app</button>
         </div>
       </header>
@@ -34,9 +37,13 @@
       <section class="console-grid">
         <aside class="app-rail" aria-label="applications">
           <div class="rail-header">
-            <h2>Apps</h2>
+            <div>
+              <p class="eyebrow">Workspace</p>
+              <h2>Managed apps</h2>
+            </div>
             <button class="icon-button" data-toggle-create type="button" title="Create app">+</button>
           </div>
+
           <form class="create-form" data-create-form hidden>
             <label>
               <span>App name</span>
@@ -48,40 +55,60 @@
             </label>
             <button type="submit">Create draft app</button>
           </form>
+
           <div class="app-list" data-app-list></div>
+
+          <div class="rail-health">
+            <span class="online-dot" aria-hidden="true"></span>
+            <div>
+              <strong>Runtime checks</strong>
+              <span>Drafts are local previews. External actions stay gated.</span>
+            </div>
+          </div>
         </aside>
 
         <section class="app-workspace" aria-label="selected app workspace">
-          <div class="breadcrumbs">Apps / <span data-app-name-short>Loading</span></div>
-          <div class="workspace-header">
-            <div>
-              <h1 data-app-name>Loading</h1>
-              <span class="pill" data-app-status>--</span>
-            </div>
-            <button class="secondary-button" data-refresh type="button">Refresh sample</button>
-          </div>
+          <div class="hero-grid">
+            <section class="hero-panel" aria-label="selected app summary">
+              <div class="breadcrumbs">Apps / <span data-app-name-short>Loading</span></div>
+              <div class="workspace-header">
+                <div>
+                  <p class="eyebrow">Owner console</p>
+                  <h1 data-app-name>Loading</h1>
+                </div>
+                <span class="pill" data-app-status>--</span>
+              </div>
 
-          <dl class="meta-strip">
-            <div><dt>Runtime</dt><dd data-meta-runtime>--</dd></div>
-            <div><dt>Mode</dt><dd data-meta-mode>--</dd></div>
-            <div><dt>Owner</dt><dd data-meta-owner>--</dd></div>
-            <div><dt>Version</dt><dd data-meta-version>--</dd></div>
-          </dl>
+              <p class="hero-summary" data-current-summary>--</p>
+
+              <dl class="meta-strip">
+                <div><dt>Runtime</dt><dd data-meta-runtime>--</dd></div>
+                <div><dt>Mode</dt><dd data-meta-mode>--</dd></div>
+                <div><dt>Owner</dt><dd data-meta-owner>--</dd></div>
+                <div><dt>Version</dt><dd data-meta-version>--</dd></div>
+              </dl>
+
+              <div class="current-task">
+                <div class="task-icon" aria-hidden="true" data-current-stage-icon>QA</div>
+                <div>
+                  <p class="eyebrow">Current task</p>
+                  <h2 data-current-task>Loading</h2>
+                </div>
+              </div>
+            </section>
+
+            <figure class="visual-panel">
+              <img src="./assets/weave-runtime-console-preview.png" alt="Dark WEAVE runtime console preview" />
+              <figcaption>Runtime timeline, approval queue, and evidence receipts in one operator view.</figcaption>
+            </figure>
+          </div>
 
           <ol class="stage-rail" data-stage-track aria-label="lifecycle stages"></ol>
 
-          <section class="iteration-loop" data-iteration-loop aria-label="parallel iteration loop"></section>
-
-          <section class="current-task">
-            <div class="task-icon" aria-hidden="true" data-current-stage-icon>QA</div>
-            <div>
-              <p class="eyebrow">Current task</p>
-              <h2 data-current-task>Loading</h2>
-              <span data-current-summary>--</span>
-            </div>
+          <section class="focus-grid">
+            <section class="blocker-map" data-blocker-map hidden></section>
+            <section class="iteration-loop" data-iteration-loop aria-label="parallel iteration loop"></section>
           </section>
-
-          <section class="blocker-map" data-blocker-map hidden></section>
 
           <section class="work-loop" aria-label="plan review execute">
             <article data-work-card="plan"></article>
@@ -90,25 +117,38 @@
           </section>
 
           <section class="lower-grid">
-            <article class="panel">
+            <article class="panel evidence-panel">
               <div class="panel-header">
-                <h2>Evidence binder</h2>
+                <div>
+                  <p class="eyebrow">Receipts</p>
+                  <h2>Evidence binder</h2>
+                </div>
                 <small>public-safe refs</small>
               </div>
               <ol class="evidence-list" data-evidence-list></ol>
             </article>
 
-            <article class="panel">
+            <article class="panel decision-panel">
               <div class="panel-header">
-                <h2>Open decisions</h2>
+                <div>
+                  <p class="eyebrow">Queue</p>
+                  <h2>Open decisions</h2>
+                </div>
                 <small>review queue</small>
               </div>
               <ol class="decision-list" data-decision-list></ol>
             </article>
 
+            <article class="panel visual-ledger">
+              <img src="./assets/weave-runtime-ledger-flow.png" alt="WEAVE runtime ledger flow showing task approval and verified evidence" />
+            </article>
+
             <article class="panel">
               <div class="panel-header">
-                <h2>KPI snapshot</h2>
+                <div>
+                  <p class="eyebrow">Signals</p>
+                  <h2>KPI snapshot</h2>
+                </div>
                 <small>aggregate only</small>
               </div>
               <ol class="kpi-list" data-kpi-list></ol>
@@ -116,7 +156,10 @@
 
             <article class="panel">
               <div class="panel-header">
-                <h2>Command drafts</h2>
+                <div>
+                  <p class="eyebrow">Drafts</p>
+                  <h2>Command drafts</h2>
+                </div>
                 <small>local only</small>
               </div>
               <ol class="command-list" data-command-list></ol>
@@ -127,6 +170,7 @@
         <aside class="agent-console" aria-label="runtime agent chat">
           <div class="agent-header">
             <div>
+              <p class="eyebrow">Bridge</p>
               <h2>Runtime agent</h2>
               <span data-agent-route>Public sample bridge</span>
             </div>
@@ -157,6 +201,7 @@
       <footer class="telemetry">
         <span data-footer-version>WEAVE</span>
         <span>Static public sample. No network writes. No secret payloads.</span>
+        <button class="secondary-button" data-refresh type="button">Refresh sample</button>
       </footer>
     </main>
     <script type="module" src="./app.js"></script>
