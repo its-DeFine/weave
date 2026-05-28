@@ -21,9 +21,9 @@ Expected output:
 ```text
 valid WEAVE company package: weave
 version: 2026.05.13-console
-agents: 6
+agents: 7
 tasks: 9
-skills: 11
+skills: 12
 primitives: 9
 ```
 
@@ -63,9 +63,9 @@ Parallel growth loop:
 
 valid WEAVE company package: weave
 version: 2026.05.13-console
-agents: 6
+agents: 7
 tasks: 9
-skills: 11
+skills: 12
 primitives: 9
 operator-ui smoke: ok
 smoke: ok

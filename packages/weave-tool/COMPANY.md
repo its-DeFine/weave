@@ -10,7 +10,8 @@ releaseTag: "v2026.05.13-console"
 releaseChannel: public-d1-console
 license: MIT
 homepage: https://github.com/its-DeFine/weave
-runtime: openclaw-solo
+runtime: hermes-default
+runtimeFallback: openclaw-solo
 goals:
   - Build commercially viable WEAVE applications through the lifecycle.
   - Start with Askuno Runtime Proof using lifecycle evidence primitives.
@@ -20,8 +21,9 @@ requirements:
     - livepeer_gateway_credentials
 metadata:
   lifecycle: weave-eight-stage-plus-growth-loop
-  primaryRuntime: openclaw-solo
-  ceoAgent: ceo-openclaw
+  primaryRuntime: hermes-default
+  ceoAgent: ceo-hermes
+  fallbackRuntime: openclaw-solo
 ---
 
 # WEAVE
@@ -45,8 +47,9 @@ After KPI setup, the growth loop runs under Marketing instead of after it:
 - Iteration: implement feedback or arbitrary product improvements and deploy them.
 - Analysis: read analytics and feedback, then recommend the next iteration.
 
-OpenClaw is the CEO agent and active runtime for this package. WEAVE supplies
-the business logic: primitives, lifecycle gates, application selection,
+Hermes is the CEO agent and default runtime for this package. OpenClaw remains
+the explicit fallback runtime for legacy or owner-directed recovery runs. WEAVE
+supplies the business logic: primitives, lifecycle gates, application selection,
 evidence contracts, agent skill contracts, command-bus boundaries, and future
 Livepeer adapter boundaries.
 

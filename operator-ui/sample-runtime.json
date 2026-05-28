@@ -1,7 +1,7 @@
 {
   "schema": "weave-operator-ui-sample/v0.2",
   "runtime": {
-    "name": "OpenClaw solo",
+    "name": "Hermes default",
     "releaseVersion": "2026.05.13-console",
     "mode": "local dry-run",
     "bridgeLabel": "Public sample bridge",
@@ -24,7 +24,7 @@
       "summary": "KPI setup is complete for the accountless API trial: Use now, no account, no money required, $10 free credit, with a parallel iteration loop.",
       "task": "Review the owner-gated GitHub and Discord launch plan while preparing the iteration loop for trial feedback and credit analytics.",
       "owner": "WEAVE operator",
-      "runtime": "OpenClaw solo",
+      "runtime": "Hermes default",
       "productionUrl": "https://askuno.app",
       "publicKpiUrl": "https://atumera.com/kpis",
       "stages": [
@@ -131,7 +131,7 @@
       "summary": "Future WEAVE app concept for capacity-style compute workflows.",
       "task": "Write the intent contract and define the public proof boundary.",
       "owner": "WEAVE operator",
-      "runtime": "OpenClaw solo",
+      "runtime": "Hermes default",
       "stages": [
         { "id": "intent", "name": "Intent", "state": "current", "summary": "Drafting" },
         { "id": "research", "name": "Research", "state": "next", "summary": "Pending" },
@@ -185,7 +185,7 @@
       "summary": "A future demo for lifecycle-guided Livepeer app development.",
       "task": "Map available capabilities and select the smallest public-safe wedge.",
       "owner": "WEAVE operator",
-      "runtime": "OpenClaw solo",
+      "runtime": "Hermes default",
       "stages": [
         { "id": "intent", "name": "Intent", "state": "done", "summary": "Demo target named" },
         { "id": "research", "name": "Research", "state": "current", "summary": "Capability mapping" },

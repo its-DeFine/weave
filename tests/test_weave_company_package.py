@@ -26,26 +26,34 @@ class WeaveCompanyPackageTests(unittest.TestCase):
 
         self.assertEqual(summary.slug, "weave")
         self.assertEqual(summary.version, "2026.05.13-console")
-        self.assertEqual(summary.agent_count, 6)
+        self.assertEqual(summary.agent_count, 7)
         self.assertEqual(summary.task_count, 9)
         self.assertEqual(summary.skill_count, 12)
         self.assertEqual(summary.primitive_count, 9)
 
-    def test_openclaw_is_the_only_ceo(self) -> None:
+    def test_hermes_is_the_default_ceo(self) -> None:
         agents = validator.validate_agents(PACKAGE_ROOT)
         ceos = [agent for agent in agents if agent.get("reportsTo") == "null"]
 
         self.assertEqual(len(ceos), 1)
-        self.assertEqual(ceos[0]["slug"], "ceo-openclaw")
-        self.assertEqual(ceos[0]["adapterType"], "openclaw_gateway")
+        self.assertEqual(ceos[0]["slug"], "ceo-hermes")
+        self.assertEqual(ceos[0]["adapterType"], "hermes_runtime")
 
-    def test_company_declares_openclaw_solo_runtime(self) -> None:
+    def test_company_declares_hermes_default_runtime(self) -> None:
         fields = validator.validate_company(PACKAGE_ROOT)
 
-        self.assertEqual(fields["runtime"], "openclaw-solo")
+        self.assertEqual(fields["runtime"], "hermes-default")
+        self.assertEqual(fields["runtimeFallback"], "openclaw-solo")
         self.assertEqual(fields["version"], "2026.05.13-console")
         self.assertEqual(fields["releaseDate"], "2026-05-13")
         self.assertEqual(fields["releaseTag"], "v2026.05.13-console")
+
+    def test_openclaw_remains_fallback_runtime(self) -> None:
+        agents = validator.validate_agents(PACKAGE_ROOT)
+        fallback = next(agent for agent in agents if agent.get("slug") == "ceo-openclaw")
+
+        self.assertEqual(fallback["adapterType"], "openclaw_gateway")
+        self.assertEqual(fallback["reportsTo"], "ceo-hermes")
 
     def test_repo_version_file_matches_company(self) -> None:
         fields = validator.validate_company(PACKAGE_ROOT)
@@ -96,7 +104,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
 
         sample = json.loads((ui_root / "sample-runtime.json").read_text(encoding="utf-8"))
         self.assertEqual(sample["schema"], "weave-operator-ui-sample/v0.2")
-        self.assertEqual(sample["runtime"]["name"], "OpenClaw solo")
+        self.assertEqual(sample["runtime"]["name"], "Hermes default")
         self.assertEqual(sample["runtime"]["releaseVersion"], "2026.05.13-console")
         self.assertEqual(sample["runtime"]["externalRuntimeBoundary"], "public-safe dry-run")
         self.assertGreaterEqual(len(sample["apps"]), 3)

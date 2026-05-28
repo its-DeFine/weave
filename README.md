@@ -27,7 +27,8 @@ mission format, required fields, and a worked example.
 The current release shape is deliberately narrow:
 
 - WEAVE is a standalone repository.
-- OpenClaw is the active runtime and CEO agent dependency.
+- Hermes is the active runtime and CEO agent dependency.
+- OpenClaw remains the explicit fallback runtime adapter.
 - WEAVE supplies the company package, lifecycle, primitives, adapter boundaries,
   agent skill contracts, and validation tests.
 
@@ -36,7 +37,7 @@ The current release shape is deliberately narrow:
 ```text
 docs/                  Public documentation and replication architecture.
 operator-ui/           Public-safe local operator console sample.
-packages/weave-tool/   OpenClaw-first WEAVE company package.
+packages/weave-tool/   Hermes-default WEAVE company package.
 scripts/               Local validation, smoke, and UI serving scripts.
 tests/                 Public-safe validation tests.
 ```
@@ -72,9 +73,9 @@ Expected package shape:
 ```text
 valid WEAVE company package: weave
 version: 2026.05.13-console
-agents: 6
+agents: 7
 tasks: 9
-skills: 11
+skills: 12
 primitives: 9
 ```
 
@@ -86,7 +87,8 @@ WEAVE is packaged as an importable AI-operated company:
 WEAVE repo
   -> packages/weave-tool
   -> operator-ui
-  -> OpenClaw CEO/runtime agent
+  -> Hermes CEO/runtime agent
+  -> OpenClaw fallback runtime adapter
   -> WEAVE lifecycle tasks, skills, and primitives
 ```
 

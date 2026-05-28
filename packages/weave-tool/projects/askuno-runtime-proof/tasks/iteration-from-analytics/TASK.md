@@ -3,7 +3,7 @@ schema: agentcompanies/v1
 kind: task
 slug: iteration-from-analytics
 name: Iterate From Analytics
-assignee: ceo-openclaw
+assignee: ceo-hermes
 project: askuno-runtime-proof
 lifecycleStage: iteration
 priority: medium

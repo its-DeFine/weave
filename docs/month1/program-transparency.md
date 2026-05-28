@@ -2,8 +2,8 @@
 
 This page defines the public reporting surface for WEAVE Month 1.
 
-The active runtime evidence source is the OpenClaw solo runtime ledger for
-Askuno. Public reporting has a hosted KPI surface at
+The active runtime evidence source is the Hermes default runtime ledger for
+Askuno, with OpenClaw retained as fallback for legacy recovery. Public reporting has a hosted KPI surface at
 <https://atumera.com/kpis>. The reporting contract exists, while final Rick
 sign-off remains an open gate.
 

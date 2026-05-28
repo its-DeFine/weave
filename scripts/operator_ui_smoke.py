@@ -59,8 +59,8 @@ def main() -> int:
     if data.get("schema") != "weave-operator-ui-sample/v0.2":
         print("operator UI sample must use schema weave-operator-ui-sample/v0.2", file=sys.stderr)
         return 1
-    if runtime.get("name") != "OpenClaw solo":
-        print("operator UI sample must identify OpenClaw solo runtime", file=sys.stderr)
+    if runtime.get("name") != "Hermes default":
+        print("operator UI sample must identify Hermes default runtime", file=sys.stderr)
         return 1
     if runtime.get("releaseVersion") != "2026.05.13-console":
         print("operator UI sample must identify release version 2026.05.13-console", file=sys.stderr)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the WEAVE OpenClaw-first company package.
+"""Validate the WEAVE Hermes-default company package.
 
 The validator intentionally avoids third-party YAML dependencies. It checks the
 small portable subset used by the package frontmatter and validates the runtime
@@ -56,6 +56,12 @@ EXPECTED_VERSION = "2026.05.13-console"
 EXPECTED_RELEASE_DATE = "2026-05-13"
 EXPECTED_RELEASE_TAG = "v2026.05.13-console"
 EXPECTED_RELEASE_CHANNEL = "public-d1-console"
+PRIMARY_RUNTIME = "hermes-default"
+FALLBACK_RUNTIME = "openclaw-solo"
+CEO_SLUG = "ceo-hermes"
+CEO_ADAPTER = "hermes_runtime"
+FALLBACK_AGENT_SLUG = "ceo-openclaw"
+FALLBACK_ADAPTER = "openclaw_gateway"
 
 ABSOLUTE_PATH_PATTERN = r"(?:/" + "Users/|/" + "home/|/" + "var/lib/|/" + "tmp/)"
 LOOPBACK_PATTERN = r"\b(?:" + r"127\.0\.0\.1|" + "local" + "host|" + "host" + r"\.docker\.internal)\b"
@@ -167,8 +173,10 @@ def validate_company(package_root: Path) -> dict[str, str]:
         raise PackageValidationError(f"COMPANY.md releaseTag must be {EXPECTED_RELEASE_TAG}")
     if fields.get("releaseChannel") != EXPECTED_RELEASE_CHANNEL:
         raise PackageValidationError(f"COMPANY.md releaseChannel must be {EXPECTED_RELEASE_CHANNEL}")
-    if fields.get("runtime") != "openclaw-solo":
-        raise PackageValidationError("COMPANY.md runtime must be openclaw-solo")
+    if fields.get("runtime") != PRIMARY_RUNTIME:
+        raise PackageValidationError(f"COMPANY.md runtime must be {PRIMARY_RUNTIME}")
+    if fields.get("runtimeFallback") != FALLBACK_RUNTIME:
+        raise PackageValidationError(f"COMPANY.md runtimeFallback must be {FALLBACK_RUNTIME}")
     return fields
 
 
@@ -222,19 +230,26 @@ def validate_agents(package_root: Path, skill_slugs: set[str] | None = None) -> 
                 raise PackageValidationError(f"{path}: unknown skills: {', '.join(unknown)}")
         if fields.get("reportsTo") == "null":
             ceos.append(fields)
-        elif fields.get("reportsTo") not in slugs and fields.get("reportsTo") != "ceo-openclaw":
-            raise PackageValidationError(f"{path}: reportsTo must reference ceo-openclaw or an earlier agent")
+        elif fields.get("reportsTo") not in slugs and fields.get("reportsTo") != CEO_SLUG:
+            raise PackageValidationError(f"{path}: reportsTo must reference {CEO_SLUG} or an earlier agent")
         agents.append(fields)
 
     if len(ceos) != 1:
         raise PackageValidationError(f"expected exactly one CEO, found {len(ceos)}")
     ceo = ceos[0]
-    if ceo.get("slug") != "ceo-openclaw":
-        raise PackageValidationError("CEO slug must be ceo-openclaw")
-    if ceo.get("adapterType") != "openclaw_gateway":
-        raise PackageValidationError("CEO adapterType must be openclaw_gateway")
-    if "OpenClaw" not in ceo.get("name", ""):
-        raise PackageValidationError("CEO name must identify OpenClaw")
+    if ceo.get("slug") != CEO_SLUG:
+        raise PackageValidationError(f"CEO slug must be {CEO_SLUG}")
+    if ceo.get("adapterType") != CEO_ADAPTER:
+        raise PackageValidationError(f"CEO adapterType must be {CEO_ADAPTER}")
+    if "Hermes" not in ceo.get("name", ""):
+        raise PackageValidationError("CEO name must identify Hermes")
+    fallback = next((agent for agent in agents if agent.get("slug") == FALLBACK_AGENT_SLUG), None)
+    if fallback is None:
+        raise PackageValidationError(f"fallback agent {FALLBACK_AGENT_SLUG} is required")
+    if fallback.get("adapterType") != FALLBACK_ADAPTER:
+        raise PackageValidationError(f"{FALLBACK_AGENT_SLUG} adapterType must be {FALLBACK_ADAPTER}")
+    if fallback.get("reportsTo") != CEO_SLUG:
+        raise PackageValidationError(f"{FALLBACK_AGENT_SLUG} must report to {CEO_SLUG}")
     return agents
 
 

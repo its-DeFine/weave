@@ -9,9 +9,10 @@ review mode after the Friday 2026-05-08 delivery window.
 
 ## Runtime authority
 
-The active Month 1 runtime operator is OpenClaw. The operator-facing lifecycle
-surface should make OpenClaw's app selection, lifecycle stage state, agent
-activity, evidence paths, and approval gates visible.
+The active Month 1 runtime operator is Hermes, with OpenClaw retained as an
+explicit fallback lane. The operator-facing lifecycle surface should make
+Hermes' app selection, lifecycle stage state, agent activity, evidence paths,
+fallback status, and approval gates visible.
 
 ## What Month 1 delivers
 
@@ -40,7 +41,7 @@ The execution runtime performs the work. WEAVE wraps that runtime with a state m
 
 Month 1 should deliver:
 - a website or hosted runtime surface
-- OpenClaw as the execution runtime
+- Hermes as the execution runtime, with OpenClaw fallback preserved
 - an operator lifecycle surface backed by runtime evidence
 - at least one real application
 - engineering and QA evidence attached to lifecycle stages

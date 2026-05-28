@@ -1,8 +1,9 @@
 # WEAVE Tool Company Package
 
 Status: public package skeleton
-Target runtime: OpenClaw solo
-CEO agent: OpenClaw
+Target runtime: Hermes default
+CEO agent: Hermes
+Fallback runtime: OpenClaw solo
 
 This directory packages WEAVE as an AI-operated business that can be imported
 or translated into an agent runtime.
@@ -12,12 +13,13 @@ Intended release tag: `v2026.05.13-console`.
 
 The package keeps three layers separate:
 
-- OpenClaw-first runtime shape: company, agents, projects, tasks, and lifecycle gates.
-- OpenClaw execution identity: the CEO/operator agent and lifecycle instructions.
+- Hermes-default runtime shape: company, agents, projects, tasks, and lifecycle gates.
+- Hermes execution identity: the CEO/operator agent and lifecycle instructions.
+- OpenClaw fallback identity for legacy or owner-directed recovery runs.
 - WEAVE domain logic: lifecycle gates, primitive registry, evidence boundaries, and future Livepeer adapter mapping.
 
-This package validates as an OpenClaw-first lifecycle package. Legacy
-runtime import hints are outside this public package. The package does not
+This package validates as a Hermes-default lifecycle package. Legacy
+runtime import hints and OpenClaw fallback execution details stay outside this public package. The package does not
 contain gateway URLs, tokens, API keys, private keys, funding instructions, or
 production service configuration.
 
@@ -44,16 +46,17 @@ Expected output:
 ```text
 valid WEAVE company package: weave
 version: 2026.05.13-console
-agents: 6
+agents: 7
 tasks: 9
-skills: 11
+skills: 12
 primitives: 9
 ```
 
 ## Current Package Contents
 
 - `COMPANY.md`: WEAVE company definition.
-- `agents/ceo-openclaw/AGENTS.md`: OpenClaw CEO identity and operating rules.
+- `agents/ceo-hermes/AGENTS.md`: Hermes CEO identity and operating rules.
+- `agents/ceo-openclaw/AGENTS.md`: OpenClaw fallback identity and operating rules.
 - `agents/*/AGENTS.md`: lifecycle role shells that report to the CEO.
 - `projects/askuno-runtime-proof/PROJECT.md`: first admitted application project.
 - `projects/askuno-runtime-proof/tasks/*/TASK.md`: starter lifecycle task graph.
@@ -70,11 +73,12 @@ Allowed now:
 - validate package completeness
 - map lifecycle stages to tasks and routines
 - keep primitive registry aligned with the operator-console runtime
-- run the OpenClaw-first lifecycle package locally
+- run the Hermes-default lifecycle package locally
 - inspect the public-safe operator UI sample from the repository root
 
 Approval-gated later:
 
+- Hermes runtime pairing
 - OpenClaw gateway pairing
 - adding gateway URLs or gateway credentials
 - paid Livepeer/PymtHouse jobs

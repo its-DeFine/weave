@@ -3,13 +3,13 @@
 WEAVE is built around an application lifecycle for agent-run product work.
 
 The important point is that WEAVE is the lifecycle wrapper, not the execution
-runtime itself. OpenClaw and approved local execution tools do the actual
-work. WEAVE tracks the target, stage, plan, evidence, review gates, owner
+runtime itself. Hermes and approved local execution tools do the actual
+work, with OpenClaw available as an explicit fallback lane. WEAVE tracks the target, stage, plan, evidence, review gates, owner
 approvals, KPI signals, and iteration history around that work.
 
-For Month 1, the active runtime operator is OpenClaw. The lifecycle console
-should expose OpenClaw's selected app, lifecycle stage state, agent activity,
-evidence paths, and owner approval gates.
+For Month 1, the active runtime operator is Hermes. The lifecycle console
+should expose Hermes' selected app, lifecycle stage state, agent activity,
+fallback status, evidence paths, and owner approval gates.
 
 For the formal lifecycle contract, see [WEAVE Lifecycle Contract v0](weave-lifecycle-contract-v0.md).
 For the runtime agent behavior contract, see [WEAVE Agent Operating Contract v0](weave-agent-operating-contract-v0.md).

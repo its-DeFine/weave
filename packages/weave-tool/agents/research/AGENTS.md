@@ -5,7 +5,7 @@ slug: research
 name: Research Lead
 title: Market And Capability Research Lead
 role: research
-reportsTo: ceo-openclaw
+reportsTo: ceo-hermes
 skills:
   - runtime-app-attachment
   - primitive-market-research
