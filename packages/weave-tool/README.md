@@ -34,8 +34,8 @@ From the repository root:
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
 ```
 
-The repository-level runtime smoke also checks the public-safe operator UI
-sample:
+The repository-level runtime smoke also checks the Hermes runtime setup
+contract and the public-safe operator UI sample:
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -50,6 +50,9 @@ agents: 7
 tasks: 9
 skills: 12
 primitives: 9
+runtime setup check: ok
+operator-ui smoke: ok
+smoke: ok
 ```
 
 ## Current Package Contents
@@ -64,6 +67,8 @@ primitives: 9
   referenced by agents and tasks.
 - `primitives/registry.json`: local primitive catalog and future adapter mapping.
 - `scripts/validate_company_package.py`: local package validator.
+- `../../scripts/setup_runtime.py`: repository-level setup command that writes
+  the local Hermes runtime profile and preserves OpenClaw fallback.
 
 ## Runtime Boundary
 

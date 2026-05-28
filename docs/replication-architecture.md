@@ -83,10 +83,11 @@ The public replication path should be:
 1. Install Hermes and authenticate the model provider in the local runtime.
 2. Clone the WEAVE repository.
 3. Validate the WEAVE company package.
-4. Run the runtime smoke.
-5. Serve the local operator UI.
-6. Run or inspect the Hermes CEO/runtime agent instructions.
-7. Run the first lifecycle wedge: Research admits one opportunity before Engineering starts.
+4. Run `python3 scripts/setup_runtime.py` to create the local Hermes runtime profile.
+5. Run the runtime smoke.
+6. Serve the local operator UI.
+7. Run or inspect the Hermes CEO/runtime agent instructions.
+8. Run the first lifecycle wedge: Research admits one opportunity before Engineering starts.
 
 The WEAVE repository should never require committed secrets. Local credentials
 belong in the user's secret store, environment, Hermes profile, or OpenClaw
@@ -100,6 +101,12 @@ Validate the WEAVE company package:
 
 ```bash
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
+```
+
+Set up the local Hermes runtime profile:
+
+```bash
+python3 scripts/setup_runtime.py
 ```
 
 Run the runtime smoke:
@@ -123,6 +130,7 @@ agents: 7
 tasks: 9
 skills: 12
 primitives: 9
+runtime setup check: ok
 operator-ui smoke: ok
 smoke: ok
 ```

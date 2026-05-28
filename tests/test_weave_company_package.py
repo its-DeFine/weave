@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import importlib.util
 import json
 import sys
@@ -11,6 +13,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "weave-tool"
 VALIDATOR_PATH = PACKAGE_ROOT / "scripts" / "validate_company_package.py"
+SETUP_RUNTIME_PATH = REPO_ROOT / "scripts" / "setup_runtime.py"
 
 spec = importlib.util.spec_from_file_location("validate_company_package", VALIDATOR_PATH)
 assert spec is not None
@@ -18,6 +21,13 @@ validator = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
 sys.modules[spec.name] = validator
 spec.loader.exec_module(validator)
+
+setup_spec = importlib.util.spec_from_file_location("setup_runtime", SETUP_RUNTIME_PATH)
+assert setup_spec is not None
+setup_runtime = importlib.util.module_from_spec(setup_spec)
+assert setup_spec.loader is not None
+sys.modules[setup_spec.name] = setup_runtime
+setup_spec.loader.exec_module(setup_runtime)
 
 
 class WeaveCompanyPackageTests(unittest.TestCase):
@@ -54,6 +64,46 @@ class WeaveCompanyPackageTests(unittest.TestCase):
 
         self.assertEqual(fallback["adapterType"], "openclaw_gateway")
         self.assertEqual(fallback["reportsTo"], "ceo-hermes")
+
+    def test_setup_runtime_defaults_to_hermes(self) -> None:
+        profile = setup_runtime.runtime_profile("hermes-default", "definitely-missing-hermes")
+
+        self.assertEqual(profile["package"]["default_runtime"], "hermes-default")
+        self.assertEqual(profile["package"]["fallback_runtime"], "openclaw-solo")
+        self.assertEqual(profile["runtime"]["id"], "hermes-default")
+        self.assertTrue(profile["runtime"]["is_default"])
+        self.assertEqual(profile["runtime"]["agent_slug"], "ceo-hermes")
+        self.assertEqual(profile["runtime"]["adapter_type"], "hermes_runtime")
+        self.assertFalse(profile["runtime"]["binary"]["found"])
+        self.assertTrue(profile["authority"]["public_safe"])
+        self.assertFalse(profile["authority"]["network_install_performed"])
+        self.assertFalse(profile["authority"]["service_installed"])
+        self.assertFalse(profile["authority"]["secrets_loaded"])
+
+    def test_setup_runtime_can_select_openclaw_fallback(self) -> None:
+        profile = setup_runtime.runtime_profile("openclaw-solo", "definitely-missing-openclaw")
+
+        self.assertEqual(profile["runtime"]["id"], "openclaw-solo")
+        self.assertFalse(profile["runtime"]["is_default"])
+        self.assertEqual(profile["runtime"]["agent_slug"], "ceo-openclaw")
+        self.assertEqual(profile["runtime"]["adapter_type"], "openclaw_gateway")
+
+    def test_setup_runtime_rejects_unknown_runtime(self) -> None:
+        with self.assertRaises(setup_runtime.RuntimeSetupError):
+            setup_runtime.runtime_profile("unknown-runtime")
+
+    def test_setup_runtime_check_mode_does_not_write_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            profile_path = Path(tmpdir) / "runtime-profile.json"
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                rc = setup_runtime.main(["--check", "--profile-out", str(profile_path)])
+
+            self.assertEqual(rc, 0)
+            self.assertFalse(profile_path.exists())
+            profile = json.loads(stdout.getvalue())
+            self.assertEqual(profile["runtime"]["id"], "hermes-default")
+            self.assertEqual(profile["runtime"]["agent_slug"], "ceo-hermes")
 
     def test_repo_version_file_matches_company(self) -> None:
         fields = validator.validate_company(PACKAGE_ROOT)

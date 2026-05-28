@@ -50,13 +50,23 @@ Validate the WEAVE company package:
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
 ```
 
+Set up the local Hermes runtime profile:
+
+```bash
+python3 scripts/setup_runtime.py
+```
+
+This writes `runs/runtime-profile.json`, checks whether a Hermes executable is
+already present, and keeps OpenClaw as the fallback runtime. It does not
+download binaries, install services, read secrets, or claim a live VM runtime.
+
 Run the public-safe test suite:
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-Run the lifecycle and operator UI smoke:
+Run the lifecycle, Hermes runtime setup, and operator UI smoke:
 
 ```bash
 python3 scripts/runtime_smoke.py

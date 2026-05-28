@@ -39,7 +39,29 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 All tests should pass. The suite exercises the package validator and the
 lifecycle dependency rules.
 
-## 4. Run the runtime smoke
+## 4. Set up the local runtime profile
+
+```bash
+python3 scripts/setup_runtime.py
+```
+
+Expected output when Hermes is not installed locally:
+
+```text
+runtime setup: profile_written_runtime_binary_missing
+profile: runs/runtime-profile.json
+runtime: hermes-default
+agent: ceo-hermes
+network_install_performed: false
+service_installed: false
+```
+
+The setup command writes an ignored local profile, checks whether Hermes is
+already on `PATH`, and preserves OpenClaw as fallback. It does not download
+binaries, install services, read secrets, or claim a VM runtime exists. See
+[Hermes Runtime Setup](hermes-setup.md).
+
+## 5. Run the runtime smoke
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -67,15 +89,17 @@ agents: 7
 tasks: 9
 skills: 12
 primitives: 9
+runtime setup check: ok
 operator-ui smoke: ok
 smoke: ok
 ```
 
 The smoke script prints the lifecycle stages, re-validates the package, and
-checks the public-safe operator UI sample. It imports nothing outside the
-standard library and makes no network calls.
+checks the local Hermes runtime profile contract and the public-safe operator
+UI sample. It imports nothing outside the standard library and makes no network
+calls.
 
-## 5. Run the operator UI
+## 6. Run the operator UI
 
 Serve the local operator console:
 
@@ -105,7 +129,7 @@ Expected output:
 operator-ui smoke: ok
 ```
 
-## 6. Mission format
+## 7. Mission format
 
 A WEAVE mission is a markdown file with YAML front-matter. The required fields
 are:
@@ -124,7 +148,7 @@ are:
 A full worked example with body text lives at
 [docs/missions/MISSION_TEMPLATE.md](missions/MISSION_TEMPLATE.md).
 
-## 7. Lifecycle dry-run
+## 8. Lifecycle dry-run
 
 The main lifecycle stages a mission passes through, in order:
 
