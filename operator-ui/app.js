@@ -51,6 +51,7 @@ const controls = {
   messageMode: document.querySelector("[data-message-mode]"),
   commandPreview: document.querySelector("[data-command-preview]"),
   refresh: document.querySelector("[data-refresh]"),
+  themeToggle: document.querySelector("[data-theme-toggle]"),
 };
 
 let runtime = null;
@@ -58,6 +59,7 @@ let selectedAppId = null;
 
 await loadRuntime();
 wireEvents();
+initTheme();
 render();
 
 async function loadRuntime() {
@@ -123,6 +125,22 @@ function wireEvents() {
     await loadRuntime();
     render();
   });
+
+  controls.themeToggle.addEventListener("click", () => {
+    const nextTheme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+  });
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("weave-operator-ui:theme");
+  setTheme(saved === "light" ? "light" : "dark");
+}
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem("weave-operator-ui:theme", theme);
+  controls.themeToggle.textContent = theme === "light" ? "Dark" : "Light";
 }
 
 function render() {
