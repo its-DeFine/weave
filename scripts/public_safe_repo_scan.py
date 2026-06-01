@@ -39,6 +39,7 @@ ALLOWLIST = {
     # Public operator UI helper intentionally binds to loopback for local-only
     # static serving. It must not imply a private runtime endpoint.
     ("scripts/run_operator_ui.py", "loopback-host"),
+    ("scripts/weave_runtime_api.py", "loopback-host"),
 }
 
 ALLOWLIST_FILES = {
@@ -48,13 +49,25 @@ ALLOWLIST_FILES = {
     "tests/test_public_safe_repo_scan.py",
 }
 
+PRIVATE_DEVICE_NAME = "p" + "c2"
+PRIVATE_OVERLAY_VENDOR = "tail" + "scale"
+PRIVATE_RUNTIME_HOST_PREFIX = "weave" + "-vm"
+PRIVATE_RUNTIME_PLACEHOLDERS = ("<" + "P" + "C2", "<" + "WEAVE" + "_VM")
+PRIVATE_ACCESS_TOOL = "machine" + "ctl"
+PRIVATE_ROUTE_TERM = "jump" + "-host"
+
 PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("local-user-path", re.compile(r"/Users/[A-Za-z0-9_.-]+")),
     ("home-path", re.compile(r"/home/[A-Za-z0-9_.-]+")),
     ("loopback-host", re.compile(r"\b(?:127\.0\.0\.1|localhost|host\.docker\.internal)\b", re.IGNORECASE)),
     ("private-ipv4", re.compile(r"\b(?:10|172\.(?:1[6-9]|2\d|3[01])|192\.168|100\.\d{1,3})\.\d{1,3}\.\d{1,3}\b")),
     ("private-substrate-reference", re.compile(r"\bweave-substrate\b", re.IGNORECASE)),
-    ("private-runtime-host", re.compile(r"\bweave-vm\d+\b", re.IGNORECASE)),
+    ("private-device-name", re.compile(rf"\b{re.escape(PRIVATE_DEVICE_NAME)}\b", re.IGNORECASE)),
+    ("private-overlay-vendor", re.compile(re.escape(PRIVATE_OVERLAY_VENDOR), re.IGNORECASE)),
+    ("private-runtime-host", re.compile(rf"\b{re.escape(PRIVATE_RUNTIME_HOST_PREFIX)}\d+\b", re.IGNORECASE)),
+    ("private-runtime-placeholder", re.compile("|".join(re.escape(item) for item in PRIVATE_RUNTIME_PLACEHOLDERS), re.IGNORECASE)),
+    ("private-access-command", re.compile(rf"\b(?:{re.escape(PRIVATE_ACCESS_TOOL)}|ssh\s+-i|scp\s+-r)\b", re.IGNORECASE)),
+    ("private-route-term", re.compile(re.escape(PRIVATE_ROUTE_TERM), re.IGNORECASE)),
     ("private-key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
     ("credential-like-token", re.compile(r"\b(?:sk-[A-Za-z0-9_-]{20,}|sk-or-v1-[A-Za-z0-9_-]{16,}|sk_live_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._-]{20,})\b")),
 )

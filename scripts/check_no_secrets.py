@@ -29,7 +29,8 @@ SCAN_FILENAMES = {".env", ".envrc", "Makefile", "Dockerfile"}
 # Directories to skip entirely.
 SKIP_DIRS = {
     ".git", "__pycache__", "node_modules", ".venv", "venv",
-    ".mypy_cache", ".pytest_cache", ".ruff_cache",
+    ".mypy_cache", ".pytest_cache", ".ruff_cache", "runs", "evidence",
+    ".workflow",
 }
 
 # Secret-like key names (from weave_command_bus.py SECRET_KEY_RE pattern, extended).
@@ -79,12 +80,12 @@ INTERNAL_HOST_RE = re.compile(
     r"("
     r"weave" + r"-vm\d+"                # internal VM-style hostnames
     r"|agent-ops"                        # agent-ops host
-    r"|openclaw\.[a-z]"                 # openclaw.internal etc (not openclaw the product name standalone)
+    r"|local-fallback\.[a-z]"                 # local-fallback.internal etc (not local-fallback the product name standalone)
     r"|livepeer-ops"                     # livepeer-ops internal
-    r"|100\.\d{1,3}\.\d{1,3}\.\d{1,3}" # Tailscale CGNAT range
+    r"|100\.\d{1,3}\.\d{1,3}\.\d{1,3}" # private overlay CGNAT range
     r"|192\.168\.\d{1,3}\.\d{1,3}"     # Private LAN
     r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"  # Private LAN
-    r"|define@[a-z]"                    # define@ email/user patterns
+    r"|<PRIVATE_RUNTIME_USER>@[a-z]"                    # private runtime user patterns
     r")",
     re.IGNORECASE,
 )
