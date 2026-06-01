@@ -100,6 +100,13 @@ user and no explicit `--gateway-home-channel`, setup also uses that direct chat
 as the home channel. It does not print the token, install a service, start a
 daemon, contact Telegram, or send messages.
 
+The default gateway autonomy is `--autonomy-mode yolo`. Hermes can continue
+without routine confirmation for non-gated local work, but must ask the owner
+through the Telegram LLM conversation before hard-gated actions: secrets or
+auth changes, public sends, paid or metered work, production/service changes,
+or destructive work. Use `--autonomy-mode confirm_everything` to restore
+manual confirmation for non-trivial work.
+
 If the numeric Telegram user id is not known yet, a temporary discovery setup
 can be used:
 

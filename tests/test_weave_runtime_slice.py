@@ -30,6 +30,9 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue((root / "artifacts" / "general" / "soul.md").exists())
             self.assertTrue((root / "artifacts" / "general" / "owner-profile.md").exists())
             self.assertTrue((root / "runtime" / "tokens" / "local-api-token").exists())
+            self.assertTrue((root / "runtime" / "profiles" / "autonomy-policy.json").exists())
+            self.assertEqual(result["autonomy"]["mode"], "yolo")
+            self.assertTrue(result["autonomy"]["llm_must_request_owner_authorization_for_hard_gates"])
             self.assertEqual(runtime.load_registry(root)["apps"], [])
 
     def test_create_app_registers_context_lifecycle_and_blocks_foundation_templates(self) -> None:
@@ -82,12 +85,16 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("soul.md", gate)
             agents = Path(result["agents_path"]).read_text(encoding="utf-8")
             self.assertIn("Unskippable Foundation Gate", agents)
+            self.assertIn("Autonomy Mode", agents)
+            self.assertIn("Autonomy mode: `yolo`", agents)
+            self.assertIn("must ask the owner through the LLM conversation", agents)
             self.assertIn("Ask at most three blocking questions", agents)
             self.assertIn("Communication channel: Telegram", agents)
             soul = Path(result["soul_path"]).read_text(encoding="utf-8")
             self.assertIn("WEAVE Gateway Soul Bootstrap", soul)
             context = Path(result["context_path"]).read_text(encoding="utf-8")
             self.assertIn('"required_before_app_work": true', context)
+            self.assertIn('"mode": "yolo"', context)
 
     def test_ledger_appends_valid_events_and_rejects_malformed_events(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -158,6 +165,12 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertFalse(status["llm_used"])
             self.assertEqual(status["payload"]["app_count"], 1)
             self.assertEqual(status["payload"]["blocked_apps"], ["demo"])
+            self.assertEqual(status["payload"]["autonomy"]["mode"], "yolo")
+
+            autonomy = runtime.dispatch_telegram_command(root, "/autonomy")
+            self.assertIn("mode: yolo", autonomy["text"])
+            self.assertIn("hard_gates:", autonomy["text"])
+            self.assertTrue(autonomy["payload"]["autonomy"]["llm_must_request_owner_authorization_for_hard_gates"])
 
             apps = runtime.dispatch_telegram_command(root, "/apps")
             self.assertIn("Demo (demo)", apps["text"])

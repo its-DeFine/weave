@@ -120,6 +120,11 @@ also sets that direct chat as the home channel. After setup, verify with
 `hermes status`, `hermes gateway status`, and a foreground
 `hermes gateway run` started from the generated foundation gateway workdir.
 
+Gateway setup defaults to `--autonomy-mode yolo`. That mode removes routine
+confirmation prompts for non-gated local work. Hermes must still ask the owner
+through the Telegram LLM conversation before secrets, auth changes, public
+sends, paid or metered work, production/service changes, or destructive work.
+
 ## 5. Run the runtime smoke
 
 ```bash

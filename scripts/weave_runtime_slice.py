@@ -29,8 +29,11 @@ FOUNDATION_SCHEMA = "weave-foundation-gate/v0.1"
 REST_SCHEMA = "weave-rest-dispatch/v0.1"
 GATEWAY_CONTEXT_SCHEMA = "weave-gateway-context/v0.1"
 TELEGRAM_COMMAND_SCHEMA = "weave-telegram-command/v0.1"
+AUTONOMY_SCHEMA = "weave-autonomy-policy/v0.1"
 
 TEMPLATE_MARKER = "template-needs-owner-input"
+DEFAULT_AUTONOMY_MODE = "yolo"
+AUTONOMY_MODES = {"confirm_everything", "yolo"}
 
 EVENT_TYPES = {
     "app.created",
@@ -87,6 +90,7 @@ APP_DIRS = [
 TELEGRAM_COMMANDS = {
     "/start": "Show the deterministic WEAVE command surface.",
     "/help": "List deterministic WEAVE commands.",
+    "/autonomy": "Show autonomy mode and hard approval gates.",
     "/status": "Show runtime readiness and aggregate app status.",
     "/apps": "List apps, lifecycle stages, and foundation gate state.",
     "/app": "Show one app state. Usage: /app <app_id>",
@@ -94,6 +98,34 @@ TELEGRAM_COMMANDS = {
     "/changes": "Show latest recorded changes. Usage: /changes [app_id]",
     "/next": "Show the next deterministic owner-visible action.",
 }
+
+HARD_APPROVAL_GATES = [
+    {
+        "id": "secrets_credentials_auth",
+        "label": "Secrets, credentials, auth, or allowlist changes",
+        "examples": ["tokens", "API keys", "passwords", "gateway allowlists", "login state"],
+    },
+    {
+        "id": "external_public_send",
+        "label": "External sends or public publication",
+        "examples": ["public posts", "emails", "partner messages", "ads", "distribution"],
+    },
+    {
+        "id": "paid_or_metered_work",
+        "label": "Paid jobs, purchases, or metered provider actions",
+        "examples": ["payments", "paid compute", "metered APIs", "checkout"],
+    },
+    {
+        "id": "production_or_service_change",
+        "label": "Production, runtime service, or transport changes",
+        "examples": ["production deploys", "service installation", "autostart", "non-local transport"],
+    },
+    {
+        "id": "destructive_or_irreversible_change",
+        "label": "Destructive or irreversible changes",
+        "examples": ["deletes", "data migration", "account removal", "history rewrite"],
+    },
+]
 
 
 class RuntimeSliceError(Exception):
@@ -116,6 +148,47 @@ def utc_now() -> str:
 def slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     return slug or "app"
+
+
+def normalize_autonomy_mode(value: str | None) -> str:
+    mode = str(value or DEFAULT_AUTONOMY_MODE).strip().lower().replace("-", "_")
+    if mode in {"confirm", "manual", "ask", "ask_everything"}:
+        return "confirm_everything"
+    if mode in {"yolo", "auto", "auto_proceed", "autonomous"}:
+        return "yolo"
+    if mode not in AUTONOMY_MODES:
+        raise RuntimeSliceError(f"unsupported autonomy mode: {value}")
+    return mode
+
+
+def autonomy_policy(mode: str | None = None) -> dict[str, Any]:
+    normalized = normalize_autonomy_mode(mode)
+    if normalized == "yolo":
+        default_action = "proceed_without_confirmation_for_non_gated_work"
+        confirmation_policy = (
+            "Hermes should keep working without routine confirmation, but must ask "
+            "the owner through the LLM conversation before any hard-gated action."
+        )
+    else:
+        default_action = "ask_before_nontrivial_work"
+        confirmation_policy = "Hermes should ask before non-trivial work and before every hard-gated action."
+    return {
+        "schema": AUTONOMY_SCHEMA,
+        "mode": normalized,
+        "default_action": default_action,
+        "approval_channel": "telegram_llm_conversation",
+        "llm_must_request_owner_authorization_for_hard_gates": True,
+        "confirmation_policy": confirmation_policy,
+        "allowed_without_confirmation": [
+            "deterministic slash-command status",
+            "read-only inspection",
+            "local app workspace edits",
+            "local repository edits inside the active work packet",
+            "test, validation, and formatting commands",
+            "append-only ledger and lifecycle status updates",
+        ],
+        "hard_approval_gates": HARD_APPROVAL_GATES,
+    }
 
 
 def relative(path: Path, root: Path) -> str:
@@ -177,7 +250,29 @@ def ensure_runtime_token(root: Path, created: list[str]) -> Path:
     return token_path
 
 
-def setup_weave_root(root: Path, *, init_git: bool = True) -> dict[str, Any]:
+def autonomy_policy_path(root: Path) -> Path:
+    return root / "runtime" / "profiles" / "autonomy-policy.json"
+
+
+def write_autonomy_policy(root: Path, mode: str | None = None) -> dict[str, Any]:
+    policy = autonomy_policy(mode)
+    path = autonomy_policy_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(policy, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return policy
+
+
+def load_autonomy_policy(root: Path) -> dict[str, Any]:
+    path = autonomy_policy_path(root)
+    if not path.exists():
+        return autonomy_policy(DEFAULT_AUTONOMY_MODE)
+    data = load_json(path)
+    if data.get("schema") != AUTONOMY_SCHEMA:
+        raise RuntimeSliceError(f"autonomy policy schema must be {AUTONOMY_SCHEMA}")
+    return autonomy_policy(str(data.get("mode") or DEFAULT_AUTONOMY_MODE))
+
+
+def setup_weave_root(root: Path, *, init_git: bool = True, autonomy_mode: str | None = None) -> dict[str, Any]:
     root.mkdir(parents=True, exist_ok=True)
     created: list[str] = []
     git_tracked = ensure_git_repo(root) if init_git else (root / ".git").exists()
@@ -207,11 +302,14 @@ def setup_weave_root(root: Path, *, init_git: bool = True) -> dict[str, Any]:
         root,
     )
     ensure_runtime_token(root, created)
+    policy = write_autonomy_policy(root, autonomy_mode)
     return {
         "schema": ROOT_SCHEMA,
         "root": str(root),
         "git_tracked": git_tracked,
         "registry_path": "apps/registry.json",
+        "autonomy": policy,
+        "autonomy_policy_path": "runtime/profiles/autonomy-policy.json",
         "created": created,
         "rest_api": {
             "bind": "loopback-only",
@@ -548,9 +646,11 @@ def render_gateway_agents(
     app_name: str,
     gate_path: Path,
     context_path: Path,
+    autonomy: dict[str, Any],
 ) -> str:
     clean_id = slugify(app_id)
     base = app_root(root, clean_id)
+    hard_gates = "\n".join(f"- {gate['label']}" for gate in autonomy["hard_approval_gates"])
     return f"""# WEAVE Hermes Gateway Enforcement
 
 This generated local runtime file is loaded by Hermes when the Telegram gateway
@@ -568,6 +668,26 @@ active operating rule.
 - App registry: `{root / "apps" / "registry.json"}`
 - Ledger: `{base / "ledger" / "events.jsonl"}`
 - Communication channel: Telegram
+- Autonomy mode: `{autonomy["mode"]}`
+- Autonomy policy: `{autonomy_policy_path(root)}`
+
+## Autonomy Mode
+
+Mode `{autonomy["mode"]}` means: {autonomy["confirmation_policy"]}
+
+Hermes may continue without routine confirmation for non-gated local work,
+including read-only inspection, local app workspace edits, local repo edits
+inside the active work packet, tests, validation, formatting, and append-only
+ledger/status updates.
+
+Hermes must ask the owner through the LLM conversation in Telegram and wait for
+explicit authorization before crossing any hard approval gate:
+
+{hard_gates}
+
+The approval question must name the action, target surface, likely effect,
+rollback or stop boundary, and acceptance check. Record the approval request
+and resolution in the app ledger when the app is known.
 
 ## Unskippable Foundation Gate
 
@@ -639,8 +759,15 @@ contract context required by the foundation gate.
 """
 
 
-def setup_foundation_onboarding(root: Path, app_id: str, app_name: str) -> dict[str, Any]:
-    root_status = setup_weave_root(root)
+def setup_foundation_onboarding(
+    root: Path,
+    app_id: str,
+    app_name: str,
+    *,
+    autonomy_mode: str | None = None,
+) -> dict[str, Any]:
+    root_status = setup_weave_root(root, autonomy_mode=autonomy_mode)
+    autonomy = root_status["autonomy"]
     clean_id = slugify(app_id)
     if app_metadata_path(root, clean_id).exists():
         app = load_app(root, clean_id)
@@ -681,6 +808,7 @@ def setup_foundation_onboarding(root: Path, app_id: str, app_name: str) -> dict[
         "required_before_app_work": True,
         "question_limit": 3,
         "deterministic_telegram_commands": sorted(TELEGRAM_COMMANDS),
+        "autonomy": autonomy,
     }
     context_path.write_text(json.dumps(context, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     agents_path = workdir / "AGENTS.md"
@@ -691,6 +819,7 @@ def setup_foundation_onboarding(root: Path, app_id: str, app_name: str) -> dict[
             app_name=app_name,
             gate_path=gate_path,
             context_path=context_path,
+            autonomy=autonomy,
         ),
         encoding="utf-8",
     )
@@ -711,6 +840,7 @@ def setup_foundation_onboarding(root: Path, app_id: str, app_name: str) -> dict[
         "soul_path": str(soul_path),
         "context_path": str(context_path),
         "gateway_start_cwd": str(workdir),
+        "autonomy": autonomy,
     }
 
 
@@ -891,9 +1021,11 @@ def app_status_line(app: dict[str, Any]) -> str:
 def runtime_status_command(root: Path) -> dict[str, Any]:
     apps = safe_list_apps(root)
     blocked = [app for app in apps if not app["foundation_passed"]]
+    autonomy = load_autonomy_policy(root)
     lines = [
         "WEAVE runtime status",
         f"root_ready: {str(root_ready(root)).lower()}",
+        f"autonomy_mode: {autonomy['mode']}",
         f"apps: {len(apps)}",
         f"blocked_apps: {len(blocked)}",
     ]
@@ -911,8 +1043,22 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             "app_count": len(apps),
             "blocked_app_count": len(blocked),
             "blocked_apps": [app["app_id"] for app in blocked],
+            "autonomy": autonomy,
         },
     )
+
+
+def autonomy_command(root: Path) -> dict[str, Any]:
+    policy = load_autonomy_policy(root)
+    lines = [
+        "WEAVE autonomy",
+        f"mode: {policy['mode']}",
+        f"default_action: {policy['default_action']}",
+        "approval_channel: telegram_llm_conversation",
+        "hard_gates:",
+    ]
+    lines.extend(f"- {gate['label']}" for gate in policy["hard_approval_gates"])
+    return telegram_command_response(command="/autonomy", text="\n".join(lines), payload={"autonomy": policy})
 
 
 def apps_command(root: Path) -> dict[str, Any]:
@@ -1086,6 +1232,8 @@ def dispatch_telegram_command(root: Path, text: str) -> dict[str, Any]:
         )
     if command == "/status":
         return runtime_status_command(root)
+    if command == "/autonomy":
+        return autonomy_command(root)
     if command == "/apps":
         return apps_command(root)
     if command == "/app":
@@ -1122,6 +1270,7 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
             "schema": REST_SCHEMA,
             "root_ready": (root / "apps" / "registry.json").exists(),
             "app_count": len(load_registry(root)["apps"]),
+            "autonomy": load_autonomy_policy(root),
             "real_hermes_runtime": False,
             "claim": "local first-slice substrate only",
         }
@@ -1133,6 +1282,8 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
         return 200, {"schema": REST_SCHEMA, "apps": list_apps(root)}
     if method == "GET" and parts == ["telegram", "commands"]:
         return 200, {"schema": REST_SCHEMA, "commands": TELEGRAM_COMMANDS, "deterministic": True, "llm_used": False}
+    if method == "GET" and parts == ["runtime", "autonomy"]:
+        return 200, {"schema": REST_SCHEMA, "autonomy": load_autonomy_policy(root)}
     if method == "POST" and parts == ["apps"]:
         result = create_app(root, body.get("app_id", body.get("name", "app")), body.get("name", "Untitled app"))
         return 201, {"schema": REST_SCHEMA, "result": result}

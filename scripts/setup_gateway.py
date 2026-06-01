@@ -14,9 +14,16 @@ import json
 import os
 import re
 import stat
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+SCRIPT_ROOT = Path(__file__).resolve().parent
+if str(SCRIPT_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_ROOT))
+
+import weave_runtime_slice
 
 
 SCHEMA = "weave-gateway-setup/v0.1"
@@ -29,6 +36,7 @@ MANAGED_KEYS = {
     "TELEGRAM_GROUP_ALLOWED_USERS",
     "TELEGRAM_HOME_CHANNEL",
     "GATEWAY_ALLOW_ALL_USERS",
+    "WEAVE_AUTONOMY_MODE",
 }
 
 
@@ -128,6 +136,7 @@ def configure_gateway(
     group_allowed_users: str | None = None,
     allow_all_users: bool = False,
     home_channel: str | None = None,
+    autonomy_mode: str | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
     if allow_all_users and allowed_users:
@@ -140,7 +149,11 @@ def configure_gateway(
     existing_text = env_path.read_text(encoding="utf-8") if env_path.exists() else ""
     existing_lines, existing_values = parse_env_lines(existing_text)
 
-    updates = {"TELEGRAM_BOT_TOKEN": bot_value}
+    normalized_autonomy_mode = weave_runtime_slice.normalize_autonomy_mode(autonomy_mode)
+    updates = {
+        "TELEGRAM_BOT_TOKEN": bot_value,
+        "WEAVE_AUTONOMY_MODE": normalized_autonomy_mode,
+    }
     removals: set[str] = set()
     allowlist_mode = "allow_all_users" if allow_all_users else "allowed_users"
 
@@ -175,6 +188,8 @@ def configure_gateway(
         "allowed_user_count": len((allowed_users or "").split(",")) if allowed_users else 0,
         "group_allowed_user_count": len((group_allowed_users or "").split(",")) if group_allowed_users else 0,
         "home_channel_configured": bool(home_channel),
+        "autonomy_mode": normalized_autonomy_mode,
+        "hard_approval_gates": [gate["id"] for gate in weave_runtime_slice.HARD_APPROVAL_GATES],
         "managed_keys_already_present": public_existing_keys,
         "next_checks": [
             "hermes status",
@@ -204,6 +219,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="temporary discovery mode; replace with --allowed-users after capturing the owner id",
     )
     parser.add_argument("--home-channel", help="optional Telegram home channel/chat id")
+    parser.add_argument(
+        "--autonomy-mode",
+        choices=sorted(weave_runtime_slice.AUTONOMY_MODES),
+        default=weave_runtime_slice.DEFAULT_AUTONOMY_MODE,
+        help="runtime confirmation mode; yolo proceeds on non-gated work and asks through the LLM for hard gates",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
     return parser
@@ -220,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
             group_allowed_users=args.group_allowed_users,
             allow_all_users=args.allow_all_users,
             home_channel=args.home_channel,
+            autonomy_mode=args.autonomy_mode,
             dry_run=args.dry_run,
         )
     except GatewaySetupError as exc:
@@ -234,6 +256,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"env_written: {str(result['env_written']).lower()}")
         print(f"telegram_bot_token_configured: {str(result['telegram_bot_token_configured']).lower()}")
         print(f"allowlist_mode: {result['allowlist_mode']}")
+        print(f"autonomy_mode: {result['autonomy_mode']}")
         print(f"token_value_printed: {str(result['token_value_printed']).lower()}")
         print("next: hermes status && hermes gateway run")
     return 0

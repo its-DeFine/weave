@@ -174,12 +174,22 @@ def _format_yaml_scalar(value: object) -> str:
 def render_gateway_runtime_system_prompt(onboarding_status: dict[str, object]) -> str:
     gate = onboarding_status["foundation_gate"]
     assert isinstance(gate, dict)
+    autonomy = onboarding_status["autonomy"]
+    assert isinstance(autonomy, dict)
+    hard_gates = "\n".join(f"- {item['label']}" for item in autonomy["hard_approval_gates"])
     return f"""WEAVE foundation onboarding is mandatory for this gateway session.
 
 Before answering any app-building request, read:
 - foundation gate: {onboarding_status["foundation_gate_path"]}
 - gateway context: {onboarding_status["context_path"]}
 - gateway rules: {onboarding_status["agents_path"]}
+
+Autonomy mode is `{autonomy["mode"]}`. {autonomy["confirmation_policy"]}
+Proceed without routine confirmation for non-gated local work. Ask the owner
+through this Telegram LLM conversation and wait for explicit authorization
+before any hard approval gate:
+
+{hard_gates}
 
 If the foundation gate is not passing, stay in Foundation Onboarding Mode. Ask
 the owner through Telegram only, ask at most three blocking questions at once,
@@ -335,6 +345,7 @@ def runtime_profile(
             "service_installed": False,
             "secrets_loaded": False,
             "external_actions": "blocked",
+            "autonomy": weave_runtime_slice.autonomy_policy(weave_runtime_slice.DEFAULT_AUTONOMY_MODE),
             "approval_gates": [
                 "runtime pairing",
                 "gateway pairing",
@@ -359,6 +370,7 @@ def runtime_profile(
             "runtime_config_written": False,
             "terminal_cwd_configured": False,
             "agent_system_prompt_configured": False,
+            "autonomy_mode": weave_runtime_slice.DEFAULT_AUTONOMY_MODE,
             "verification_commands": [
                 "hermes status",
                 "hermes gateway status",
@@ -454,6 +466,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--gateway-home-channel", help="optional Telegram home channel/chat id")
     parser.add_argument(
+        "--autonomy-mode",
+        choices=sorted(weave_runtime_slice.AUTONOMY_MODES),
+        default=weave_runtime_slice.DEFAULT_AUTONOMY_MODE,
+        help="runtime confirmation mode; yolo proceeds on non-gated work and asks through the LLM for hard gates",
+    )
+    parser.add_argument(
         "--profile-out",
         type=Path,
         default=DEFAULT_PROFILE_PATH,
@@ -544,6 +562,7 @@ def main(argv: list[str] | None = None) -> int:
                     group_allowed_users=args.gateway_group_allowed_users,
                     allow_all_users=args.gateway_allow_all_users,
                     home_channel=gateway_home_channel,
+                    autonomy_mode=args.autonomy_mode,
                 )
             except setup_gateway.GatewaySetupError as exc:
                 raise RuntimeSetupError(f"gateway setup failed: {exc}") from exc
@@ -553,6 +572,7 @@ def main(argv: list[str] | None = None) -> int:
                 gateway["allowlist_configured"] = gateway_result["allowlist_mode"] == "allowed_users"
                 gateway["allowlist_mode"] = gateway_result["allowlist_mode"]
                 gateway["home_channel_configured"] = gateway_result["home_channel_configured"]
+                gateway["autonomy_mode"] = gateway_result["autonomy_mode"]
                 gateway["env_written"] = gateway_result["env_written"]
                 gateway["env_private_mode"] = gateway_result["env_private_mode"]
         root_status = None
@@ -566,8 +586,11 @@ def main(argv: list[str] | None = None) -> int:
                     args.weave_root,
                     args.foundation_app_id,
                     args.foundation_app_name,
+                    autonomy_mode=args.autonomy_mode,
                 )
                 root_status = onboarding_status["root_status"]
+                profile["authority"]["autonomy"] = onboarding_status["autonomy"]
+                profile["gateway"]["autonomy_mode"] = onboarding_status["autonomy"]["mode"]
                 foundation = profile["foundation_onboarding"]
                 if isinstance(foundation, dict):
                     foundation.update(
@@ -599,7 +622,8 @@ def main(argv: list[str] | None = None) -> int:
                         gateway["runtime_config_path"] = gateway_config["config_path"]
                         gateway["terminal_cwd"] = gateway_config["terminal_cwd"]
             else:
-                root_status = weave_runtime_slice.setup_weave_root(args.weave_root)
+                root_status = weave_runtime_slice.setup_weave_root(args.weave_root, autonomy_mode=args.autonomy_mode)
+                profile["authority"]["autonomy"] = root_status["autonomy"]
         args.profile_out.parent.mkdir(parents=True, exist_ok=True)
         args.profile_out.write_text(json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     except RuntimeSetupError as exc:
@@ -614,6 +638,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"gateway_setup_required: {str(profile['gateway']['setup_required']).lower()}")
     print(f"gateway_token_loaded: {str(profile['gateway']['token_loaded']).lower()}")
     print(f"gateway_allowlist_mode: {profile['gateway']['allowlist_mode']}")
+    print(f"autonomy_mode: {profile['gateway']['autonomy_mode']}")
     print(f"gateway_started: {str(profile['gateway']['gateway_started']).lower()}")
     print(f"gateway_home_channel_configured: {str(profile['gateway'].get('home_channel_configured', False)).lower()}")
     print(f"gateway_runtime_config_written: {str(profile['gateway']['runtime_config_written']).lower()}")

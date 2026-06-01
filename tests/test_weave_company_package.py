@@ -81,6 +81,8 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertFalse(profile["authority"]["network_install_performed"])
         self.assertFalse(profile["authority"]["service_installed"])
         self.assertFalse(profile["authority"]["secrets_loaded"])
+        self.assertEqual(profile["authority"]["autonomy"]["mode"], "yolo")
+        self.assertTrue(profile["authority"]["autonomy"]["llm_must_request_owner_authorization_for_hard_gates"])
         self.assertEqual(profile["gateway"]["channel"], "telegram")
         self.assertTrue(profile["gateway"]["setup_required"])
         self.assertEqual(profile["gateway"]["setup_command"], "scripts/setup_runtime.py --gateway-token-file")
@@ -90,6 +92,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertIsNone(profile["gateway"]["allowlist_mode"])
         self.assertFalse(profile["gateway"]["paired"])
         self.assertFalse(profile["gateway"]["gateway_started"])
+        self.assertEqual(profile["gateway"]["autonomy_mode"], "yolo")
         self.assertTrue(profile["foundation_onboarding"]["setup_required"])
         self.assertFalse(profile["foundation_onboarding"]["active"])
         self.assertEqual(profile["foundation_onboarding"]["question_limit"], 3)
@@ -152,8 +155,11 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             self.assertTrue((Path(foundation["gateway_workdir"]) / "AGENTS.md").exists())
             agents = (Path(foundation["gateway_workdir"]) / "AGENTS.md").read_text(encoding="utf-8")
             self.assertIn("Unskippable Foundation Gate", agents)
+            self.assertIn("Autonomy mode: `yolo`", agents)
             self.assertIn("Telegram", agents)
+            self.assertEqual(profile["authority"]["autonomy"]["mode"], "yolo")
             self.assertIn("foundation_onboarding_active: true", stdout.getvalue())
+            self.assertIn("autonomy_mode: yolo", stdout.getvalue())
 
     def test_setup_runtime_configures_gateway_context_for_single_allowed_user(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -193,6 +199,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             profile = json.loads(profile_path.read_text(encoding="utf-8"))
             env_text = (hermes_home / ".env").read_text(encoding="utf-8")
             self.assertIn("TELEGRAM_HOME_CHANNEL=12345", env_text)
+            self.assertIn("WEAVE_AUTONOMY_MODE=yolo", env_text)
             gateway = profile["gateway"]
             self.assertTrue(gateway["runtime_config_written"])
             self.assertTrue(gateway["terminal_cwd_configured"])
@@ -202,6 +209,8 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             self.assertIn("provider: \"openai-codex\"", config_text)
             self.assertIn(str(Path(profile["foundation_onboarding"]["gateway_workdir"]).resolve()), config_text)
             self.assertIn("WEAVE foundation onboarding is mandatory", config_text)
+            self.assertIn("Autonomy mode is `yolo`", config_text)
+            self.assertIn("hard approval gate", config_text)
             self.assertIn("gateway_home_channel_configured: true", stdout.getvalue())
 
     def test_setup_runtime_can_configure_gateway_from_approved_file(self) -> None:
@@ -234,10 +243,12 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             env_text = (hermes_home / ".env").read_text(encoding="utf-8")
             self.assertIn(f"TELEGRAM_BOT_TOKEN={bot_secret}", env_text)
             self.assertIn("TELEGRAM_ALLOWED_USERS=12345,67890", env_text)
+            self.assertIn("WEAVE_AUTONOMY_MODE=yolo", env_text)
             profile = json.loads(profile_path.read_text(encoding="utf-8"))
             self.assertTrue(profile["gateway"]["token_loaded"])
             self.assertTrue(profile["gateway"]["allowlist_configured"])
             self.assertEqual(profile["gateway"]["allowlist_mode"], "allowed_users")
+            self.assertEqual(profile["gateway"]["autonomy_mode"], "yolo")
             self.assertFalse(profile["gateway"]["gateway_started"])
 
     def test_repo_version_file_matches_company(self) -> None:
@@ -292,6 +303,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             self.assertIn(command, docs)
         self.assertIn("llm_used: false", docs)
         self.assertIn("deterministic: true", docs)
+        self.assertIn("/autonomy", docs)
 
 
 if __name__ == "__main__":

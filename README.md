@@ -89,6 +89,11 @@ python3 scripts/setup_runtime.py \
   --gateway-allowed-users <numeric-telegram-user-id>
 ```
 
+Gateway setup defaults to `--autonomy-mode yolo`. In this mode Hermes proceeds
+without routine confirmation for non-gated local work, while hard-gated actions
+still require Hermes to ask for owner authorization through the Telegram LLM
+conversation before acting.
+
 Validate the public-safe workstation context sync sample:
 
 ```bash

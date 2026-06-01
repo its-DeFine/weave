@@ -26,6 +26,7 @@ the runtime command handler before Hermes sees it.
 |---|---|
 | `/start` | Show the deterministic WEAVE command surface. |
 | `/help` | List deterministic WEAVE commands. |
+| `/autonomy` | Show autonomy mode and hard approval gates. |
 | `/status` | Show runtime readiness, app count, blocked app count, and next action. |
 | `/apps` | List apps, lifecycle stage per app, and foundation gate state. |
 | `/app <app_id>` | Show one app's stage, foundation gate, contract version, artifact count, and latest categorized changes. |
@@ -55,6 +56,21 @@ artifacts: 0
 
 Use `/blockers` and `/next` when you want the lowest-cognitive-load answer to
 "what needs attention now?"
+
+Use `/autonomy` to see whether the gateway is in `yolo` mode and which gates
+still require owner authorization through the Telegram LLM conversation.
+
+## Autonomy Mode
+
+Gateway setup defaults to `WEAVE_AUTONOMY_MODE=yolo`. In yolo mode Hermes does
+not ask for routine confirmation before non-gated local work, such as
+inspection, local app workspace edits, tests, validation, formatting, and
+append-only ledger updates.
+
+Yolo mode is not blanket approval. Hermes must ask the owner through the
+Telegram LLM conversation before hard-gated actions, including secrets or auth
+changes, public sends, paid or metered work, production/service changes, and
+destructive work.
 
 ## Gateway Rule
 

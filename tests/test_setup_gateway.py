@@ -50,6 +50,7 @@ class SetupGatewayTests(unittest.TestCase):
             env_text = env_path.read_text(encoding="utf-8")
             self.assertIn(f"TELEGRAM_BOT_TOKEN={bot_secret}", env_text)
             self.assertIn("TELEGRAM_ALLOWED_USERS=12345,67890", env_text)
+            self.assertIn("WEAVE_AUTONOMY_MODE=yolo", env_text)
             self.assertNotIn("GATEWAY_ALLOW_ALL_USERS=true", env_text)
 
     def test_allows_temporary_open_discovery_mode(self) -> None:
@@ -127,7 +128,26 @@ class SetupGatewayTests(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertTrue(payload["telegram_bot_token_configured"])
             self.assertFalse(payload["token_value_printed"])
+            self.assertEqual(payload["autonomy_mode"], "yolo")
             self.assertNotIn(bot_secret, stdout.getvalue())
+
+    def test_can_configure_manual_confirmation_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            bot_file = root / "telegram.secret"
+            bot_file.write_text("123456789:abcdefghijklmnopqrstuvwxyzABCDEF\n", encoding="utf-8")
+            hermes_home = root / "hermes"
+
+            result = setup_gateway.configure_gateway(
+                hermes_home=hermes_home,
+                bot_file=bot_file,
+                allowed_users="12345",
+                autonomy_mode="confirm_everything",
+            )
+
+            self.assertEqual(result["autonomy_mode"], "confirm_everything")
+            env_text = (hermes_home / ".env").read_text(encoding="utf-8")
+            self.assertIn("WEAVE_AUTONOMY_MODE=confirm_everything", env_text)
 
 
 if __name__ == "__main__":
