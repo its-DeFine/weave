@@ -5,6 +5,15 @@ This `docs/` tree is the public documentation subset for WEAVE.
 ## Current public docs
 
 - [Replication Architecture](replication-architecture.md)
+- [Hermes Runtime Setup](hermes-setup.md)
+- [Hermes Runtime Handover](hermes-runtime-handover-2026-05-30.md)
+- [WEAVE Runtime Architecture Contract v0.1](weave-runtime-architecture-contract-v0.1.md)
+- [WEAVE Runtime Story Contract v0.1](weave-runtime-story-contract-v0.1.md)
+- [WEAVE Runtime Document Templates v0.1](weave-runtime-document-templates-v0.1.md)
+- [WEAVE Runtime Technical Gestalt Contract v0.1](weave-runtime-technical-gestalt-contract-v0.1.md)
+- [WEAVE Runtime First Slice Handoff v0.1](weave-runtime-first-slice-handoff-v0.1.md)
+- [External Skill Security Review: codex-dynamic-workflows](weave-runtime-external-skill-security-review-2026-05-30.md)
+- [WEAVE Runtime One-Shot Implementation Prompt v0.1](weave-runtime-one-shot-implementation-prompt-v0.1.md)
 - [Month 1 Overview](month1/README.md)
 - [Application Lifecycle Summary](month1/app-lifecycle.md)
 - [WEAVE Lifecycle Contract v0](month1/weave-lifecycle-contract-v0.md)

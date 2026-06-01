@@ -1,7 +1,9 @@
 # WEAVE Quickstart
 
-Everything here runs locally. No API keys. No network calls. Requires Python 3.9+
-and git.
+The base validation path runs locally with no API keys and no network calls.
+The optional real-Hermes provisioning step uses outbound network access to fetch
+the pinned upstream Hermes source and Python packages. Requires Python 3.9+ and
+git.
 
 ## 1. Clone
 
@@ -21,10 +23,11 @@ Expected output:
 ```text
 valid WEAVE company package: weave
 version: 2026.05.13-console
-agents: 6
+agents: 7
 tasks: 9
-skills: 11
+skills: 13
 primitives: 9
+prompt_packs: 1
 ```
 
 If you see an error, the package is malformed or a required file is missing.
@@ -39,7 +42,85 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 All tests should pass. The suite exercises the package validator and the
 lifecycle dependency rules.
 
-## 4. Run the runtime smoke
+## 4. Set up the local runtime profile
+
+```bash
+python3 scripts/setup_runtime.py
+```
+
+Expected output when Hermes is not installed locally:
+
+```text
+runtime setup: profile_written_runtime_binary_missing
+profile: runs/runtime-profile.json
+runtime: hermes-default
+agent: ceo-hermes
+gateway_setup_required: true
+gateway_started: false
+network_install_performed: false
+service_installed: false
+```
+
+The setup command writes an ignored local profile, checks whether Hermes is
+already on `PATH`, creates or verifies an ignored local WEAVE root under
+`runs/weave-root`, and preserves Local Fallback as fallback. This default command is
+offline and does not download binaries, install services, read secrets, or
+claim a remote runtime exists. See [Hermes Runtime Setup](hermes-setup.md).
+
+To provision the real pinned Nous Hermes Agent into ignored local state:
+
+```bash
+python3 scripts/setup_runtime.py --install-hermes
+```
+
+This clones the upstream Hermes repository, checks out the pinned commit,
+creates `runs/hermes-agent/venv`, installs the CLI package there, and records
+the proof in `runs/hermes-agent/profile.json` plus `runs/runtime-profile.json`.
+It still does not start services, run the Hermes setup wizard, pair Telegram,
+or load credentials. It requires outbound access to GitHub and the Python
+package registry.
+
+The same setup path creates the ignored WEAVE root and a generated Hermes
+gateway workdir. Use the printed `foundation_gateway_workdir` as the gateway
+working directory; it contains the active onboarding `AGENTS.md` and `SOUL.md`
+that force Hermes to ask the missing foundation questions through Telegram
+before app work. When gateway flags are supplied, setup also writes Hermes
+`terminal.cwd` and a runtime system prompt so gateway sessions load this context.
+
+For Telegram, install Hermes with the messaging extra first:
+
+```bash
+python3 scripts/setup_runtime.py --install-hermes --require-runtime-binary --hermes-extras cli,messaging
+```
+
+Then configure the gateway from an owner-approved token file. Use an allowlist
+when the numeric Telegram user id is known:
+
+```bash
+python3 scripts/setup_runtime.py \
+  --install-hermes \
+  --require-runtime-binary \
+  --hermes-extras cli,messaging \
+  --gateway-token-file <owner-approved-token-file> \
+  --gateway-allowed-users <numeric-telegram-user-id>
+```
+
+Temporary discovery mode is available only long enough to capture the owner id:
+
+```bash
+python3 scripts/setup_runtime.py \
+  --gateway-token-file <owner-approved-token-file> \
+  --gateway-allow-all-users
+```
+
+The helper writes only local Hermes environment state, redacts the token from
+output, configures the generated foundation gateway context, and does not start
+the gateway. With one allowed Telegram user and no explicit home channel, it
+also sets that direct chat as the home channel. After setup, verify with
+`hermes status`, `hermes gateway status`, and a foreground
+`hermes gateway run` started from the generated foundation gateway workdir.
+
+## 5. Run the runtime smoke
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -63,19 +144,36 @@ Parallel growth loop:
 
 valid WEAVE company package: weave
 version: 2026.05.13-console
-agents: 6
+agents: 7
 tasks: 9
-skills: 11
+skills: 13
 primitives: 9
+prompt_packs: 1
+runtime setup check: ok
+Hermes provisioner check: ok
+runtime first-slice check: ok
 operator-ui smoke: ok
 smoke: ok
 ```
 
 The smoke script prints the lifecycle stages, re-validates the package, and
-checks the public-safe operator UI sample. It imports nothing outside the
-standard library and makes no network calls.
+checks the local Hermes runtime profile contract, source-only Hermes
+provisioner contract, first-slice root/app/ledger contract, REST dispatch
+skeleton, and the public-safe operator UI sample. It imports nothing outside
+the standard library and makes no network calls.
 
-## 5. Run the operator UI
+## 6. Run the operator UI
+
+Optional: start the local REST skeleton first:
+
+```bash
+python3 scripts/weave_runtime_api.py
+```
+
+It binds to loopback, reads the ignored local WEAVE root, and requires the
+generated local bearer token. It exposes health, runtime status, apps, app
+state, events, artifacts, contract diff, and procedure feedback endpoints. It
+does not claim real Hermes execution.
 
 Serve the local operator console:
 
@@ -84,14 +182,16 @@ python3 scripts/run_operator_ui.py
 ```
 
 Then open the printed local URL in a browser. The UI loads
-`operator-ui/sample-runtime.json`, shows the Askuno runtime-proof lifecycle, and
-shows the public-safe runtime boundary. This is a public-safe local
-instantiation path, not a claim that a VM service is installed.
+`operator-ui/sample-runtime.json`, shows the Askuno runtime-proof lifecycle,
+foundation gate, changes per app, ledger events, and public-safe runtime
+boundary. This is a public-safe local instantiation path, not a claim that a
+hosted service is installed.
 
 The static console includes an app selector, draft app creation, lifecycle
-stage track, runtime-agent message drafts, Plan/Review/Execute cards, blocker
-map, evidence binder, open decisions, KPI snapshot, and command preview. All
-commands stay as local previews.
+stage track, Plan/Review/Execute cards, blocker map, evidence binder, open
+decisions, KPI snapshot, append-only event view, foundation gate view, changes
+per app, REST health, and transcript summary. The UI is not a communication
+surface; Hermes communication happens through the configured external channel.
 
 To validate the UI files without starting a server:
 
@@ -105,7 +205,7 @@ Expected output:
 operator-ui smoke: ok
 ```
 
-## 6. Mission format
+## 7. Mission format
 
 A WEAVE mission is a markdown file with YAML front-matter. The required fields
 are:
@@ -124,7 +224,7 @@ are:
 A full worked example with body text lives at
 [docs/missions/MISSION_TEMPLATE.md](missions/MISSION_TEMPLATE.md).
 
-## 7. Lifecycle dry-run
+## 8. Lifecycle dry-run
 
 The main lifecycle stages a mission passes through, in order:
 

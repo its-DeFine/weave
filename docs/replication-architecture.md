@@ -2,13 +2,14 @@
 
 Status: public-safe architecture note
 Audience: builders who want to reproduce the current WEAVE setup
-Current recommendation: standalone WEAVE repository, OpenClaw as the solo runtime agent
+Current recommendation: standalone WEAVE repository, Hermes as the default runtime agent
 
 ## Short Answer
 
 WEAVE is a standalone agent-company package and runtime toolkit operated by
-OpenClaw. WEAVE supplies the business lifecycle, agent roles, primitives,
-tasks, evidence contracts, and future Livepeer adapter boundaries.
+Hermes, with Local Fallback preserved as a fallback runtime. WEAVE supplies the
+business lifecycle, agent roles, primitives, tasks, evidence contracts, and
+future Livepeer adapter boundaries.
 
 The current public package version is `2026.05.13-console`, intended to be
 tagged as `v2026.05.13-console`.
@@ -18,7 +19,7 @@ The current architecture is:
 ```text
 WEAVE repo
   -> weave-tool package
-  -> OpenClaw CEO/runtime agent
+  -> Hermes CEO/runtime agent
   -> WEAVE lifecycle tasks, skills, and primitives
 ```
 
@@ -26,14 +27,15 @@ WEAVE repo
 
 | Layer | Owned By | Responsibility |
 |---|---|---|
-| OpenClaw | Solo runtime dependency | Agent execution, approved tools, memory/session behavior, gateway invocation, command-bus coordination, and operator workflow. |
+| Hermes | Default runtime dependency | Gestalt-to-Artifact app guidance, agent execution, approved tools, memory/session behavior, command-bus coordination, and operator workflow. |
+| Local Fallback | Fallback runtime dependency | Legacy or owner-directed recovery execution when Hermes is unavailable. |
 | WEAVE | This repository | Company package, lifecycle, primitive registry, application tasks, evidence gates, public docs, and adapter boundaries. |
 | Livepeer or PymtHouse gateways | External capability layer | Future paid or live media pipeline execution after funding, credential, and output-evidence gates. |
 
 ## Runtime Boundary
 
-WEAVE should depend on the OpenClaw solo runtime path for this release. The
-public repository provides the package and operating layer.
+WEAVE should depend on the Hermes default runtime path for this release. The
+public repository provides the package, prompt/spec pack, and operating layer.
 
 | Area | WEAVE Scope |
 |---|---|---|
@@ -41,7 +43,7 @@ public repository provides the package and operating layer.
 | Company content | A concrete WEAVE company with CEO, research, engineering, QA, growth, and analytics roles. |
 | Lifecycle | Defines Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing, with Iteration and Analysis as a parallel growth loop under Marketing. |
 | Primitives | Ships a primitive registry and operator-console runtime path that can later map to Livepeer pipelines. |
-| Runtime agent | Uses OpenClaw as the CEO/runtime agent directly. |
+| Runtime agent | Uses Hermes as the CEO/runtime agent directly, with Local Fallback as fallback. |
 | Evidence | Requires lifecycle-stage evidence, omission records, boundary notes, and acceptance gates. |
 | Livepeer integration | Treated as an external adapter boundary with payment and output proof gates. |
 
@@ -75,16 +77,16 @@ scrubbed.
 
 The public replication path should be:
 
-1. Install OpenClaw and authenticate the model provider in the local runtime.
+1. Install Hermes and authenticate the model provider in the local runtime.
 2. Clone the WEAVE repository.
 3. Validate the WEAVE company package.
 4. Run the runtime smoke.
 5. Serve the local operator UI.
-6. Run or inspect the OpenClaw CEO/runtime agent instructions.
+6. Run or inspect the Hermes CEO/runtime agent instructions and Gestalt Runtime Pack.
 7. Run the first lifecycle wedge: Research admits one opportunity before Engineering starts.
 
 The WEAVE repository should never require committed secrets. Local credentials
-belong in the user's secret store, environment, or OpenClaw profile.
+belong in the user's secret store, environment, or Hermes profile.
 
 ## Minimum Public Commands
 
@@ -113,10 +115,11 @@ Expected shape:
 ```text
 valid WEAVE company package: weave
 version: 2026.05.13-console
-agents: 6
+agents: 7
 tasks: 9
-skills: 11
+skills: 13
 primitives: 9
+prompt_packs: 1
 operator-ui smoke: ok
 smoke: ok
 ```
@@ -136,7 +139,7 @@ Allowed to include:
 - public docs under `docs/`
 - operator-console runtime primitives
 - validators and tests that do not require private infrastructure
-- non-secret examples for OpenClaw configuration
+- non-secret examples for Hermes configuration
 
 Keep out of the public release:
 
@@ -153,7 +156,7 @@ A builder has replicated the current setup when all of these are true:
 - WEAVE validates as a company package.
 - The runtime smoke passes.
 - The operator UI sample loads from public-safe local data.
-- OpenClaw is configured as the CEO/runtime agent.
+- Hermes is configured as the CEO/runtime agent.
 - Intent is the first active lifecycle gate.
 - Engineering work starts only after Research, Selection, and Plan are recorded.
 

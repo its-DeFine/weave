@@ -60,7 +60,7 @@ why_compute_conserving: A clear example prevents repeated support questions and 
 **Scope**
 
 Add a worked example showing how to use the `blur-background` primitive in a
-local OpenClaw session. The example should live at
+local Hermes session. The example should live at
 `docs/examples/blur-background.md` and demonstrate: loading the primitive,
 setting the blur radius parameter, and the expected output shape.
 

@@ -11,7 +11,7 @@ signals, and iteration history tracked as first-class objects.
 WEAVE separates three layers:
 
 1. Execution runtime
-   - OpenClaw and approved execution tools.
+   - Hermes and approved execution tools.
    - This layer reads repositories, writes code, runs tests, opens pull
      requests, queues commands, and performs approved work.
 
@@ -99,7 +99,7 @@ For Month 1:
 
 - WEAVE is the lifecycle wrapper, evidence model, gate model, and review
   surface.
-- OpenClaw is the execution runtime.
+- Hermes is the execution runtime.
 - Askuno is the proof application.
 - Atumera KPIs is the public reporting surface.
 - Review gates are the lifecycle controls.
@@ -107,7 +107,7 @@ For Month 1:
 This delivers:
 
 - M1-D1 as the WEAVE method and lifecycle contract.
-- M1-D2 as the Askuno replay through that lifecycle using OpenClaw as the
+- M1-D2 as the Askuno replay through that lifecycle using Hermes as the
   execution runtime.
 - M1-D3 as public KPI reporting through Atumera.
 
