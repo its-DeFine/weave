@@ -145,6 +145,56 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(status, 201)
             self.assertEqual(response["event"]["type"], "window.changed")
 
+    def test_telegram_slash_commands_are_deterministic_and_do_not_use_llm(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            event = runtime.new_event("window.changed", "demo", "intent", "Owner-visible state changed.")
+            runtime.append_event(root, "demo", event)
+
+            status = runtime.dispatch_telegram_command(root, "/status")
+            self.assertEqual(status["schema"], runtime.TELEGRAM_COMMAND_SCHEMA)
+            self.assertTrue(status["deterministic"])
+            self.assertFalse(status["llm_used"])
+            self.assertEqual(status["payload"]["app_count"], 1)
+            self.assertEqual(status["payload"]["blocked_apps"], ["demo"])
+
+            apps = runtime.dispatch_telegram_command(root, "/apps")
+            self.assertIn("Demo (demo)", apps["text"])
+            self.assertEqual(apps["payload"]["apps"][0]["stage"], "intent")
+
+            app = runtime.dispatch_telegram_command(root, "/app demo")
+            self.assertIn("foundation: blocking", app["text"])
+            self.assertIn("foundation_gate", app["payload"])
+
+            blockers = runtime.dispatch_telegram_command(root, "/blockers")
+            self.assertIn("foundation", blockers["text"])
+
+            changes = runtime.dispatch_telegram_command(root, "/changes demo")
+            self.assertIn("window", changes["text"])
+
+            next_action = runtime.dispatch_telegram_command(root, "/next")
+            self.assertIn("foundation onboarding", next_action["text"])
+
+            help_response = runtime.dispatch_telegram_command(root, "/help")
+            self.assertIn("/status", help_response["payload"]["commands"])
+
+            passthrough = runtime.dispatch_telegram_command(root, "normal Hermes chat")
+            self.assertFalse(passthrough["handled"])
+            self.assertEqual(passthrough["error"], "not_slash_command")
+
+    def test_rest_dispatch_exposes_telegram_command_catalog(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.setup_weave_root(root)
+
+            status, response = runtime.dispatch_rest(root, "GET", "/telegram/commands")
+
+            self.assertEqual(status, 200)
+            self.assertTrue(response["deterministic"])
+            self.assertFalse(response["llm_used"])
+            self.assertIn("/apps", response["commands"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -37,9 +37,8 @@ The current release shape is deliberately narrow:
 
 ```text
 docs/                  Public documentation and replication architecture.
-operator-ui/           Public-safe local operator console sample.
 packages/weave-tool/   Hermes-default WEAVE company package.
-scripts/               Local validation, smoke, and UI serving scripts.
+scripts/               Local validation, smoke, runtime, and gateway scripts.
 tests/                 Public-safe validation tests.
 ```
 
@@ -57,7 +56,7 @@ Run the public-safe test suite:
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-Run the lifecycle and operator UI smoke:
+Run the lifecycle and deterministic Telegram command smoke:
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -115,16 +114,9 @@ WEAVE is packaged as an importable AI-operated company:
 ```text
 WEAVE repo
   -> packages/weave-tool
-  -> operator-ui
   -> Hermes CEO/runtime agent
   -> WEAVE lifecycle tasks, skills, and primitives
-```
-
-The operator UI is a static public-safe console that reads
-`operator-ui/sample-runtime.json`. Run it locally with:
-
-```bash
-python3 scripts/run_operator_ui.py
+  -> deterministic Telegram slash commands for state
 ```
 
 The first-slice REST skeleton can be served locally with:
@@ -137,9 +129,30 @@ It binds to loopback, requires the ignored generated local token, and delegates
 to the same root, app, ledger, foundation, and stage-derivation primitives used
 by the tests.
 
-This proves a local instantiation path for the lifecycle console. It does not
+This proves a local instantiation path for the lifecycle runtime. It does not
 claim that a VM service, hosted runtime, paid model route, or production
 deployment is installed.
+
+Telegram is the operator surface for this release. Normal Telegram messages go
+to Hermes. WEAVE slash commands are intercepted by the gateway and answered
+from deterministic local runtime state with `deterministic: true` and
+`llm_used: false`.
+
+Available commands:
+
+| Command | Purpose |
+|---|---|
+| `/start` | Show the deterministic WEAVE command surface. |
+| `/help` | List deterministic WEAVE commands. |
+| `/status` | Show runtime readiness, app count, blocked app count, and next action. |
+| `/apps` | List apps, lifecycle stage per app, and foundation gate state. |
+| `/app <app_id>` | Show one app's stage, foundation gate, contract version, artifact count, and latest changes. |
+| `/blockers` | Show apps that need owner or Hermes action. |
+| `/changes [app_id]` | Show latest recorded changes for one app or all apps. |
+| `/next` | Show the next deterministic owner-visible action. |
+
+See [docs/telegram-slash-commands.md](docs/telegram-slash-commands.md) for the
+full command contract and response shape.
 
 Hermes carries a public prompt/spec package at
 `packages/weave-tool/prompts/hermes-gestalt-runtime-pack/`. That pack is the
@@ -168,13 +181,6 @@ The public workstation context sync contract in
 `docs/workstation-context-sync.md` shows how completed local work can be
 recorded into a runtime ledger as evidence and decisions. The included sample
 uses public-safe paths only and performs no network writes.
-
-The console includes an app selector, draft app creation, lifecycle stage
-track, a parallel iteration-analysis loop below Marketing, Plan/Review/Execute
-cards, blocker map, evidence binder, open decisions, KPI snapshot, append-only
-event view, foundation gate view, changes per app, REST health, and transcript
-summary. It uses sample data only, performs no network writes, and is not a
-communication surface.
 
 The main lifecycle is:
 

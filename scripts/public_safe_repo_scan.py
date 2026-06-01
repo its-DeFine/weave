@@ -36,9 +36,6 @@ SCAN_EXTENSIONS = {
 }
 
 ALLOWLIST = {
-    # Public operator UI helper intentionally binds to loopback for local-only
-    # static serving. It must not imply a private runtime endpoint.
-    ("scripts/run_operator_ui.py", "loopback-host"),
     ("scripts/weave_runtime_api.py", "loopback-host"),
 }
 

@@ -28,6 +28,7 @@ EVENT_SCHEMA = "weave-event/v0.1"
 FOUNDATION_SCHEMA = "weave-foundation-gate/v0.1"
 REST_SCHEMA = "weave-rest-dispatch/v0.1"
 GATEWAY_CONTEXT_SCHEMA = "weave-gateway-context/v0.1"
+TELEGRAM_COMMAND_SCHEMA = "weave-telegram-command/v0.1"
 
 TEMPLATE_MARKER = "template-needs-owner-input"
 
@@ -82,6 +83,17 @@ APP_DIRS = [
     "ledger/procedure-feedback",
     "exports",
 ]
+
+TELEGRAM_COMMANDS = {
+    "/start": "Show the deterministic WEAVE command surface.",
+    "/help": "List deterministic WEAVE commands.",
+    "/status": "Show runtime readiness and aggregate app status.",
+    "/apps": "List apps, lifecycle stages, and foundation gate state.",
+    "/app": "Show one app state. Usage: /app <app_id>",
+    "/blockers": "Show apps that need owner or Hermes action.",
+    "/changes": "Show latest recorded changes. Usage: /changes [app_id]",
+    "/next": "Show the next deterministic owner-visible action.",
+}
 
 
 class RuntimeSliceError(Exception):
@@ -339,7 +351,7 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
             "git-tracked-workspace",
             "append-only-ledger",
             "rest-dispatch-skeleton",
-            "operator-ui-projection",
+            "telegram-deterministic-slash-commands",
         ],
         "blockers": [],
     }
@@ -599,9 +611,10 @@ Result -> Contract Update Log.
 
 ## Operator-Facing Summary
 
-Every reply should make the current app, lifecycle stage, gate status, changed
-artifacts, checks, and next action legible. The UI is a projection surface only;
-do not route conversation through the UI.
+Normal conversation stays with Hermes through Telegram. Deterministic slash
+commands such as `/status`, `/apps`, `/app`, `/blockers`, `/changes`, and
+`/next` are handled by the WEAVE runtime command layer and must not be answered
+with model-generated text.
 """
 
 
@@ -667,7 +680,7 @@ def setup_foundation_onboarding(root: Path, app_id: str, app_name: str) -> dict[
         "gateway_workdir": str(workdir),
         "required_before_app_work": True,
         "question_limit": 3,
-        "ui_is_projection_only": True,
+        "deterministic_telegram_commands": sorted(TELEGRAM_COMMANDS),
     }
     context_path.write_text(json.dumps(context, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     agents_path = workdir / "AGENTS.md"
@@ -814,6 +827,284 @@ def list_apps(root: Path) -> list[dict[str, Any]]:
     return apps
 
 
+def root_ready(root: Path) -> bool:
+    return registry_path(root).exists()
+
+
+def safe_list_apps(root: Path) -> list[dict[str, Any]]:
+    if not root_ready(root):
+        return []
+    return list_apps(root)
+
+
+def telegram_command_response(
+    *,
+    command: str,
+    text: str,
+    payload: dict[str, Any] | None = None,
+    handled: bool = True,
+    error: str = "",
+) -> dict[str, Any]:
+    return {
+        "schema": TELEGRAM_COMMAND_SCHEMA,
+        "command": command,
+        "handled": handled,
+        "deterministic": True,
+        "llm_used": False,
+        "communication_channel": "telegram",
+        "text": text,
+        "payload": payload or {},
+        "error": error,
+    }
+
+
+def parse_telegram_command(text: str) -> tuple[str, list[str]]:
+    stripped = text.strip()
+    if not stripped.startswith("/"):
+        return "", []
+    parts = stripped.split()
+    command = parts[0].split("@", 1)[0].lower()
+    return command, parts[1:]
+
+
+def telegram_help_text() -> str:
+    lines = ["WEAVE deterministic commands:"]
+    for command in sorted(TELEGRAM_COMMANDS):
+        lines.append(f"{command} - {TELEGRAM_COMMANDS[command]}")
+    return "\n".join(lines)
+
+
+def foundation_status_label(gate: dict[str, Any]) -> str:
+    if gate["passed"]:
+        return "passed"
+    needed = gate["missing"] + gate["incomplete"]
+    if not needed:
+        return "blocking"
+    return "blocking: " + ", ".join(needed)
+
+
+def app_status_line(app: dict[str, Any]) -> str:
+    gate = "passed" if app["foundation_passed"] else "blocking"
+    return f"{app['name']} ({app['app_id']}): stage={app['stage']}; foundation={gate}"
+
+
+def runtime_status_command(root: Path) -> dict[str, Any]:
+    apps = safe_list_apps(root)
+    blocked = [app for app in apps if not app["foundation_passed"]]
+    lines = [
+        "WEAVE runtime status",
+        f"root_ready: {str(root_ready(root)).lower()}",
+        f"apps: {len(apps)}",
+        f"blocked_apps: {len(blocked)}",
+    ]
+    if blocked:
+        lines.append(f"next: Hermes must complete foundation onboarding for {blocked[0]['app_id']}.")
+    elif apps:
+        lines.append("next: no foundation blockers recorded.")
+    else:
+        lines.append("next: create or attach an app workspace.")
+    return telegram_command_response(
+        command="/status",
+        text="\n".join(lines),
+        payload={
+            "root_ready": root_ready(root),
+            "app_count": len(apps),
+            "blocked_app_count": len(blocked),
+            "blocked_apps": [app["app_id"] for app in blocked],
+        },
+    )
+
+
+def apps_command(root: Path) -> dict[str, Any]:
+    apps = safe_list_apps(root)
+    if not apps:
+        text = "No WEAVE apps are registered yet."
+    else:
+        text = "WEAVE apps:\n" + "\n".join(app_status_line(app) for app in apps)
+    return telegram_command_response(command="/apps", text=text, payload={"apps": apps})
+
+
+def app_command(root: Path, args: list[str]) -> dict[str, Any]:
+    if not args:
+        return telegram_command_response(
+            command="/app",
+            handled=False,
+            error="missing_app_id",
+            text="Usage: /app <app_id>",
+            payload={"usage": "/app <app_id>"},
+        )
+    app_id = slugify(args[0])
+    try:
+        state = app_state(root, app_id)
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/app",
+            handled=False,
+            error="app_not_found",
+            text=f"App not found: {app_id}",
+            payload={"app_id": app_id, "detail": str(exc)},
+        )
+    gate = state["foundation_gate"]
+    app = state["app"]
+    text = "\n".join(
+        [
+            f"{app['name']} ({app['app_id']})",
+            f"stage: {state['stage']['stage']} ({state['stage']['stage_source']})",
+            f"foundation: {foundation_status_label(gate)}",
+            f"contract_version: {app.get('contract_version', '')}",
+            f"artifacts: {len(state['artifacts'])}",
+        ]
+    )
+    payload = {
+        "app_id": app["app_id"],
+        "name": app["name"],
+        "stage": state["stage"],
+        "foundation_gate": gate,
+        "contract_version": app.get("contract_version", ""),
+        "artifact_count": len(state["artifacts"]),
+        "latest_changes": state["latest_changes"],
+    }
+    return telegram_command_response(command="/app", text=text, payload=payload)
+
+
+def blockers_command(root: Path) -> dict[str, Any]:
+    blockers: list[dict[str, Any]] = []
+    lines: list[str] = []
+    for app in safe_list_apps(root):
+        state = app_state(root, app["app_id"])
+        gate = state["foundation_gate"]
+        app_blockers = state["app"].get("blockers", [])
+        if gate["passed"] and not app_blockers:
+            continue
+        entry = {
+            "app_id": app["app_id"],
+            "name": app["name"],
+            "stage": app["stage"],
+            "foundation_gate": gate,
+            "blockers": app_blockers,
+        }
+        blockers.append(entry)
+        reasons = []
+        if not gate["passed"]:
+            reasons.append(f"foundation {foundation_status_label(gate)}")
+        reasons.extend(str(blocker) for blocker in app_blockers)
+        lines.append(f"{app['name']} ({app['app_id']}): " + "; ".join(reasons))
+    text = "No WEAVE blockers are recorded." if not lines else "WEAVE blockers:\n" + "\n".join(lines)
+    return telegram_command_response(command="/blockers", text=text, payload={"blockers": blockers})
+
+
+def summarize_change_event(category: str, event: dict[str, Any] | None) -> str | None:
+    if not event:
+        return None
+    return f"{category}: {event['summary']} [{event['stage']}]"
+
+
+def changes_for_app(root: Path, app_id: str) -> dict[str, Any]:
+    load_app(root, app_id)
+    changes = latest_changes(root, app_id)
+    lines = [
+        line
+        for category, event in changes.items()
+        for line in [summarize_change_event(category, event)]
+        if line
+    ]
+    return {"app_id": app_id, "changes": changes, "lines": lines}
+
+
+def changes_command(root: Path, args: list[str]) -> dict[str, Any]:
+    app_ids = [slugify(args[0])] if args else [app["app_id"] for app in safe_list_apps(root)]
+    summaries: list[dict[str, Any]] = []
+    lines: list[str] = []
+    for app_id in app_ids:
+        try:
+            summary = changes_for_app(root, app_id)
+        except RuntimeSliceError as exc:
+            return telegram_command_response(
+                command="/changes",
+                handled=False,
+                error="app_not_found",
+                text=f"App not found: {app_id}",
+                payload={"app_id": app_id, "detail": str(exc)},
+            )
+        summaries.append(summary)
+        if summary["lines"]:
+            lines.append(f"{app_id}:\n" + "\n".join(f"- {line}" for line in summary["lines"]))
+        else:
+            lines.append(f"{app_id}: no categorized changes recorded.")
+    text = "No WEAVE apps are registered yet." if not app_ids else "WEAVE changes:\n" + "\n".join(lines)
+    return telegram_command_response(command="/changes", text=text, payload={"apps": summaries})
+
+
+def next_command(root: Path) -> dict[str, Any]:
+    apps = safe_list_apps(root)
+    for app in apps:
+        state = app_state(root, app["app_id"])
+        gate = state["foundation_gate"]
+        if not gate["passed"]:
+            return telegram_command_response(
+                command="/next",
+                text=(
+                    f"Next: Hermes must ask foundation onboarding questions for {app['name']} "
+                    f"({app['app_id']}) and update the required documents."
+                ),
+                payload={"app_id": app["app_id"], "next_action": gate["next_action"], "foundation_gate": gate},
+            )
+        blockers = state["app"].get("blockers", [])
+        if blockers:
+            return telegram_command_response(
+                command="/next",
+                text=f"Next: resolve blocker for {app['name']} ({app['app_id']}): {blockers[0]}",
+                payload={"app_id": app["app_id"], "next_action": blockers[0]},
+            )
+    if apps:
+        return telegram_command_response(
+            command="/next",
+            text="Next: no deterministic blocker is recorded; Hermes can continue from the current lifecycle stage.",
+            payload={"app_count": len(apps), "next_action": "continue"},
+        )
+    return telegram_command_response(
+        command="/next",
+        text="Next: create or attach a WEAVE app workspace.",
+        payload={"app_count": 0, "next_action": "create_app"},
+    )
+
+
+def dispatch_telegram_command(root: Path, text: str) -> dict[str, Any]:
+    command, args = parse_telegram_command(text)
+    if not command:
+        return telegram_command_response(
+            command="",
+            handled=False,
+            error="not_slash_command",
+            text="Not a deterministic WEAVE slash command.",
+        )
+    if command in {"/start", "/help"}:
+        return telegram_command_response(
+            command=command,
+            text=telegram_help_text(),
+            payload={"commands": TELEGRAM_COMMANDS, "root_ready": root_ready(root)},
+        )
+    if command == "/status":
+        return runtime_status_command(root)
+    if command == "/apps":
+        return apps_command(root)
+    if command == "/app":
+        return app_command(root, args)
+    if command == "/blockers":
+        return blockers_command(root)
+    if command == "/changes":
+        return changes_command(root, args)
+    if command == "/next":
+        return next_command(root)
+    return telegram_command_response(
+        command=command,
+        handled=False,
+        error="unknown_command",
+        text=f"Unknown WEAVE command: {command}\n\n{telegram_help_text()}",
+        payload={"commands": TELEGRAM_COMMANDS},
+    )
+
+
 def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
     method = method.upper()
     parts = [part for part in request_path.strip("/").split("/") if part]
@@ -840,6 +1131,8 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
         return 202, {"schema": REST_SCHEMA, "status": "accepted", "action": "runtime.restart-hermes", "effect": "stub-no-real-hermes"}
     if method == "GET" and parts == ["apps"]:
         return 200, {"schema": REST_SCHEMA, "apps": list_apps(root)}
+    if method == "GET" and parts == ["telegram", "commands"]:
+        return 200, {"schema": REST_SCHEMA, "commands": TELEGRAM_COMMANDS, "deterministic": True, "llm_used": False}
     if method == "POST" and parts == ["apps"]:
         result = create_app(root, body.get("app_id", body.get("name", "app")), body.get("name", "Untitled app"))
         return 201, {"schema": REST_SCHEMA, "result": result}
@@ -865,6 +1158,4 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
             )
             append_event(root, app_id, event)
             return 201, {"schema": REST_SCHEMA, "event": event}
-    if method == "GET" and parts == ["ui"]:
-        return 200, {"schema": REST_SCHEMA, "ui": "operator-ui/index.html", "communication_surface": False}
     return 404, {"schema": REST_SCHEMA, "error": "not_found", "path": request_path}

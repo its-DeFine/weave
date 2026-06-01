@@ -1,7 +1,7 @@
 {
   "schema": "weave/primitives/v0.1",
   "application": "askuno-runtime-proof",
-  "runtimeMode": "operator-console-first",
+  "runtimeMode": "telegram-command-first",
   "futureAdapterTarget": "livepeer-app-lifecycle",
   "primitives": [
     {
@@ -65,7 +65,7 @@
       "pipelineIntent": "metric-definition",
       "availability": "local-runtime",
       "customerUse": "Defines public and private metrics before marketing starts.",
-      "futureAdapterMapping": "Can later bind aggregate app metrics to a public dashboard."
+      "futureAdapterMapping": "Can later bind aggregate app metrics to public reporting."
     },
     {
       "id": "marketing-plan",

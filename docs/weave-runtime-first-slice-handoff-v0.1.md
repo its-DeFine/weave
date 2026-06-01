@@ -14,20 +14,20 @@ Build the first local WEAVE runtime substrate:
 - app registry
 - append-only event ledger
 - REST API skeleton contract
-- multi-app UI projection contract
+- deterministic Telegram slash-command status contract
 - Hermes adapter contract
 - foundation gate rules
 
 ## Whole-System Trace
 
 Final vision supported: Hermes helps the owner create and manage multiple apps,
-while WEAVE records, verifies, exposes, and visualizes the work.
+while WEAVE records, verifies, exposes, and makes the work legible.
 
 Gestalt invariants protected:
 
 1. Hermes is the agent.
 2. WEAVE is the deterministic machine around Hermes.
-3. The UI is not chat.
+3. Slash commands are deterministic status, not chat.
 4. Foundation context is unskippable.
 5. Every app is git tracked.
 6. The owner can see what changed.
@@ -49,7 +49,7 @@ Expected future implementation outputs:
 - event schema validator
 - document template installer
 - REST API server
-- UI projection updates
+- Telegram slash-command status updates
 - test suite
 
 ## Non-Goals
@@ -76,8 +76,9 @@ blocks and records missing context.
 
 Gestalt:
 
-Given multiple apps, when the UI opens, then the owner sees app stage, changes,
-blockers, and contract status without using the UI as chat.
+Given multiple apps, when the owner sends `/apps`, `/blockers`, or `/changes`,
+then they see app stage, changes, blockers, and contract status without using
+slash commands as chat.
 
 ## Definition Of Complete
 
@@ -88,6 +89,6 @@ This slice is complete when:
 3. Templates are installed.
 4. Ledger validates and appends events.
 5. API exposes health, app list, app state, and events.
-6. UI projects multiple apps and changes per app.
+6. Slash commands project multiple apps and changes per app.
 7. Foundation gate is enforced in the Hermes adapter contract.
 8. Public-safe checks and tests pass.

@@ -11,7 +11,7 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SAMPLE_PATH = REPO_ROOT / "operator-ui" / "workstation-context-sync.sample.json"
+SAMPLE_PATH = REPO_ROOT / "docs" / "samples" / "workstation-context-sync.sample.json"
 SCHEMA = "weave-workstation-context-sync/v0.1"
 
 PRIVATE_TEXT_RE = re.compile(

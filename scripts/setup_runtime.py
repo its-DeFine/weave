@@ -186,6 +186,12 @@ the owner through Telegram only, ask at most three blocking questions at once,
 write the answers into the canonical WEAVE documents, and do not proceed to app
 work until the gate passes.
 
+Telegram slash commands are reserved for deterministic WEAVE runtime status.
+When a message begins with `/`, route it to the WEAVE command layer and return
+that output without model-generated wording. The owner can use `/status`,
+`/apps`, `/app <app_id>`, `/blockers`, `/changes [app_id]`, `/next`, and
+`/help` to inspect state.
+
 Current WEAVE app: {onboarding_status["app_id"]} ({onboarding_status["app_name"]})
 Current foundation gate passed: {gate["passed"]}
 """
@@ -358,6 +364,7 @@ def runtime_profile(
                 "hermes gateway status",
                 "hermes gateway run",
             ],
+            "deterministic_slash_commands": sorted(weave_runtime_slice.TELEGRAM_COMMANDS),
         },
         "weave_root": {
             "path": str(weave_root),

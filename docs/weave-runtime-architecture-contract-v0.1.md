@@ -2,7 +2,7 @@
 
 Date: 2026-05-30
 Status: architecture contract
-Scope: CLI launch, Hermes lifecycle authority, local state, and operator UI UX
+Scope: CLI launch, Hermes lifecycle authority, local state, and Telegram status UX
 
 ## 1. Verdict
 
@@ -20,13 +20,13 @@ be delegated to Hermes:
 
 - launch and supervise local processes
 - configure or verify the user's Hermes communication channel
-- expose a stable local UI
+- expose deterministic Telegram slash-command status
 - persist an append-only local ledger
 - mirror Hermes' lifecycle state without reinterpreting it
 - validate schemas and public-safe boundaries
 - record approval requests and resolutions
 - verify that Hermes followed required procedures before allowing gated actions
-- provide diagnostics when Hermes, the UI, or local state is unavailable
+- provide diagnostics when Hermes, the command surface, or local state is unavailable
 - expose a REST API for runtime control and remote inspection
 
 This keeps the product simple: Hermes does the cognitive work; WEAVE makes the
@@ -53,8 +53,8 @@ artifact. WEAVE may also show a derived stage when artifact rules make that
 stage mechanically provable.
 
 Derived state: a WEAVE runtime projection computed from artifacts, schemas,
-paths, and ledger events. Derived state is useful for UI clarity, but it is not
-Hermes' semantic judgment.
+paths, and ledger events. Derived state is useful for command clarity, but it
+is not Hermes' semantic judgment.
 
 ## 2. Finished-State UX
 
@@ -64,15 +64,11 @@ The user runs:
 weave start
 ```
 
-WEAVE opens a local operating surface. The user communicates with Hermes through
-the configured communication channel, not through the UI. The UI is a visual
-operating surface that shows what Hermes currently understands, what lifecycle
-stage is registered or deterministically inferred, what is missing, what is
-blocked, and what action is next.
-
-The UI is not a communication surface, but it is still an editable artifact.
-Hermes can improve or repair the UI through the normal app workflow when the
-user dislikes something or a bug appears.
+WEAVE starts or reconnects to the local runtime and gateway. The user
+communicates with Hermes through Telegram. Telegram slash commands are the
+deterministic operating surface that shows what Hermes currently understands,
+what lifecycle stage is registered or deterministically inferred, what is
+missing, what is blocked, and what action is next.
 
 The desired feeling is not "dashboard management." It is "I am in a calm
 operating room with the right agent, the right method, and the right state."
@@ -96,19 +92,19 @@ Kernel for any particular app that Hermes will build later.
 
 Project name: WEAVE Hermes operating environment
 
-Core outcome: A local WEAVE tool launches an operator UI and connects the user
-to a Hermes agent that can carry an app idea through the `gestalt-to-artifact`
-method into a validated operational app.
+Core outcome: A local WEAVE tool connects the user to a Hermes agent and a
+deterministic Telegram status surface that can carry an app idea through the
+`gestalt-to-artifact` method into a validated operational app.
 
 Finished-state experience: The user starts WEAVE from the CLI, talks to Hermes
-through a configured channel, and watches a clear low-clutter UI mirror Hermes'
+through Telegram, and uses clear low-clutter slash commands to inspect Hermes'
 stage, reasoning artifacts, evidence, blockers, and handoff readiness.
 
 Non-negotiable qualities:
 
 1. Hermes owns lifecycle semantics.
 2. WEAVE does not duplicate Hermes' judgment.
-3. The UI reduces cognitive clutter.
+3. The command surface reduces cognitive clutter.
 4. State is durable enough to survive process restarts.
 5. Every build action traces back to the Gestalt contract.
 6. External effects remain approval-gated.
@@ -116,12 +112,12 @@ Non-negotiable qualities:
 
 Definition of done:
 
-1. `weave start` opens a usable local UI.
+1. `weave start` opens or reconnects to the runtime and Telegram gateway.
 2. Hermes is initialized with WEAVE knowledge, prompts, skills, and current app
    state.
 3. The user can communicate with Hermes through the configured channel.
 4. Hermes registers lifecycle stage events.
-5. The UI mirrors Hermes' registered state and packet progress.
+5. Telegram slash commands mirror Hermes' registered state and packet progress.
 6. The local ledger records stage, decision, evidence, assumption, blocker, and
    approval events.
 7. The first app intent can reach at least Gestalt Kernel and Contract stages
@@ -131,11 +127,11 @@ Definition of wrong:
 
 1. WEAVE becomes a competing planner or project manager beside Hermes.
 2. The CLI invents or mutates lifecycle stages independently from Hermes.
-3. The UI shows too many panels, logs, or controls and makes the user supervise
-   implementation noise.
+3. Slash commands show too much noise and make the user supervise
+   implementation details.
 4. Simulated proof is treated as proof of a real Hermes-backed runtime.
 5. The ledger hides uncertainty or overwrites history.
-6. Approval-gated work happens because the UI made it feel routine.
+6. Approval-gated work happens because status output made it feel routine.
 
 Smallest living version:
 
@@ -148,19 +144,19 @@ weave setup
 
 weave start
   -> starts or reconnects to the local WEAVE runtime API
-  -> launches UI
+  -> starts or reconnects to the Telegram gateway
   -> indexes all app workspaces under the WEAVE root
   -> resumes visible state for every app
   -> initializes or checks Hermes context
   -> user sends raw intent through Telegram
   -> Hermes emits lifecycle and artifact events
   -> local ledger persists them
-  -> UI shows app list, stage per app, Kernel, missing ingredients, blockers, and next action
+  -> slash commands show app list, stage per app, Kernel, missing ingredients, blockers, and next action
 ```
 
 `weave start` does not imply Hermes can only work on one app at a time. It
-starts the local runtime and projection layer, then loads the app index. The UI
-must support multiple apps from the first slice.
+starts the local runtime and status layer, then loads the app index. The
+command surface must support multiple apps from the first slice.
 
 If Hermes is already active before `weave start`, Hermes can still work through
 Telegram. WEAVE mirrors that work live only when the runtime API is active and
@@ -294,7 +290,6 @@ The CLI must not:
 
 The local wrapper is the runtime shell launched by the CLI. It owns:
 
-- UI server process
 - local API process
 - Hermes adapter process
 - ledger writer
@@ -311,13 +306,13 @@ Reasons these stay outside Hermes:
 1. They need deterministic behavior.
 2. They must survive model restarts and communication-channel failures.
 3. They are mechanical infrastructure, not product reasoning.
-4. They provide a stable substrate for UI and audit.
+4. They provide a stable substrate for status and audit.
 
-### 5.4 UI Owns
+### 5.4 Telegram Slash Commands Own
 
-The UI owns projection, not interpretation.
+Slash commands own projection, not interpretation.
 
-It shows:
+They show:
 
 - all known apps and current stage per app
 - active app
@@ -336,12 +331,12 @@ It shows:
 - Gestaltian Contract version and diff
 - latest changed artifact per app
 - latest app context diff
-- UI/window change history
+- owner-visible status change history
 
-The UI must not invent state. If state is missing, it shows absence clearly.
-It must not be a chat or command surface for Hermes communication.
-Hermes may edit the UI implementation or configuration only through the app's
-normal contract, worktree, review, validation, and ledger flow.
+Slash commands must not invent state. If state is missing, they show absence
+clearly. They are not a model chat surface for Hermes communication.
+Hermes may propose command-output changes only through the app's normal
+contract, worktree, review, validation, and ledger flow.
 
 ## 6. Lifecycle Registration Model
 
@@ -385,7 +380,7 @@ This preserves the authority split:
 ```text
 Hermes decides, registers, and routes approvals.
 WEAVE persists, verifies procedure, and mirrors or deterministically projects.
-UI explains and reduces clutter.
+Telegram status commands explain and reduce clutter.
 Human approves high-risk actions.
 ```
 
@@ -482,8 +477,8 @@ Rules:
    needs before reasoning.
 9. Hermes should avoid writing outside `<weave-root>` unless the action is
    explicitly authorized and recorded.
-10. The UI and API read from this structure; they do not require the user to
-   remember where artifacts live.
+10. Telegram commands and API read from this structure; they do not require the
+   user to remember where artifacts live.
 11. Lifecycle-stage artifacts live under the first lifecycle stage that owns
     the full artifact.
 12. If a later lifecycle stage reuses the same artifact, that later stage stores
@@ -518,8 +513,8 @@ Technical owner: WEAVE local wrapper.
 Storage owner: the local app workspace created by WEAVE.
 
 This is not a contradiction. Hermes owns the meaning of lifecycle state. WEAVE
-owns durable local storage because persistence, crash recovery, UI projection,
-and append-only audit cannot depend on a live agent process.
+owns durable local storage because persistence, crash recovery, status
+projection, and append-only audit cannot depend on a live agent process.
 
 ### 8.2 Location
 
@@ -559,9 +554,9 @@ WEAVE, and the user share a durable view of what happened.
 
 It does five concrete jobs:
 
-1. Recovery: rebuild current app state after a process, UI, or channel restart.
-2. Projection: give the UI a fast local source for current stage, blockers,
-   assumptions, evidence, approvals, and next action.
+1. Recovery: rebuild current app state after a process or channel restart.
+2. Projection: give slash commands a fast local source for current stage,
+   blockers, assumptions, evidence, approvals, and next action.
 3. Audit: preserve who or what registered an event, when it happened, what it
    referenced, and what changed.
 4. Verification: let WEAVE check that Hermes followed required procedure before
@@ -591,8 +586,8 @@ Rules:
 3. Each accepted contract update creates or references a git commit.
 4. The ledger records the previous version, new version, commit id, authoring
    agent, owner feedback that caused the change, and diff path.
-5. The UI shows the current contract version and lets the user inspect the diff
-   caused by their feedback.
+5. Status commands and REST output show the current contract version and let
+   the user inspect the diff caused by their feedback.
 6. Contract diffs are not hidden in chat history; they are first-class review
    artifacts.
 
@@ -608,7 +603,7 @@ Example event:
   "new_version": "0.3",
   "git_commit": "<local-commit-id>",
   "diff_path": "contract/diffs/0.2-to-0.3.patch",
-  "reason": "Owner clarified that the UI is visual state, not the communication channel."
+  "reason": "Owner clarified that slash commands are status, not the communication channel."
 }
 ```
 
@@ -616,7 +611,7 @@ Example event:
 
 The ledger cannot be owned only by Hermes because:
 
-1. The UI needs local low-latency state even between Hermes messages.
+1. Slash commands need local low-latency state even between Hermes messages.
 2. The user needs recovery after process or channel failure.
 3. Append-only audit should not depend on model memory.
 4. External approval gates need deterministic records.
@@ -674,7 +669,7 @@ GET  /apps/{app_id}/events
 GET  /apps/{app_id}/artifacts
 POST /apps/{app_id}/events
 POST /apps/{app_id}/procedure-feedback
-GET  /ui
+GET  /telegram/commands
 ```
 
 API responsibilities:
@@ -684,7 +679,7 @@ API responsibilities:
 - accept structured Hermes events
 - stop or restart local runtime components
 - return procedure feedback when Hermes omits required fields or gates
-- serve the visual UI
+- expose the deterministic Telegram command catalog
 
 API boundaries:
 
@@ -708,14 +703,14 @@ CLI session, while preserving the same audit and permission boundaries.
 ## 10. Communication Channel
 
 The user should be able to talk to Hermes after setting up a communication
-channel. WEAVE should support this without forcing all communication through the
-UI.
+channel. WEAVE should support this without forcing communication through a
+separate dashboard.
 
 The first supported channel is Telegram.
 
 Future channels may include a local terminal/TUI session, a configured Hermes
-endpoint, or another owner-approved channel. The UI is not a communication
-channel.
+endpoint, or another owner-approved channel. Status commands are not a
+communication channel.
 
 WEAVE's role:
 
@@ -725,13 +720,14 @@ WEAVE's role:
 - ingest Hermes lifecycle and artifact events
 - provide a fallback "channel not configured" state
 
-WEAVE should not become the chat product. The UI must not contain the primary
-message composer for Hermes. It may show communication-channel health and
-event-derived summaries, but the user talks to Hermes in the configured channel.
+WEAVE should not become the chat product. Slash commands may show
+communication-channel health and event-derived summaries, but the user talks to
+Hermes in the configured channel.
 
 ## 11. UX Contract
 
-The UI should reduce cognitive load by following these rules.
+The Telegram status surface should reduce cognitive load by following these
+rules.
 
 ### 11.1 Progressive Disclosure
 
@@ -742,14 +738,14 @@ Show one primary focus at a time:
 3. Missing ingredients
 4. Next action
 
-Details such as raw logs, full event history, and artifact diffs stay one click
-away.
+Details such as raw logs, full event history, and artifact diffs stay behind
+explicit commands or links.
 
 ### 11.2 Recognition Over Recall
 
-The user should not need to remember the lifecycle. The UI should show the
-stage map with each app, the active stage for each app, completed stages,
-blocked stages, and the next stage.
+The user should not need to remember the lifecycle. `/apps` and `/app
+<app_id>` should show the active stage for each app, blocked stages, and the
+next action.
 
 ### 11.3 Chunking
 
@@ -765,7 +761,7 @@ Information should be grouped into stable regions:
 - Next action
 
 Avoid mixing logs, files, lifecycle state, and approvals in one undifferentiated
-stream. Do not put chat controls in the UI.
+stream. Do not turn slash-command output into chat.
 
 ### 11.4 Cognitive Offloading
 
@@ -812,15 +808,14 @@ Runtime error.
 Good example:
 
 ```text
-Hermes channel is not configured. The UI and local ledger are running. Set up a
-channel with weave channel setup, then resume this app.
+Hermes channel is not configured. The runtime ledger is available, but Telegram
+commands cannot be delivered until the channel is configured.
 ```
 
 ### 11.7 Calm Defaults
 
-The UI should avoid decorative density. It should use restrained visual
-hierarchy, clear status language, short labels, stable layout, and explicit
-empty states.
+Telegram status output should avoid decorative density. It should use clear
+status language, short labels, stable sections, and explicit empty states.
 
 The user should feel oriented, not impressed.
 
@@ -839,7 +834,7 @@ Inputs:
 Outputs:
 
 - process status
-- local URL
+- command availability
 - diagnostics
 - non-zero exit code on failure
 
@@ -847,7 +842,8 @@ Acceptance test:
 
 ```text
 Given no active WEAVE process, when the user runs weave start, then the wrapper
-starts the local UI and reports the URL or a precise blocker.
+starts the runtime and reports Telegram command availability or a precise
+blocker.
 ```
 
 ### Local Wrapper
@@ -863,7 +859,7 @@ Inputs:
 
 Outputs:
 
-- running UI/API
+- running API and command handler
 - appended ledger events
 - deterministic state projection
 - procedure feedback for Hermes
@@ -873,7 +869,8 @@ Acceptance test:
 
 ```text
 Given a valid Hermes lifecycle event, when the wrapper receives it, then it
-validates the schema, appends it to events.jsonl, and exposes it to the UI.
+validates the schema, appends it to events.jsonl, and exposes it to slash
+commands.
 ```
 
 ### Hermes Adapter
@@ -947,14 +944,14 @@ Outputs:
 Acceptance test:
 
 ```text
-Given a process restart, when WEAVE resumes the app, then the UI reconstructs
-the current stage and packet readiness from the ledger.
+Given a process restart, when WEAVE resumes the app, then slash commands
+reconstruct the current stage and packet readiness from the ledger.
 ```
 
-### Operator UI
+### Telegram Status Commands
 
-Purpose: low-clutter projection of Hermes-led work and editable operating
-surface artifact.
+Purpose: low-clutter projection of Hermes-led work through deterministic
+Telegram output.
 
 Inputs:
 
@@ -971,21 +968,22 @@ Outputs:
 - approval records and statuses
 - next action
 - latest changes per app
-- UI/window change status
+- owner-visible status change
 
 Acceptance test:
 
 ```text
-Given an app blocked on one missing field, when the UI loads, then the missing
-field and next user action are visible without opening logs.
+Given an app blocked on one missing field, when the owner sends `/blockers`,
+then the missing field and next user action are visible without opening logs.
 ```
 
-UI edit acceptance test:
+Command-output edit acceptance test:
 
 ```text
-Given the user reports a UI bug through Telegram, when Hermes creates a
-Build-Ready Handoff Packet for the UI fix, then the fix happens in a tracked
-worktree and the ledger records the changed UI artifact and validation result.
+Given the user reports confusing command output through Telegram, when Hermes
+creates a Build-Ready Handoff Packet for the command fix, then the fix happens
+in a tracked worktree and the ledger records the changed runtime artifact and
+validation result.
 ```
 
 ### REST API
@@ -1035,14 +1033,14 @@ Examples:
 Rules:
 
 1. Deterministic projection must be labeled as derived state.
-2. The UI must show the artifact rules that caused the derived stage.
+2. Status output must show the artifact rules that caused the derived stage.
 3. Hermes can correct or refine the semantic stage with a valid stage event.
 4. WEAVE can block a gated action when deterministic checks prove required
    procedure was not followed.
 5. WEAVE feedback should be structured so Hermes can repair the event or
    missing artifact.
 
-This gives the user reliable visual state without making WEAVE a competing
+This gives the user reliable visible state without making WEAVE a competing
 reasoning agent.
 
 ## 14. First Vertical Slice
@@ -1050,7 +1048,7 @@ reasoning agent.
 Build:
 
 ```text
-setup + CLI launch + runtime API + visual multi-app UI + app workspace ledger + Hermes event ingestion contract
+setup + CLI launch + runtime API + Telegram command status + app workspace ledger + Hermes event ingestion contract
 ```
 
 Included:
@@ -1059,7 +1057,7 @@ Included:
 - `weave start`
 - local wrapper
 - REST API server
-- local UI route
+- deterministic Telegram command route
 - Telegram channel configuration
 - git-tracked WEAVE root
 - app registry with multiple app support
@@ -1069,8 +1067,8 @@ Included:
 - lifecycle stage registration event schema
 - deterministic stage projection for at least one artifact rule
 - one sample raw intent reaching Gestalt Kernel
-- UI app list with stage per app
-- UI current-stage and missing-ingredients projection for the selected app
+- `/apps` app list with stage per app
+- `/app <app_id>` current-stage and missing-ingredients projection
 - versioned Gestaltian Contract and diff recording for one update
 
 Excluded:
@@ -1083,7 +1081,7 @@ Excluded:
 - full implementation executor
 - real app deployment
 - multi-user sync
-- UI chat or message composer
+- web UI or message composer
 
 Success proof:
 
@@ -1092,15 +1090,15 @@ Success proof:
    configuration.
 3. User starts WEAVE from CLI or calls the runtime API directly.
 4. Runtime API is available.
-5. UI opens and shows all known apps with stage per app.
+5. `/apps` shows all known apps with stage per app.
 6. User sends or has sent a raw intent to Hermes through Telegram.
 7. Hermes emits a stage event and Kernel artifact.
 8. Ledger persists both.
-9. UI mirrors both without inventing semantic state.
+9. Slash commands mirror both without inventing semantic state.
 10. Runtime can derive at least one stage from artifact criteria and label it as
    derived state.
 11. A Gestaltian Contract update is git tracked and its diff is visible from
-    the UI.
+    deterministic status or REST output.
 12. API can report status or stop the runtime without opening the CLI.
 13. Restart reconstructs the same state.
 
@@ -1109,7 +1107,7 @@ Success proof:
 Decisions from owner feedback:
 
 1. First Hermes communication channel: Telegram.
-2. UI communication: none. The UI is visual state, not chat.
+2. Slash-command communication: deterministic status only, not chat.
 3. Multi-app support: required in slice one.
 4. Export format priority: markdown first.
 5. Storage model: always git tracked, even when not published to a remote host.
@@ -1143,7 +1141,7 @@ Assumptions for now:
    means it is git tracked locally but not automatically published or copied to
    public artifacts, because app contracts, approvals, evidence, and repo
    inventories may contain unpublished operating details.
-3. The first UI is local-only.
+3. The first status surface is Telegram slash commands.
 4. The first slice prioritizes clarity and durability over automation breadth.
 
 ## 16. Premortem
@@ -1152,10 +1150,10 @@ Likely failure: WEAVE duplicates Hermes and becomes a second planner.
 
 Mitigation: CLI and wrapper contracts forbid semantic lifecycle decisions.
 
-Likely failure: the UI becomes a noisy log viewer.
+Likely failure: slash commands become noisy log dumps.
 
-Mitigation: default view shows stage, why, missing ingredients, and next action;
-logs stay secondary.
+Mitigation: default commands show stage, why, missing ingredients, and next
+action; logs stay behind explicit inspection commands.
 
 Likely failure: ledger ownership confuses semantic authority.
 
@@ -1167,14 +1165,14 @@ Mitigation: keep runtime proof as a blocking audit requirement.
 
 Likely failure: implementation starts before a Build-Ready Handoff Packet.
 
-Mitigation: UI and adapter must show handoff readiness as locked until Hermes
-emits the packet.
+Mitigation: commands and adapter must show handoff readiness as locked until
+Hermes emits the packet.
 
-Likely failure: the UI becomes a second communication channel and creates split
-attention.
+Likely failure: slash commands become a second communication channel and create
+split attention.
 
-Mitigation: UI remains a visual operating surface; communication stays in the
-configured Hermes channel.
+Mitigation: slash commands remain deterministic status; conversation stays in
+the configured Hermes channel.
 
 Likely failure: folder sprawl makes future agents lose app context.
 
@@ -1193,7 +1191,7 @@ After the first implementation slice, update this contract with:
 - actual Hermes channel used
 - actual event schema changes
 - actual ledger path
-- UX findings from using the first UI
+- UX findings from using Telegram slash commands
 - validation results
 - remaining blockers
 - next slice recommendation

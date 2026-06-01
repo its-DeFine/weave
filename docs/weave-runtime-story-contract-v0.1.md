@@ -18,7 +18,7 @@ artifacts, and feedback, he is partly disconnected from reality.
 This means the first problem is not "how does he build the app?"
 
 The first problem is "how do we set up the man, the phone, the room, the
-folders, the recording machine, and the viewing window so that the man can do
+folders, the recording machine, and the status window so that the man can do
 good work repeatedly?"
 
 The system should help me create many apps over time. Each app should have its
@@ -59,8 +59,10 @@ The cellphone is the communication channel between me and Hermes.
 
 First channel: Telegram.
 
-The UI is not the cellphone. The UI is not where I chat with Hermes. The UI is
-only the window that helps me see what is happening.
+Slash commands are not the cellphone conversation. They are a status window
+inside Telegram: I talk to Hermes with normal messages, and I inspect WEAVE
+state with commands such as `/status`, `/apps`, `/app`, `/blockers`,
+`/changes`, and `/next`.
 
 ### The Recording Machine
 
@@ -86,11 +88,11 @@ It writes down important things Hermes does:
 The machine is not the agent. It does not think for Hermes. It records,
 verifies, reconstructs, and shows.
 
-### The Viewing Window
+### The Status Window
 
-The viewing window is the WEAVE UI.
+The status window is the WEAVE Telegram slash-command surface.
 
-It is a quiet visual operating surface. It shows:
+It is quiet deterministic output. It shows:
 
 - all apps
 - the lifecycle stage of each app
@@ -103,12 +105,9 @@ It is a quiet visual operating surface. It shows:
 - what approvals exist
 - what the next action is
 
-It does not include a chat box. It should reduce cognitive clutter, not become
-another place where context is split.
-
-The window itself is still part of the user's world. Hermes can edit, repair,
-or improve the window as an app artifact when the user dislikes something or a
-bug appears. Those edits must go through the same contract, branch/worktree,
+It is not model chat. It should reduce cognitive clutter, not become another
+place where context is split. If the command output is confusing, Hermes can
+propose a tracked runtime change through the same contract, branch/worktree,
 review, validation, and ledger process as other app changes.
 
 ### The House And Shelves
@@ -197,8 +196,8 @@ The setup process creates or verifies:
 9. The app registry.
 10. The rules for where artifacts and repos belong.
 
-After setup, the house exists. Hermes may be active through Telegram even if the
-viewing window is not open.
+After setup, the house exists. Hermes may be active through Telegram even if
+WEAVE's deterministic status commands are not being checked.
 
 Setup also creates the unskippable foundation gate. This gate runs before
 Hermes performs serious app work. It checks whether Hermes has enough context
@@ -225,10 +224,10 @@ Then I run:
 weave start
 ```
 
-This does not create only one app. It starts the viewing window and runtime
-projection. It indexes all known app rooms. It shows every app and what stage
-each one is in. If Hermes worked while the viewing window was closed, WEAVE
-should sync or import the structured artifacts and events Hermes produced.
+This does not create only one app. It starts the runtime status layer. It
+indexes all known app rooms. `/apps` shows every app and what stage each one is
+in. If Hermes worked while WEAVE was not running, WEAVE should sync or import
+the structured artifacts and events Hermes produced.
 
 ## 4. The First Conversation: Shaping Hermes
 
@@ -423,8 +422,7 @@ This is the app's Gestalt Kernel. It answers:
 - what wrong means
 - what the smallest living version is
 
-The viewing window shows the kernel and asks whether it still feels like the
-whole.
+The status window can show the kernel path and whether review is needed.
 
 ### Contract
 
@@ -437,7 +435,7 @@ This contract is versioned and git tracked:
 ```
 
 When I give feedback, Hermes updates the contract. The recording machine writes
-the event. Git records the diff. The viewing window shows me what changed.
+the event. Git records the diff. `/changes` shows me what changed.
 
 This matters because I want to see how my feedback changes the app's contract.
 
@@ -454,7 +452,7 @@ He asks:
 - what could break in the real world?
 - what would make this unsafe, noisy, or incoherent?
 
-The viewing window shows blockers and safe assumptions.
+`/blockers` shows blockers and safe assumptions.
 
 ### Handoff
 
@@ -508,8 +506,8 @@ approval state.
 After evidence arrives, Hermes analyzes it, proposes contract updates, and
 plans the next iteration.
 
-The contract changes when reality teaches us something. The viewing window
-shows the diff.
+The contract changes when reality teaches us something. `/changes` shows the
+diff reference.
 
 ## 9. Artifact Rules
 
@@ -539,9 +537,9 @@ The reference says:
 This prevents artifact duplication and lets the system know which lifecycle
 stage created the artifact and which later stages depend on it.
 
-## 10. What The Viewing Window Must Show
+## 10. What The Status Window Must Show
 
-The viewing window should answer quickly:
+Telegram slash commands should answer quickly:
 
 - what apps exist
 - what stage each app is in
@@ -559,25 +557,25 @@ The viewing window should answer quickly:
 
 It should not show everything at once.
 
-The default screen should be calm:
+The default command set should be calm:
 
-1. app list with stage per app
-2. selected app summary
-3. current lifecycle shelf
-4. current blocker or next action
-5. contract diff/status
-6. evidence and approval status
+1. `/apps`: app list with stage per app
+2. `/app <app_id>`: selected app summary
+3. `/app <app_id>`: current lifecycle shelf
+4. `/blockers` and `/next`: current blocker or next action
+5. `/changes [app_id]`: contract diff/status and recent changes
+6. `/status`: runtime health and aggregate state
 
 Logs, raw events, transcript summaries, and file details are secondary.
 
-The viewing window should also show what changed in each app:
+The status window should also show what changed in each app:
 
 - latest contract diff
 - latest app context diff
 - latest artifact added or changed
 - latest lifecycle stage change
 - latest approval change
-- latest UI/window change
+- latest owner-visible status change
 
 ## 11. What The REST API Does In The Story
 
@@ -629,18 +627,20 @@ Symptom: code appears before the app contract and handoff packet exist.
 Prevention: inspector blocks implementation unless the required lifecycle
 artifacts exist.
 
-### Failure: the UI becomes a second phone
+### Failure: slash commands become a second phone
 
-Symptom: some context lives in Telegram and some context lives in the UI chat.
+Symptom: the owner starts using slash commands for conversation, or Hermes
+answers deterministic commands with model-generated text.
 
-Prevention: no chat in UI. UI is a viewing window only.
+Prevention: normal messages go to Hermes; WEAVE slash commands return
+deterministic runtime state with `llm_used: false`.
 
-### Failure: Hermes cannot improve the window
+### Failure: Hermes cannot improve the status output
 
-Symptom: the user dislikes the UI or finds a UI bug, but Hermes cannot repair
-the user's operating surface.
+Symptom: the user dislikes command output, but Hermes cannot repair the
+operator status surface.
 
-Prevention: the viewing window is treated as an editable app artifact. Hermes
+Prevention: command output is treated as an editable runtime artifact. Hermes
 can change it through the same contract, branch/worktree, review, validation,
 and ledger flow used for other artifacts.
 
@@ -667,7 +667,7 @@ Symptom: I give feedback, Hermes changes direction, but I cannot see exactly
 what changed.
 
 Prevention: git-tracked Gestaltian Contract, contract diffs, ledger
-`contract.updated` events, UI diff view.
+`contract.updated` events, and command-visible diff references.
 
 ### Failure: artifacts duplicate across lifecycle stages
 
@@ -686,7 +686,8 @@ events and blocks gated procedure when records are missing.
 
 ### Failure: Hermes works while WEAVE is not running and state is lost
 
-Symptom: Telegram conversation contains work that the UI cannot show.
+Symptom: Telegram conversation contains work that WEAVE status commands cannot
+show.
 
 Prevention: Hermes writes structured events/artifacts into the git-tracked app
 workspace, and `weave start` syncs/imports offline work.
@@ -716,8 +717,8 @@ research tools when needed, and record evidence refs in the ledger.
 | App room | Git-tracked app workspace |
 | Shelves | Folder structure and lifecycle stage directories |
 | Recording machine | WEAVE ledger and runtime event store |
-| Viewing window | WEAVE visual UI, not the communication surface |
-| Window repair | UI artifact change through app workflow |
+| Status window | WEAVE Telegram slash commands, not model chat |
+| Status repair | Command-output change through app workflow |
 | Inspector | Deterministic WEAVE runtime verifier |
 | Remote control | WEAVE REST API |
 | Character paper | `soul.md` |
@@ -745,8 +746,8 @@ This story contract is acceptable when:
 7. The story includes lifecycle shelves and artifact references.
 8. The story includes git-tracked contracts, worktrees, review records, and
    visible contract diffs.
-9. The story includes UI, ledger, inspector, REST API, Telegram, and approval
-   routing.
+9. The story includes Telegram slash commands, ledger, inspector, REST API,
+   Telegram conversation, and approval routing.
 10. The story exposes failure modes before implementation.
 
 ## 15. Next Step After Review
@@ -758,6 +759,6 @@ Gestaltian Contract with:
 - exact event schemas
 - exact setup commands
 - exact REST API contract
-- exact UI information architecture
+- exact Telegram slash-command information architecture
 - exact Hermes adapter contract
 - exact first Build-Ready Handoff Packet

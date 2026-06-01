@@ -42,7 +42,7 @@ public repository provides the package, prompt/spec pack, and operating layer.
 | Product shape | AI-operated application business focused on agent-run product lifecycle work. |
 | Company content | A concrete WEAVE company with CEO, research, engineering, QA, growth, and analytics roles. |
 | Lifecycle | Defines Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing, with Iteration and Analysis as a parallel growth loop under Marketing. |
-| Primitives | Ships a primitive registry and operator-console runtime path that can later map to Livepeer pipelines. |
+| Primitives | Ships a primitive registry and deterministic Telegram status path that can later map to adapter execution. |
 | Runtime agent | Uses Hermes as the CEO/runtime agent directly, with Local Fallback as fallback. |
 | Evidence | Requires lifecycle-stage evidence, omission records, boundary notes, and acceptance gates. |
 | Livepeer integration | Treated as an external adapter boundary with payment and output proof gates. |
@@ -63,12 +63,11 @@ weave/
     skills/
     primitives/
     scripts/
-  operator-ui/
   scripts/
 ```
 
 For a public release, `weave-tool/` is the minimum reproducible package.
-`operator-ui/` is the public-safe local operator-console surface. Private
+Telegram slash commands are the public-safe operator status surface. Private
 runner implementations can be published only after private paths,
 host-specific scripts, secrets, generated runs, and internal evidence are
 scrubbed.
@@ -81,9 +80,10 @@ The public replication path should be:
 2. Clone the WEAVE repository.
 3. Validate the WEAVE company package.
 4. Run the runtime smoke.
-5. Serve the local operator UI.
-6. Run or inspect the Hermes CEO/runtime agent instructions and Gestalt Runtime Pack.
-7. Run the first lifecycle wedge: Research admits one opportunity before Engineering starts.
+5. Configure the Telegram gateway when live communication is needed.
+6. Use deterministic slash commands to inspect app status.
+7. Run or inspect the Hermes CEO/runtime agent instructions and Gestalt Runtime Pack.
+8. Run the first lifecycle wedge: Research admits one opportunity before Engineering starts.
 
 The WEAVE repository should never require committed secrets. Local credentials
 belong in the user's secret store, environment, or Hermes profile.
@@ -104,12 +104,6 @@ Run the runtime smoke:
 python3 scripts/runtime_smoke.py
 ```
 
-Serve the public-safe operator UI:
-
-```bash
-python3 scripts/run_operator_ui.py
-```
-
 Expected shape:
 
 ```text
@@ -120,7 +114,7 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
-operator-ui smoke: ok
+telegram command smoke: ok
 smoke: ok
 ```
 
@@ -135,9 +129,8 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 Allowed to include:
 
 - `weave-tool/` package files
-- `operator-ui/` static public-safe UI files
 - public docs under `docs/`
-- operator-console runtime primitives
+- deterministic Telegram slash-command status primitives
 - validators and tests that do not require private infrastructure
 - non-secret examples for Hermes configuration
 
@@ -155,7 +148,7 @@ A builder has replicated the current setup when all of these are true:
 
 - WEAVE validates as a company package.
 - The runtime smoke passes.
-- The operator UI sample loads from public-safe local data.
+- Telegram slash commands return deterministic local state.
 - Hermes is configured as the CEO/runtime agent.
 - Intent is the first active lifecycle gate.
 - Engineering work starts only after Research, Selection, and Plan are recorded.

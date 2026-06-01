@@ -33,11 +33,11 @@ Authoritative contracts and inputs:
 Non-negotiable product model:
 - Hermes is the semantic lifecycle agent.
 - WEAVE runtime is deterministic substrate, verifier, ledger, REST API,
-  setup tool, git/workspace manager, and UI projection.
+  setup tool, git/workspace manager, and Telegram slash-command status surface.
 - Telegram is the first communication channel.
-- The UI is not a chat surface.
-- The UI is still an editable artifact Hermes can improve through the normal
-  lifecycle workflow.
+- There is no required web UI in this slice.
+- Normal Telegram messages go to Hermes; WEAVE slash commands return
+  deterministic runtime output and do not use model-generated text.
 - Foundation context is unskippable before serious app work.
 - Every app has app-specific context loaded throughout lifecycle work.
 - Every app has lifecycle shelves.
@@ -60,8 +60,9 @@ Create the smallest useful local runtime slice that proves:
    exist;
 7. REST API skeleton can expose health, runtime status, app list, app state,
    events, artifacts, and contract diff endpoints;
-8. operator UI projection can show apps, stage per app, what changed per app,
-   foundation gate status, current blocker, evidence, approvals, and REST health;
+8. deterministic Telegram slash commands can show apps, stage per app, what
+   changed per app, foundation gate status, current blocker, evidence,
+   approvals, and REST health;
 9. Hermes adapter boundary exists as an interface or stub without pretending to
    be the real Hermes runtime;
 10. checks and smoke tests prove the slice.
@@ -73,7 +74,7 @@ Before editing:
 4. Produce an architecture map of the files/modules you will touch.
 5. Produce a premortem with at least these failure classes:
    - Hermes/WEAVE role confusion
-   - UI becoming chat
+   - slash commands being answered by Hermes instead of deterministic runtime
    - foundation gate bypass
    - app context leakage across apps
    - copied artifacts instead of references
@@ -103,8 +104,8 @@ Implementation rules:
 - Label stubs and fallback adapters honestly.
 - Use append-only ledger semantics.
 - Make validation deterministic and testable.
-- Keep UI dense, legible, and cognitively quiet.
-- UI must answer in seconds:
+- Keep status output dense, legible, and cognitively quiet.
+- Telegram slash commands must answer in seconds:
   - what apps exist;
   - what stage each app is in;
   - what changed in each app;
@@ -115,7 +116,7 @@ Implementation rules:
 Expected edits:
 - Runtime/setup code only where needed for the first slice.
 - Focused tests for setup, registry, ledger, foundation gate, stage derivation,
-  REST skeleton, and operator UI projection.
+  REST skeleton, and Telegram slash-command status.
 - Docs updates only when needed to keep contracts and usage accurate.
 - Reusable workflow artifacts only if they are concise and public-safe.
 
@@ -125,7 +126,6 @@ Verification required before final:
 - python3 scripts/public_safe_repo_scan.py
 - python3 -m unittest discover -s tests -p 'test_*.py'
 - python3 scripts/runtime_smoke.py
-- python3 scripts/operator_ui_smoke.py
 - git diff --check
 
 Final response format:

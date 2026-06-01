@@ -286,35 +286,12 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             with self.assertRaises(validator.PackageValidationError):
                 validator.scan_forbidden_text(root)
 
-    def test_public_operator_ui_sample_is_instantiable(self) -> None:
-        ui_root = REPO_ROOT / "operator-ui"
-        for name in ("index.html", "styles.css", "app.js", "sample-runtime.json"):
-            self.assertTrue((ui_root / name).exists(), name)
-
-        sample = json.loads((ui_root / "sample-runtime.json").read_text(encoding="utf-8"))
-        self.assertEqual(sample["schema"], "weave-operator-ui-sample/v0.3")
-        self.assertEqual(sample["runtime"]["name"], "Hermes default")
-        self.assertEqual(sample["runtime"]["releaseVersion"], "2026.05.13-console")
-        self.assertEqual(sample["runtime"]["externalRuntimeBoundary"], "public-safe dry-run")
-        self.assertGreaterEqual(len(sample["apps"]), 3)
-        self.assertEqual(sample["apps"][0]["currentStage"], "marketing")
-        self.assertEqual(
-            [stage["id"] for stage in sample["apps"][0]["stages"]],
-            ["intent", "research", "selection", "plan", "engineering", "qa", "kpi", "marketing"],
-        )
-        self.assertEqual(
-            [phase["id"] for phase in sample["apps"][0]["iterationLoop"]],
-            ["iteration", "analysis"],
-        )
-        self.assertIn("approval", sample["apps"][0]["blocker"]["title"].lower())
-        self.assertIn("parallel", sample["apps"][0]["summary"].lower())
-        self.assertEqual(
-            {card["id"] for card in sample["apps"][0]["workCards"]},
-            {"plan", "review", "execute"},
-        )
-        self.assertTrue(sample["apps"][0]["foundationGate"]["passed"])
-        for key in ("changes", "events", "restHealth", "transcriptSummary"):
-            self.assertTrue(sample["apps"][0][key], key)
+    def test_telegram_slash_command_contract_is_documented(self) -> None:
+        docs = (REPO_ROOT / "docs" / "telegram-slash-commands.md").read_text(encoding="utf-8")
+        for command in setup_runtime.weave_runtime_slice.TELEGRAM_COMMANDS:
+            self.assertIn(command, docs)
+        self.assertIn("llm_used: false", docs)
+        self.assertIn("deterministic: true", docs)
 
 
 if __name__ == "__main__":

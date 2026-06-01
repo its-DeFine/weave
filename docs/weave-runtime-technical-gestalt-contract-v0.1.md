@@ -16,8 +16,8 @@ Current mode: Contract Mode
 
 The owner wants an agent to help create and manage multiple applications
 properly. Hermes is the primary agent. WEAVE is the operating environment around
-Hermes: setup, folders, git tracking, ledger, verifier, UI, REST API, and
-document templates.
+Hermes: setup, folders, git tracking, ledger, verifier, deterministic Telegram
+commands, REST API, and document templates.
 
 The interaction model is story-first:
 
@@ -27,7 +27,7 @@ The interaction model is story-first:
 - App workspaces are rooms.
 - Lifecycle folders are shelves.
 - Ledger is the recording machine.
-- UI is the viewing window.
+- Telegram slash commands are the viewing window for this slice.
 - REST API is the remote control.
 - Verifier is the inspector.
 
@@ -37,45 +37,46 @@ Core outcome: a Hermes-led, WEAVE-supported environment where multiple apps can
 be created, managed, validated, and iterated without losing owner intent,
 project context, evidence, or lifecycle state.
 
-Finished-state experience: the owner talks to Hermes through Telegram, while a
-clear visual window shows all apps, stage per app, changes per app, current
-blockers, approvals, evidence, and contract diffs.
+Finished-state experience: the owner talks to Hermes through Telegram, while
+deterministic slash commands show all apps, stage per app, changes per app,
+current blockers, approvals, evidence, and contract diffs.
 
 Non-negotiables:
 
 1. Hermes owns semantic reasoning.
-2. WEAVE owns deterministic substrate, verification, ledger, UI projection, and
-   runtime control.
+2. WEAVE owns deterministic substrate, verification, ledger, Telegram status
+   commands, and runtime control.
 3. Foundation context is unskippable.
 4. Every app has its own git-tracked room.
 5. Every app has app-specific context used throughout the lifecycle.
 6. Every important artifact belongs to a lifecycle stage.
 7. Reused artifacts are referenced, not copied.
 8. Gestaltian Contracts are versioned, git tracked, and diff-visible.
-9. The UI is not chat, but it is an editable artifact Hermes can improve.
+9. Slash commands are not chat; normal Telegram messages remain Hermes
+   conversation.
 
 Definition of done for the first slice:
 
 1. `weave setup` creates or verifies the WEAVE root, Telegram channel config,
    REST API auth, document templates, and app registry.
-2. `weave start` launches or reconnects to the runtime API and UI.
-3. UI shows multiple apps and stage per app.
+2. `weave start` launches or reconnects to the runtime API and Telegram gateway.
+3. `/apps` shows multiple apps and stage per app.
 4. Hermes foundation gate blocks work until `soul.md`, `owner-profile.md`, app
    context, contract, lifecycle state, and capabilities are sufficient.
 5. Hermes can emit structured events.
 6. WEAVE records events in an append-only ledger.
 7. A sample app reaches Kernel and Contract stages.
-8. Contract diff is visible.
+8. Contract diff is visible through deterministic status or REST output.
 9. REST API can report health, list apps, read app state, and stop runtime.
 
 Definition of wrong:
 
-1. The UI becomes a chat surface.
+1. Slash commands are answered by Hermes instead of deterministic runtime state.
 2. WEAVE becomes a second planner.
 3. Hermes starts work before foundation context exists.
 4. App contexts are mixed or absent.
 5. Contract changes disappear into chat.
-6. UI bugs cannot be corrected by Hermes.
+6. Command output becomes noisy, stale, or misleading.
 7. Remote API is exposed before auth and transport are clear.
 
 ## 4. System Boundary
@@ -90,7 +91,7 @@ Inside scope:
 6. Foundation gate.
 7. Document templates.
 8. Ledger and event schemas.
-9. UI information architecture.
+9. Telegram status information architecture.
 10. Hermes adapter contract.
 11. First Build-Ready Handoff Packet.
 
@@ -341,18 +342,20 @@ POST /apps/{app_id}/events
 GET  /apps/{app_id}/artifacts
 GET  /apps/{app_id}/contract/diff
 POST /apps/{app_id}/procedure-feedback
-GET  /ui
+GET  /telegram/commands
 ```
 
 Non-local access requires a separate approval packet.
 
-## 9. UI Information Architecture
+## 9. Telegram Status Information Architecture
 
-Default layout:
+Default command set:
 
-1. App list with stage per app.
-2. Selected app summary.
-3. Foundation gate status.
+1. `/apps`: app list with stage per app.
+2. `/app <app_id>`: selected app summary.
+3. `/blockers`: foundation gate and blocker status.
+4. `/changes [app_id]`: latest changes.
+5. `/next`: next owner-visible action.
 4. Current lifecycle shelf.
 5. Current blocker or next action.
 6. Changes in this app:
@@ -361,7 +364,7 @@ Default layout:
    - latest artifact change
    - latest lifecycle stage change
    - latest approval change
-   - latest window/UI change
+   - latest owner-visible status change
 7. Evidence and approval status.
 8. Secondary drawers:
    - raw ledger events
@@ -369,11 +372,12 @@ Default layout:
    - files
    - REST/API health
 
-The UI must not include a Hermes message composer.
+Slash commands must not include a Hermes message composer. They are status
+requests, not conversation turns.
 
-The UI itself is an editable app artifact. UI fixes require the same lifecycle
-flow: intent, packet, worktree, validation, ledger, and contract update if the
-change affects the product meaning.
+Command output changes require the same lifecycle flow: intent, packet,
+worktree, validation, ledger, and contract update if the change affects the
+product meaning.
 
 ## 10. Hermes Adapter Contract
 
@@ -427,7 +431,7 @@ Hermes asks the owner through Telegram, updates the missing document, and emits
 ## 12. Build-Ready Handoff Packet: Slice 1
 
 Target: create the local WEAVE operating substrate for setup, multi-app state,
-event ledger, document templates, and UI projection.
+event ledger, document templates, and Telegram slash-command status.
 
 Authority level: local artifact / modify provided project.
 
@@ -444,7 +448,7 @@ Included components:
 4. App registry schema.
 5. Event ledger schema.
 6. REST API contract.
-7. UI information architecture.
+7. Telegram status information architecture.
 8. Hermes adapter contract.
 9. Foundation gate rules.
 
@@ -452,7 +456,7 @@ Non-goals:
 
 1. Real production deployment.
 2. Full Telegram bot daemon implementation.
-3. Full UI implementation.
+3. Full web UI implementation.
 4. External remote API exposure.
 5. Paid or provider-mutating actions.
 
@@ -463,9 +467,10 @@ Acceptance criteria:
 3. App context documents exist and are loaded by contract.
 4. Foundation gate blocks missing `soul.md`, `owner-profile.md`, or app context.
 5. Ledger can append valid events and reject malformed ones.
-6. UI can show app list, stage per app, changes per app, and current blocker.
+6. Slash commands can show app list, stage per app, changes per app, and
+   current blocker.
 7. REST API can return health, runtime status, app list, app state, and events.
-8. UI changes are treated as editable artifacts with ledger records.
+8. Command output changes are treated as editable artifacts with ledger records.
 9. Contract diffs are recorded and visible.
 10. Telegram gateway setup is represented as a required setup gate that can be
     executed through the setup command with a redacted local configuration path
@@ -485,9 +490,9 @@ Failure:
 
 Gestalt:
 
-- Given multiple apps, when the UI opens, then the owner can understand which
-  apps exist, what stage each is in, what changed, and what requires attention
-  without reading raw logs.
+- Given multiple apps, when the owner sends `/apps`, `/blockers`, or `/next`,
+  then they can understand which apps exist, what stage each is in, what
+  changed, and what requires attention without reading raw logs.
 
 ## 14. Story-To-Technical Mapping
 
@@ -500,7 +505,7 @@ Gestalt:
 | App room | App workspace |
 | Shelves | Lifecycle directories |
 | Recording machine | Event ledger |
-| Viewing window | WEAVE UI |
+| Viewing window | WEAVE Telegram slash commands |
 | Inspector | Deterministic verifier |
 | Remote control | REST API |
 | Character paper | `soul.md` |

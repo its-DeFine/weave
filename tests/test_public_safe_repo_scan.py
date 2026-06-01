@@ -16,10 +16,6 @@ class PublicSafeRepoScanTests(unittest.TestCase):
         hits = public_safe_repo_scan.scan_text("see /Users/example/private", path="docs/example.md")
         self.assertEqual(hits[0].label, "local-user-path")
 
-    def test_allows_public_local_ui_loopback_helper(self) -> None:
-        hits = public_safe_repo_scan.scan_text('host = "127.0.0.1"', path="scripts/run_operator_ui.py")
-        self.assertEqual(hits, [])
-
     def test_allows_public_local_runtime_api_loopback_helper(self) -> None:
         hits = public_safe_repo_scan.scan_text('host = "127.0.0.1"', path="scripts/weave_runtime_api.py")
         self.assertEqual(hits, [])

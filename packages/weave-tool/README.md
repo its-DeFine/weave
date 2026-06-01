@@ -33,7 +33,7 @@ python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-t
 ```
 
 The repository-level runtime smoke also checks the first-slice local root/app
-contract and the public-safe operator UI sample:
+contract and deterministic Telegram slash-command output:
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -103,7 +103,7 @@ prompt_packs: 1
   clone, pinned checkout, venv install, wrapper, and proof profile.
 - Repository `scripts/weave_runtime_slice.py`: public-safe first-slice runtime
   primitives for root setup, app registry, ledger, foundation gate, stage
-  derivation, and REST dispatch.
+  derivation, REST dispatch, and Telegram slash-command status.
 - Repository `scripts/weave_runtime_api.py`: loopback-only REST skeleton that
   requires the ignored generated local token.
 
@@ -114,12 +114,12 @@ Allowed now:
 - edit package files
 - validate package completeness
 - map lifecycle stages to tasks and routines
-- keep primitive registry aligned with the operator-console runtime
+- keep primitive registry aligned with the deterministic runtime status surface
 - run the Hermes-default lifecycle package locally
 - provision pinned upstream Hermes locally under ignored `runs/`
 - configure Hermes Telegram gateway environment from an owner-approved token
   file outside tracked state
-- inspect the public-safe operator UI sample from the repository root
+- inspect app status through deterministic Telegram slash commands
 
 Approval-gated later:
 

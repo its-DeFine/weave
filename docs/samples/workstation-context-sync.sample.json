@@ -7,17 +7,17 @@
   "summary": "A local workstation completed a demo app QA pass and is recording the result into a WEAVE runtime ledger.",
   "work_done": [
     "Local unit tests passed.",
-    "The public-safe operator UI sample loaded.",
+    "Deterministic Telegram status commands returned local runtime state.",
     "The app has enough context for the runtime to plan the next maintenance step."
   ],
   "evidence_refs": [
     "docs/month1/app-lifecycle.md",
-    "scripts/runtime_smoke.py",
-    "operator-ui/sample-runtime.json"
+    "docs/telegram-slash-commands.md",
+    "scripts/runtime_smoke.py"
   ],
   "capabilities": [
     "Runtime can cite the latest QA result.",
-    "Runtime can show a blocker summary to the operator.",
+    "Runtime can show a blocker summary to the operator through Telegram slash commands.",
     "Runtime can plan the next local-only maintenance command."
   ],
   "decisions": [

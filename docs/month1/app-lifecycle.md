@@ -7,9 +7,10 @@ runtime itself. Hermes and approved local execution tools do the actual work.
 WEAVE tracks the target, stage, plan, evidence, review gates, owner approvals,
 KPI signals, and iteration history around that work.
 
-For Month 1, the active runtime operator is Hermes. The lifecycle console
-should expose Hermes' selected app, lifecycle stage state, agent activity,
-evidence paths, owner approval gates, and Gestalt Runtime Pack outputs.
+For Month 1, the active runtime operator is Hermes. The lifecycle status
+surface should expose Hermes' selected app, lifecycle stage state, agent
+activity, evidence paths, owner approval gates, and Gestalt Runtime Pack
+outputs.
 
 For the formal lifecycle contract, see [WEAVE Lifecycle Contract v0](weave-lifecycle-contract-v0.md).
 For the runtime agent behavior contract, see [WEAVE Agent Operating Contract v0](weave-agent-operating-contract-v0.md).

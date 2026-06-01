@@ -152,17 +152,17 @@ prompt_packs: 1
 runtime setup check: ok
 Hermes provisioner check: ok
 runtime first-slice check: ok
-operator-ui smoke: ok
+telegram command smoke: ok
 smoke: ok
 ```
 
 The smoke script prints the lifecycle stages, re-validates the package, and
 checks the local Hermes runtime profile contract, source-only Hermes
 provisioner contract, first-slice root/app/ledger contract, REST dispatch
-skeleton, and the public-safe operator UI sample. It imports nothing outside
-the standard library and makes no network calls.
+skeleton, and deterministic Telegram slash-command output. It imports nothing
+outside the standard library and makes no network calls.
 
-## 6. Run the operator UI
+## 6. Inspect status from Telegram commands
 
 Optional: start the local REST skeleton first:
 
@@ -175,35 +175,23 @@ generated local bearer token. It exposes health, runtime status, apps, app
 state, events, artifacts, contract diff, and procedure feedback endpoints. It
 does not claim real Hermes execution.
 
-Serve the local operator console:
-
-```bash
-python3 scripts/run_operator_ui.py
-```
-
-Then open the printed local URL in a browser. The UI loads
-`operator-ui/sample-runtime.json`, shows the Askuno runtime-proof lifecycle,
-foundation gate, changes per app, ledger events, and public-safe runtime
-boundary. This is a public-safe local instantiation path, not a claim that a
-hosted service is installed.
-
-The static console includes an app selector, draft app creation, lifecycle
-stage track, Plan/Review/Execute cards, blocker map, evidence binder, open
-decisions, KPI snapshot, append-only event view, foundation gate view, changes
-per app, REST health, and transcript summary. The UI is not a communication
-surface; Hermes communication happens through the configured external channel.
-
-To validate the UI files without starting a server:
-
-```bash
-python3 scripts/operator_ui_smoke.py
-```
-
-Expected output:
+Telegram is the status surface for this release. Normal messages go to Hermes.
+Slash commands are intercepted by the gateway and answered from deterministic
+local runtime state:
 
 ```text
-operator-ui smoke: ok
+/status
+/apps
+/app <app_id>
+/blockers
+/changes [app_id]
+/next
 ```
+
+The response contract is `schema: weave-telegram-command/v0.1`,
+`deterministic: true`, and `llm_used: false`. See
+[Telegram Slash Commands](telegram-slash-commands.md) for the full command
+list and examples.
 
 ## 7. Mission format
 

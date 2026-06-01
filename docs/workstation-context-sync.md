@@ -71,4 +71,4 @@ local app work
   -> owner/operator review
 ```
 
-See `operator-ui/workstation-context-sync.sample.json` for a public-safe sample.
+See `docs/samples/workstation-context-sync.sample.json` for a public-safe sample.

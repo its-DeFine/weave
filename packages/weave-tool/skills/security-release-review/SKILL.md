@@ -7,7 +7,7 @@ description: Review a public package for secrets, private paths, internal refere
 
 ## Use When
 
-Use this skill before publishing docs, examples, packages, operator UI data, or
+Use this skill before publishing docs, examples, packages, command samples, or
 runtime artifacts.
 
 ## Inputs
@@ -45,4 +45,3 @@ runtime artifacts.
 
 Record the scanner commands and the remaining allowed generic security words or
 patterns.
-

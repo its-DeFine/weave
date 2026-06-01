@@ -116,11 +116,11 @@ When used for WEAVE runtime implementation, this skill must preserve:
 
 1. Hermes is the semantic lifecycle agent.
 2. WEAVE runtime is deterministic substrate, verifier, ledger, REST control,
-   and UI projection.
+   and Telegram slash-command status.
 3. Telegram is the first communication channel.
-4. The WEAVE UI is not chat.
-5. The UI is still an editable artifact Hermes can improve through normal
-   lifecycle work.
+4. WEAVE slash commands are deterministic status, not chat.
+5. Command output is still an editable runtime artifact Hermes can improve
+   through normal lifecycle work.
 6. Foundation context is unskippable before serious work.
 7. Each app has its own context and lifecycle shelves.
 8. Contracts, diffs, approvals, and ledger events remain git tracked and

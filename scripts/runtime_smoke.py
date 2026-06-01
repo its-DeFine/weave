@@ -2,8 +2,8 @@
 """Local runtime smoke test.
 
 Prints the WEAVE lifecycle plus parallel growth loop, validates the company
-package, and checks that the public-safe operator UI can be instantiated
-locally. No network access. No secrets. Exits 0 on success.
+package, and checks that deterministic Telegram status commands can be served
+from local WEAVE state. No network access. No secrets. Exits 0 on success.
 
 Usage:
     python3 scripts/runtime_smoke.py
@@ -22,7 +22,6 @@ import weave_runtime_slice
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "weave-tool"
 VALIDATOR = PACKAGE_ROOT / "scripts" / "validate_company_package.py"
-OPERATOR_UI_SMOKE = REPO_ROOT / "scripts" / "operator_ui_smoke.py"
 SETUP_RUNTIME = REPO_ROOT / "scripts" / "setup_runtime.py"
 
 LIFECYCLE_STAGES = [
@@ -55,19 +54,6 @@ def print_lifecycle() -> None:
 def validate_package() -> int:
     result = subprocess.run(
         [sys.executable, str(VALIDATOR), str(PACKAGE_ROOT)],
-        capture_output=True,
-        text=True,
-    )
-    if result.stdout:
-        print(result.stdout, end="")
-    if result.returncode != 0:
-        print(result.stderr, end="", file=sys.stderr)
-    return result.returncode
-
-
-def validate_operator_ui() -> int:
-    result = subprocess.run(
-        [sys.executable, str(OPERATOR_UI_SMOKE)],
         capture_output=True,
         text=True,
     )
@@ -252,6 +238,34 @@ def validate_runtime_slice() -> int:
     return 0
 
 
+def validate_telegram_commands() -> int:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir) / "weave-root"
+        weave_runtime_slice.create_app(root, "alpha-app", "Alpha App")
+        status = weave_runtime_slice.dispatch_telegram_command(root, "/status")
+        if status.get("deterministic") is not True or status.get("llm_used") is not False:
+            print(f"telegram /status must be deterministic and non-LLM: {status}", file=sys.stderr)
+            return 1
+        if status.get("payload", {}).get("app_count") != 1:
+            print(f"telegram /status app count mismatch: {status}", file=sys.stderr)
+            return 1
+        apps = weave_runtime_slice.dispatch_telegram_command(root, "/apps")
+        if "Alpha App (alpha-app)" not in apps.get("text", ""):
+            print(f"telegram /apps did not include registered app: {apps}", file=sys.stderr)
+            return 1
+        help_response = weave_runtime_slice.dispatch_telegram_command(root, "/help")
+        if "/status" not in help_response.get("payload", {}).get("commands", {}):
+            print(f"telegram /help did not expose command catalog: {help_response}", file=sys.stderr)
+            return 1
+        passthrough = weave_runtime_slice.dispatch_telegram_command(root, "normal Hermes chat")
+        if passthrough.get("handled") is not False or passthrough.get("llm_used") is not False:
+            print(f"telegram non-command passthrough mismatch: {passthrough}", file=sys.stderr)
+            return 1
+
+    print("telegram command smoke: ok")
+    return 0
+
+
 def main() -> int:
     print_lifecycle()
     rc = validate_package()
@@ -262,7 +276,7 @@ def main() -> int:
     if rc == 0:
         rc = validate_runtime_slice()
     if rc == 0:
-        rc = validate_operator_ui()
+        rc = validate_telegram_commands()
     if rc == 0:
         print("smoke: ok")
     else:

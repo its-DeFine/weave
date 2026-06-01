@@ -9,7 +9,7 @@ goal: Prove that WEAVE can guide and record an agent-run application lifecycle a
 metadata:
   admittedBy: docs/month1/app-lifecycle.md
   targetPipeline: lifecycle-wrapper
-  runtimeMode: operator-console-first
+  runtimeMode: telegram-command-first
 ---
 
 # Askuno Runtime Proof
