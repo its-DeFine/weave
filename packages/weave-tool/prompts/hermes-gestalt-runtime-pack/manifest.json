@@ -1,0 +1,27 @@
+{
+  "schema": "weave-hermes-gestalt-runtime-pack/v0.1",
+  "pack_id": "hermes-gestalt-runtime-pack",
+  "version": "2026.05.30",
+  "runtime": "nousresearch-hermes-agent",
+  "entrypoint": "SYSTEM.md",
+  "files": [
+    "SYSTEM.md",
+    "OPERATING_PROTOCOL.md",
+    "OUTPUT_CONTRACT.md"
+  ],
+  "required_modes": [
+    "Contract Mode",
+    "Premortem Mode",
+    "Implementation Mode",
+    "Contract Update Mode"
+  ],
+  "required_outputs": [
+    "Gestalt Kernel",
+    "Gestaltian Contract",
+    "Premortem Report",
+    "Build-Ready Handoff Packet",
+    "Implementation Report",
+    "Contract Update Log"
+  ],
+  "secret_payload_allowed": false
+}

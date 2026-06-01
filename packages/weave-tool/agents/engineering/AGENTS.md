@@ -5,7 +5,7 @@ slug: engineering
 name: Engineering Lead
 title: Runtime Engineering Lead
 role: engineering
-reportsTo: ceo-openclaw
+reportsTo: ceo-hermes
 skills:
   - runtime-app-attachment
   - weave-lifecycle
