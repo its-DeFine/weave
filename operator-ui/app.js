@@ -43,15 +43,14 @@ const controls = {
   evidenceList: document.querySelector("[data-evidence-list]"),
   decisionList: document.querySelector("[data-decision-list]"),
   kpiList: document.querySelector("[data-kpi-list]"),
-  commandList: document.querySelector("[data-command-list]"),
-  chatLog: document.querySelector("[data-chat-log]"),
-  agentRoute: document.querySelector("[data-agent-route]"),
-  messageForm: document.querySelector("[data-message-form]"),
-  messageText: document.querySelector("[data-message-text]"),
-  messageMode: document.querySelector("[data-message-mode]"),
-  commandPreview: document.querySelector("[data-command-preview]"),
+  eventList: document.querySelector("[data-event-list]"),
+  foundationStatus: document.querySelector("[data-foundation-status]"),
+  foundationList: document.querySelector("[data-foundation-list]"),
+  changeList: document.querySelector("[data-change-list]"),
+  apiHealthList: document.querySelector("[data-api-health-list]"),
+  transcriptSummary: document.querySelector("[data-transcript-summary]"),
+  runtimeWindowRoute: document.querySelector("[data-runtime-window-route]"),
   refresh: document.querySelector("[data-refresh]"),
-  themeToggle: document.querySelector("[data-theme-toggle]"),
 };
 
 let runtime = null;
@@ -59,7 +58,6 @@ let selectedAppId = null;
 
 await loadRuntime();
 wireEvents();
-initTheme();
 render();
 
 async function loadRuntime() {
@@ -90,57 +88,11 @@ function wireEvents() {
     render();
   });
 
-  controls.messageForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const app = selectedApp();
-    const text = controls.messageText.value.trim();
-    if (!text || !app) return;
-    const mode = controls.messageMode.value;
-    const command = buildCommandDraft(app, text, mode);
-    app.chat.push({
-      role: "user",
-      label: "Operator draft",
-      text,
-      time: "now",
-    });
-    app.chat.push({
-      role: "agent",
-      label: "WEAVE Runtime",
-      text: `Drafted ${command.command_type} for ${app.currentStage}. Review the command preview before any runtime write.`,
-      time: "now",
-    });
-    app.commands.unshift({
-      id: command.command_id,
-      title: command.command_type,
-      status: command.requires_owner_approval ? "Owner review" : "Draft",
-      stage: app.currentStage,
-    });
-    controls.commandPreview.textContent = JSON.stringify(command, null, 2);
-    controls.messageText.value = "";
-    render();
-  });
-
   controls.searchInput.addEventListener("input", render);
   controls.refresh.addEventListener("click", async () => {
     await loadRuntime();
     render();
   });
-
-  controls.themeToggle.addEventListener("click", () => {
-    const nextTheme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-    setTheme(nextTheme);
-  });
-}
-
-function initTheme() {
-  const saved = localStorage.getItem("weave-operator-ui:theme");
-  setTheme(saved === "light" ? "light" : "dark");
-}
-
-function setTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  localStorage.setItem("weave-operator-ui:theme", theme);
-  controls.themeToggle.textContent = theme === "light" ? "Dark" : "Light";
 }
 
 function render() {
@@ -153,7 +105,7 @@ function render() {
   controls.reviewCount.textContent = `${openDecisionCount} open`;
   controls.healthState.textContent = runtime.runtime.externalRuntimeBoundary;
   controls.footerVersion.textContent = `WEAVE ${version}`;
-  controls.agentRoute.textContent = runtime.runtime.bridgeLabel;
+  controls.runtimeWindowRoute.textContent = runtime.runtime.bridgeLabel;
   controls.appNameShort.textContent = app.name;
   controls.appName.textContent = app.name;
   controls.appStatus.textContent = app.status;
@@ -165,6 +117,9 @@ function render() {
   controls.currentStageIcon.textContent = shortStage(app.currentStage);
   controls.currentTask.textContent = app.task;
   controls.currentSummary.textContent = app.summary;
+  controls.foundationStatus.textContent = app.foundationGate.passed ? "complete" : "blocked";
+  controls.foundationStatus.dataset.tone = app.foundationGate.passed ? "done" : "blocked";
+  controls.transcriptSummary.textContent = app.transcriptSummary;
 
   controls.appList.innerHTML = filteredApps().map(renderAppCard).join("");
   controls.stageTrack.innerHTML = stageOrder.map((stageId) => renderStage(app, stageId)).join("");
@@ -177,8 +132,10 @@ function render() {
   controls.evidenceList.innerHTML = app.evidence.map(renderEvidence).join("");
   controls.decisionList.innerHTML = app.decisions.map(renderDecision).join("");
   controls.kpiList.innerHTML = app.kpis.map(renderKpi).join("");
-  controls.commandList.innerHTML = app.commands.map(renderCommand).join("");
-  controls.chatLog.innerHTML = app.chat.map(renderChat).join("");
+  controls.eventList.innerHTML = app.events.map(renderEvent).join("");
+  controls.foundationList.innerHTML = renderFoundation(app.foundationGate);
+  controls.changeList.innerHTML = app.changes.map(renderChange).join("");
+  controls.apiHealthList.innerHTML = app.restHealth.map(renderHealth).join("");
 
   controls.appList.querySelectorAll("[data-app-id]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -192,7 +149,15 @@ function filteredApps() {
   const query = controls.searchInput.value.trim().toLowerCase();
   if (!query) return runtime.apps;
   return runtime.apps.filter((app) => {
-    const haystack = [app.name, app.status, app.summary, app.task, app.owner].join(" ").toLowerCase();
+    const haystack = [
+      app.name,
+      app.status,
+      app.summary,
+      app.task,
+      app.owner,
+      app.currentStage,
+      app.foundationGate?.passed ? "foundation complete" : "foundation blocked",
+    ].join(" ").toLowerCase();
     return haystack.includes(query);
   });
 }
@@ -210,7 +175,7 @@ function createDraftApp(name, intent) {
     tone: "draft",
     currentStage: "intent",
     summary: intent,
-    task: "Write the intent contract and approval boundary",
+    task: "Write the intent contract and foundation context",
     owner: "WEAVE operator",
     runtime: runtime.runtime.name,
     stages: stageOrder.map((stage, index) => ({
@@ -227,57 +192,44 @@ function createDraftApp(name, intent) {
     })),
     blocker: {
       stage: "intent",
-      title: "Intent contract needed",
-      reason: "The app exists as a draft until the target user, use case, constraints, and approval gates are recorded.",
-      waitingOn: "Operator intent review",
-      nextAction: "Ask the runtime for an intent packet.",
+      title: "Foundation context needed",
+      reason: "The app exists as a draft until owner, app, inventory, contract, lifecycle, capabilities, and blockers are recorded.",
+      waitingOn: "Telegram foundation interview",
+      nextAction: "Hermes asks through Telegram; the UI only displays the resulting state.",
+    },
+    foundationGate: {
+      passed: false,
+      missing: [],
+      incomplete: ["soul.md", "owner-profile.md", "context/app-context.md", "inventory/app-inventory.md", "contract/gestaltian-contract.md"],
+      nextAction: "Hermes must ask through Telegram before serious app work.",
     },
     workCards: [
-      { id: "plan", title: "A. Plan", done: 1, total: 4, items: ["Name target user", "Define constraints", "List approval gates", "Set done criteria"] },
-      { id: "review", title: "B. Review", done: 0, total: 3, items: ["Owner review", "Evidence path", "Claim limits"] },
-      { id: "execute", title: "C. Execute", done: 0, total: 3, items: ["Create tasks", "Run checks", "Record evidence"] },
+      { id: "plan", title: "A. Plan", done: 1, total: 4, items: ["Create app room", "Fill app context", "List approval gates", "Set done criteria"] },
+      { id: "review", title: "B. Review", done: 0, total: 3, items: ["Owner profile", "Contract review", "Evidence path"] },
+      { id: "execute", title: "C. Execute", done: 0, total: 3, items: ["Record ledger", "Derive stage", "Run checks"] },
     ],
     evidence: [
-      { label: "Lifecycle contract", path: "docs/month1/weave-lifecycle-contract-v0.md", scope: "public", stage: "Intent" },
-      { label: "Agent contract", path: "docs/month1/weave-agent-operating-contract-v0.md", scope: "public", stage: "Intent" },
+      { label: "Lifecycle contract", path: "docs/weave-runtime-technical-gestalt-contract-v0.1.md", scope: "public", stage: "Intent" },
     ],
     decisions: [
-      { label: "Admit app to lifecycle", status: "owner_required", evidence: "operator-ui draft", note: "Draft app needs owner review before Research." },
+      { label: "Admit app to lifecycle", status: "owner_required", evidence: "foundation gate", note: "Draft app needs foundation completion before Research." },
     ],
     kpis: [
-      { label: "KPI setup", value: "not started", delta: "blocked by Intent" },
+      { label: "Foundation", value: "blocked", delta: "templates incomplete" },
       { label: "Public reporting", value: "not started", delta: "pending" },
     ],
-    commands: [
-      { id: "draft-intent", title: "brief_stage_context", status: "Draft", stage: "intent" },
+    events: [
+      { type: "app.created", status: "Recorded", stage: "intent", summary: "Draft app created in local UI sample only." },
     ],
-    chat: [
-      { role: "agent", label: "WEAVE Runtime", text: "Draft app created locally. No runtime write has been performed.", time: "now" },
+    changes: [
+      { type: "app", label: "Draft app added", detail: "Local sample state only", stage: "intent" },
     ],
+    restHealth: [
+      { label: "Health", value: "sample", detail: "No runtime write performed" },
+      { label: "Auth", value: "not connected", detail: "UI is static sample data" },
+    ],
+    transcriptSummary: "No UI communication. Hermes communication happens through the configured external channel.",
   };
-}
-
-function buildCommandDraft(app, text, mode) {
-  const requiresApproval = app.currentStage === "marketing" || mode === "execute";
-  return {
-    schema: "weave-agent-command-draft/v0.1",
-    release_version: runtime.runtime.releaseVersion,
-    target_app_id: app.id,
-    target_app_name: app.name,
-    lifecycle_stage: app.currentStage,
-    command_type: commandTypeFor(mode, app.currentStage),
-    operator_message: text,
-    requires_owner_approval: requiresApproval,
-    secret_payload_allowed: false,
-    persistence: "local_preview_only",
-    public_safe: true,
-  };
-}
-
-function commandTypeFor(mode, stage) {
-  if (stage === "marketing" || mode === "execute") return "request_owner_approval";
-  if (mode === "review") return "record_decision";
-  return "brief_stage_context";
 }
 
 function renderAppCard(app) {
@@ -328,7 +280,7 @@ function renderIterationLoop(app) {
     <div class="loop-header">
       <p class="eyebrow">Parallel growth loop</p>
       <h2>Iteration and analysis run while Marketing is live</h2>
-      <span>Build and deploy improvements, read usage and feedback, then feed the next implementation pass.</span>
+      <span>Build improvements, read usage and feedback, then feed the next implementation pass.</span>
     </div>
     <ol class="loop-rail" aria-label="iteration and analysis loop">${items}</ol>
   `;
@@ -389,17 +341,26 @@ function renderKpi(item) {
   return `<li><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong><em>${escapeHtml(item.delta)}</em></li>`;
 }
 
-function renderCommand(item) {
-  return `<li><span>${escapeHtml(item.status)}</span><strong>${escapeHtml(item.title)}</strong><em>${escapeHtml(item.stage)}</em></li>`;
+function renderEvent(item) {
+  return `<li><span>${escapeHtml(item.status)}</span><strong>${escapeHtml(item.type)}</strong><em>${escapeHtml(item.stage)}</em><p>${escapeHtml(item.summary)}</p></li>`;
 }
 
-function renderChat(item) {
+function renderFoundation(gate) {
+  const missing = gate.missing.length ? gate.missing : ["none"];
+  const incomplete = gate.incomplete.length ? gate.incomplete : ["none"];
   return `
-    <li data-role="${escapeAttr(item.role)}">
-      <span>${escapeHtml(item.label ?? item.role)} - ${escapeHtml(item.time)}</span>
-      <p>${escapeHtml(item.text)}</p>
-    </li>
+    <li><span>Missing</span><strong>${missing.map(escapeHtml).join(", ")}</strong></li>
+    <li><span>Incomplete</span><strong>${incomplete.map(escapeHtml).join(", ")}</strong></li>
+    <li><span>Next</span><strong>${escapeHtml(gate.nextAction)}</strong></li>
   `;
+}
+
+function renderChange(item) {
+  return `<li><span>${escapeHtml(item.type)}</span><strong>${escapeHtml(item.label)}</strong><em>${escapeHtml(item.stage)}</em><p>${escapeHtml(item.detail)}</p></li>`;
+}
+
+function renderHealth(item) {
+  return `<li><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong><em>${escapeHtml(item.detail)}</em></li>`;
 }
 
 function labelForStage(stageId) {

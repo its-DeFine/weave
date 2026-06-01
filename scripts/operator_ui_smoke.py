@@ -32,7 +32,7 @@ def main() -> int:
 
     index = (UI_ROOT / "index.html").read_text(encoding="utf-8")
     app_js = (UI_ROOT / "app.js").read_text(encoding="utf-8")
-    for marker in (
+    required_markers = (
         "data-create-form",
         "data-stage-track",
         "data-iteration-loop",
@@ -42,25 +42,37 @@ def main() -> int:
         "data-evidence-list",
         "data-decision-list",
         "data-kpi-list",
-        "data-command-list",
-        "data-chat-log",
-        "data-command-preview",
-    ):
+        "data-event-list",
+        "data-foundation-status",
+        "data-foundation-list",
+        "data-change-list",
+        "data-api-health-list",
+        "data-transcript-summary",
+    )
+    for marker in required_markers:
         if marker not in index:
             print(f"operator UI missing marker: {marker}", file=sys.stderr)
             return 1
-    if "weave-agent-command-draft/v0.1" not in app_js:
-        print("operator UI app must draft runtime command records", file=sys.stderr)
-        return 1
+    forbidden_markers = (
+        "data-message-form",
+        "data-message-text",
+        "data-command-preview",
+        "weave-agent-command-draft/v0.1",
+        "buildCommandDraft",
+    )
+    for marker in forbidden_markers:
+        if marker in index or marker in app_js:
+            print(f"operator UI must not include communication marker: {marker}", file=sys.stderr)
+            return 1
 
     data = json.loads((UI_ROOT / "sample-runtime.json").read_text(encoding="utf-8"))
     runtime = data.get("runtime", {})
     apps = data.get("apps", [])
-    if data.get("schema") != "weave-operator-ui-sample/v0.2":
-        print("operator UI sample must use schema weave-operator-ui-sample/v0.2", file=sys.stderr)
+    if data.get("schema") != "weave-operator-ui-sample/v0.3":
+        print("operator UI sample must use schema weave-operator-ui-sample/v0.3", file=sys.stderr)
         return 1
-    if runtime.get("name") != "OpenClaw solo":
-        print("operator UI sample must identify OpenClaw solo runtime", file=sys.stderr)
+    if runtime.get("name") != "Hermes default":
+        print("operator UI sample must identify Hermes default runtime", file=sys.stderr)
         return 1
     if runtime.get("releaseVersion") != "2026.05.13-console":
         print("operator UI sample must identify release version 2026.05.13-console", file=sys.stderr)
@@ -91,12 +103,22 @@ def main() -> int:
     if "approval" not in app.get("blocker", {}).get("title", "").lower():
         print("operator UI sample should explain the marketing approval gate", file=sys.stderr)
         return 1
-    for key in ("workCards", "evidence", "decisions", "kpis", "commands", "chat"):
+    for key in ("workCards", "evidence", "decisions", "kpis"):
         if not app.get(key):
             print(f"operator UI sample app must include {key}", file=sys.stderr)
             return 1
     if {card.get("id") for card in app.get("workCards", [])} != {"plan", "review", "execute"}:
         print("operator UI sample must include plan/review/execute cards", file=sys.stderr)
+        return 1
+    if app.get("foundationGate", {}).get("passed") is not True:
+        print("operator UI sample must expose foundation gate state", file=sys.stderr)
+        return 1
+    for key in ("changes", "events", "restHealth"):
+        if not app.get(key):
+            print(f"operator UI sample app must include {key}", file=sys.stderr)
+            return 1
+    if "communication" not in app.get("transcriptSummary", "").lower():
+        print("operator UI sample must summarize communication boundary", file=sys.stderr)
         return 1
 
     print("operator-ui smoke: ok")

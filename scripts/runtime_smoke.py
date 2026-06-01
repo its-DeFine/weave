@@ -11,14 +11,19 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+import weave_runtime_slice
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "weave-tool"
 VALIDATOR = PACKAGE_ROOT / "scripts" / "validate_company_package.py"
 OPERATOR_UI_SMOKE = REPO_ROOT / "scripts" / "operator_ui_smoke.py"
+SETUP_RUNTIME = REPO_ROOT / "scripts" / "setup_runtime.py"
 
 LIFECYCLE_STAGES = [
     "1. Intent",
@@ -73,9 +78,189 @@ def validate_operator_ui() -> int:
     return result.returncode
 
 
+def validate_runtime_setup() -> int:
+    result = subprocess.run(
+        [sys.executable, str(SETUP_RUNTIME), "--check"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(result.stderr, end="", file=sys.stderr)
+        return result.returncode
+
+    try:
+        profile = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        print(f"runtime setup check returned invalid JSON: {exc}", file=sys.stderr)
+        return 1
+
+    package = profile.get("package", {})
+    runtime = profile.get("runtime", {})
+    if runtime.get("id") != package.get("default_runtime"):
+        print("runtime setup check did not select the default runtime", file=sys.stderr)
+        return 1
+    if package.get("fallback_runtime") != "local-fallback":
+        print("runtime setup check did not preserve Local Fallback fallback", file=sys.stderr)
+        return 1
+    if runtime.get("agent_slug") != "ceo-hermes":
+        print("runtime setup check did not select the Hermes CEO agent", file=sys.stderr)
+        return 1
+    foundation = profile.get("foundation_onboarding", {})
+    if foundation.get("setup_required") is not True or foundation.get("required_before_app_work") is not True:
+        print(f"runtime setup check did not require foundation onboarding: {foundation}", file=sys.stderr)
+        return 1
+
+    print("runtime setup check: ok")
+    return 0
+
+
+def run_checked(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(command, cwd=cwd, capture_output=True, text=True, check=True)
+
+
+def create_fake_hermes_repo(root: Path) -> tuple[Path, str]:
+    repo = root / "fake-hermes"
+    repo.mkdir()
+    (repo / "hermes_cli").mkdir()
+    (repo / "hermes_cli" / "__init__.py").write_text(
+        '__version__ = "0.0.0-smoke"\n__release_date__ = "2026-05-30"\n',
+        encoding="utf-8",
+    )
+    (repo / "hermes_cli" / "main.py").write_text(
+        "def main():\n"
+        "    print('Hermes Agent v0.0.0-smoke')\n",
+        encoding="utf-8",
+    )
+    (repo / "run_agent.py").write_text("def main():\n    return None\n", encoding="utf-8")
+    (repo / "pyproject.toml").write_text(
+        '[project]\n'
+        'name = "hermes-agent"\n'
+        'version = "0.0.0-smoke"\n'
+        'requires-python = ">=3.11"\n'
+        '\n'
+        '[project.scripts]\n'
+        'hermes = "hermes_cli.main:main"\n'
+        'hermes-agent = "run_agent:main"\n',
+        encoding="utf-8",
+    )
+    run_checked(["git", "init", "-q"], cwd=repo)
+    run_checked(["git", "config", "user.email", "weave@example.invalid"], cwd=repo)
+    run_checked(["git", "config", "user.name", "WEAVE Smoke"], cwd=repo)
+    run_checked(["git", "add", "."], cwd=repo)
+    run_checked(["git", "commit", "-q", "-m", "fake hermes smoke"], cwd=repo)
+    commit = run_checked(["git", "rev-parse", "HEAD"], cwd=repo).stdout.strip()
+    return repo, commit
+
+
+def validate_hermes_provisioner_contract() -> int:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        fake_repo, commit = create_fake_hermes_repo(root)
+        runtime_profile = root / "runtime-profile.json"
+        hermes_profile = root / "hermes-profile.json"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SETUP_RUNTIME),
+                "--install-hermes",
+                "--hermes-source-repo",
+                str(fake_repo),
+                "--hermes-commit",
+                commit,
+                "--hermes-no-install-deps",
+                "--hermes-install-root",
+                str(root / "install"),
+                "--hermes-profile-out",
+                str(hermes_profile),
+                "--profile-out",
+                str(runtime_profile),
+                "--skip-weave-root",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(result.stderr, end="", file=sys.stderr)
+            return result.returncode
+        profile = json.loads(runtime_profile.read_text(encoding="utf-8"))
+        hermes = profile.get("hermes_provision", {})
+        authority = profile.get("authority", {})
+        if hermes.get("source_verified") is not True:
+            print(f"Hermes provisioner did not verify source: {hermes}", file=sys.stderr)
+            return 1
+        if hermes.get("binary_present") is not False:
+            print(f"Hermes source-only smoke should not claim a binary: {hermes}", file=sys.stderr)
+            return 1
+        if authority.get("service_installed") is not False or authority.get("secrets_loaded") is not False:
+            print(f"Hermes provisioner violated authority boundary: {authority}", file=sys.stderr)
+            return 1
+
+    print("Hermes provisioner check: ok")
+    return 0
+
+
+def validate_runtime_slice() -> int:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir) / "weave-root"
+        setup = weave_runtime_slice.setup_weave_root(root)
+        if setup["schema"] != weave_runtime_slice.ROOT_SCHEMA:
+            print("runtime slice setup returned wrong schema", file=sys.stderr)
+            return 1
+        weave_runtime_slice.create_app(root, "alpha-app", "Alpha App")
+        weave_runtime_slice.create_app(root, "beta-app", "Beta App")
+        apps = weave_runtime_slice.list_apps(root)
+        if [app["app_id"] for app in apps] != ["alpha-app", "beta-app"]:
+            print(f"runtime slice app registry mismatch: {apps}", file=sys.stderr)
+            return 1
+        gate = weave_runtime_slice.foundation_gate(root, "alpha-app")
+        if gate["passed"] is not False or "soul.md" not in gate["incomplete"]:
+            print(f"runtime slice foundation gate should block templates: {gate}", file=sys.stderr)
+            return 1
+        onboarding = weave_runtime_slice.setup_foundation_onboarding(root, "alpha-app", "Alpha App")
+        agents_path = Path(onboarding["agents_path"])
+        if not agents_path.exists() or "Unskippable Foundation Gate" not in agents_path.read_text(encoding="utf-8"):
+            print(f"runtime slice did not generate Hermes gateway enforcement: {onboarding}", file=sys.stderr)
+            return 1
+        event = weave_runtime_slice.new_event(
+            "validation.completed",
+            "alpha-app",
+            "intent",
+            "Runtime smoke validation completed.",
+        )
+        weave_runtime_slice.append_event(root, "alpha-app", event)
+        if len(weave_runtime_slice.read_events(root, "alpha-app")) < 3:
+            print("runtime slice ledger did not append events", file=sys.stderr)
+            return 1
+        try:
+            weave_runtime_slice.append_event(root, "alpha-app", {"schema": "bad"})
+        except weave_runtime_slice.RuntimeSliceError:
+            pass
+        else:
+            print("runtime slice accepted malformed event", file=sys.stderr)
+            return 1
+        status, health = weave_runtime_slice.dispatch_rest(root, "GET", "/health")
+        if status != 200 or health.get("real_hermes_runtime") is not False:
+            print(f"runtime slice health endpoint mismatch: {health}", file=sys.stderr)
+            return 1
+        status, app_state = weave_runtime_slice.dispatch_rest(root, "GET", "/apps/alpha-app/state")
+        if status != 200 or app_state["foundation_gate"]["passed"] is not False:
+            print(f"runtime slice app state mismatch: {app_state}", file=sys.stderr)
+            return 1
+
+    print("runtime first-slice check: ok")
+    return 0
+
+
 def main() -> int:
     print_lifecycle()
     rc = validate_package()
+    if rc == 0:
+        rc = validate_runtime_setup()
+    if rc == 0:
+        rc = validate_hermes_provisioner_contract()
+    if rc == 0:
+        rc = validate_runtime_slice()
     if rc == 0:
         rc = validate_operator_ui()
     if rc == 0:

@@ -1,32 +1,30 @@
 {
-  "schema": "weave-operator-ui-sample/v0.2",
+  "schema": "weave-operator-ui-sample/v0.3",
   "runtime": {
-    "name": "OpenClaw solo",
+    "name": "Hermes default",
     "releaseVersion": "2026.05.13-console",
     "mode": "local dry-run",
-    "bridgeLabel": "Public sample bridge",
+    "bridgeLabel": "Read-only runtime projection",
     "externalRuntimeBoundary": "public-safe dry-run",
     "claimLimits": [
       "no secrets",
       "no paid calls",
       "no external sends",
-      "no VM service claim",
-      "command drafts are local previews"
+      "no hosted service claim",
+      "UI is not a communication channel"
     ]
   },
   "apps": [
     {
       "id": "askuno",
       "name": "Askuno Runtime Proof",
-      "status": "Accountless trial launch pending",
+      "status": "Marketing approval pending",
       "tone": "review",
       "currentStage": "marketing",
-      "summary": "KPI setup is complete for the accountless API trial: Use now, no account, no money required, $10 free credit, with a parallel iteration loop.",
-      "task": "Review the owner-gated GitHub and Discord launch plan while preparing the iteration loop for trial feedback and credit analytics.",
+      "summary": "KPI setup is complete for the accountless API trial, while launch distribution remains approval-gated and the parallel iteration loop is prepared.",
+      "task": "Show launch blocker, contract state, latest changes, and local runtime health without routing communication through the UI.",
       "owner": "WEAVE operator",
-      "runtime": "OpenClaw solo",
-      "productionUrl": "https://askuno.app",
-      "publicKpiUrl": "https://atumera.com/kpis",
+      "runtime": "Hermes default",
       "stages": [
         { "id": "intent", "name": "Intent", "state": "done", "summary": "Target and authority set" },
         { "id": "research", "name": "Research", "state": "done", "summary": "Wedge admitted" },
@@ -35,18 +33,24 @@
         { "id": "engineering", "name": "Engineering", "state": "done", "summary": "Package shipped" },
         { "id": "qa", "name": "QA", "state": "done", "summary": "Local checks pass" },
         { "id": "kpi", "name": "KPI Setup", "state": "done", "summary": "Public surface defined" },
-        { "id": "marketing", "name": "Marketing", "state": "current", "summary": "Owner-gated GitHub and Discord launch plan" }
+        { "id": "marketing", "name": "Marketing", "state": "current", "summary": "Owner-gated launch plan" }
       ],
       "iterationLoop": [
-        { "id": "iteration", "name": "Iteration", "state": "current", "summary": "Build and deploy trial-flow changes from user and agent feedback" },
+        { "id": "iteration", "name": "Iteration", "state": "current", "summary": "Prepare feedback-driven trial-flow changes" },
         { "id": "analysis", "name": "Analysis", "state": "current", "summary": "Read signups, credit burn, abuse signals, and top-up intent" }
       ],
       "blocker": {
         "stage": "marketing",
         "title": "Trial launch waits for approval",
-        "reason": "The runtime should record external marketing only after the owner approves the GitHub and Discord launch path, $10 free-credit claim, and evidence capture; iteration planning can run locally in parallel.",
-        "waitingOn": "Trial offer approval and distribution channel confirmation",
-        "nextAction": "Draft the Use now launch command, review it, prepare the iteration backlog, then attach campaign evidence after approval."
+        "reason": "External marketing should be recorded only after the owner approves the launch path, free-credit claim, and evidence capture.",
+        "waitingOn": "Launch approval",
+        "nextAction": "Hermes routes approval through Telegram; WEAVE records the result in the ledger."
+      },
+      "foundationGate": {
+        "passed": true,
+        "missing": [],
+        "incomplete": [],
+        "nextAction": "Continue with approval-gated Marketing."
       },
       "workCards": [
         {
@@ -68,7 +72,7 @@
           "title": "C. Execute",
           "done": 2,
           "total": 4,
-          "items": ["Runtime smoke", "UI smoke", "Approved Use now launch", "Iteration loop record"]
+          "items": ["Runtime smoke", "UI smoke", "Approved launch", "Iteration loop record"]
         }
       ],
       "evidence": [
@@ -76,9 +80,6 @@
         { "label": "Agent contract", "path": "docs/month1/weave-agent-operating-contract-v0.md", "scope": "public", "stage": "Plan" },
         { "label": "Askuno project", "path": "packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md", "scope": "public", "stage": "Selection" },
         { "label": "Runtime smoke", "path": "scripts/runtime_smoke.py", "scope": "public", "stage": "QA" },
-        { "label": "Public app", "path": "https://askuno.app", "scope": "public", "stage": "QA" },
-        { "label": "Public KPI surface", "path": "https://atumera.com/kpis", "scope": "public", "stage": "KPI Setup" },
-        { "label": "Accountless trial offer", "path": "public Askuno docs/site: Use now / no account / $10 free credit", "scope": "public", "stage": "Marketing" },
         { "label": "Iteration loop", "path": "operator-ui/sample-runtime.json", "scope": "public", "stage": "Iteration + Analysis" }
       ],
       "decisions": [
@@ -91,8 +92,8 @@
         {
           "label": "Trial launch approval",
           "status": "owner_required",
-          "evidence": "operator-ui command draft",
-          "note": "Marketing remains approval-gated until the GitHub and Discord launch path plus free-credit claim are reviewed."
+          "evidence": "approval ledger pending",
+          "note": "Marketing remains approval-gated until the launch path plus free-credit claim are reviewed."
         },
         {
           "label": "D2 runtime proof",
@@ -102,36 +103,38 @@
         }
       ],
       "kpis": [
+        { "label": "Foundation", "value": "complete", "delta": "context loaded" },
         { "label": "KPI setup", "value": "complete", "delta": "public surface defined" },
-        { "label": "Public reporting", "value": "ready", "delta": "aggregate only" },
-        { "label": "Free credit", "value": "$10", "delta": "trial entitlement" },
-        { "label": "Marketing", "value": "approval pending", "delta": "GitHub plus Discord plan" },
-        { "label": "Iteration loop", "value": "active locally", "delta": "feedback plus credit analytics" },
-        { "label": "Runtime package", "value": "2026.05.13-console", "delta": "local sample" }
+        { "label": "Marketing", "value": "approval pending", "delta": "launch plan" },
+        { "label": "Iteration loop", "value": "active locally", "delta": "feedback plus credit analytics" }
       ],
-      "commands": [
-        { "id": "draft-trial-launch-review", "title": "request_owner_approval", "status": "Draft", "stage": "marketing" },
-        { "id": "record-kpi-surface", "title": "record_evidence", "status": "Completed", "stage": "kpi" }
+      "events": [
+        { "type": "lifecycle.stage_derived", "status": "Recorded", "stage": "marketing", "summary": "Marketing became current after KPI setup evidence." },
+        { "type": "approval.requested", "status": "Open", "stage": "marketing", "summary": "Launch approval must be routed through Telegram." },
+        { "type": "window.changed", "status": "Recorded", "stage": "implementation", "summary": "Operator UI changed to read-only projection." }
       ],
-      "chat": [
-        {
-          "role": "agent",
-          "label": "WEAVE Runtime",
-          "text": "KPI setup is complete. Marketing is the active launch stage for the accountless $10 trial; iteration and analysis run locally in parallel until approved campaign evidence arrives.",
-          "time": "sample"
-        }
-      ]
+      "changes": [
+        { "type": "contract", "label": "Marketing approval boundary", "detail": "Contract diff is available for approval-gated launch behavior.", "stage": "marketing" },
+        { "type": "app context", "label": "Trial context updated", "detail": "Accountless trial and analytics expectations recorded.", "stage": "kpi" },
+        { "type": "window", "label": "UI communication removed", "detail": "Viewing window shows state but does not send messages.", "stage": "implementation" }
+      ],
+      "restHealth": [
+        { "label": "Health", "value": "ok", "detail": "Local dispatch skeleton" },
+        { "label": "Bind", "value": "loopback only", "detail": "No public remote API exposure" },
+        { "label": "Auth", "value": "token required", "detail": "Token value is not stored in public artifacts" }
+      ],
+      "transcriptSummary": "Hermes communication happens outside the UI. The window only displays ledgered outcomes, blockers, and state."
     },
     {
       "id": "compute-warrants",
       "name": "Compute Warrants App",
-      "status": "Intent draft",
+      "status": "Foundation blocked",
       "tone": "draft",
       "currentStage": "intent",
       "summary": "Future WEAVE app concept for capacity-style compute workflows.",
-      "task": "Write the intent contract and define the public proof boundary.",
+      "task": "Complete app-specific foundation context before Research.",
       "owner": "WEAVE operator",
-      "runtime": "OpenClaw solo",
+      "runtime": "Hermes default",
       "stages": [
         { "id": "intent", "name": "Intent", "state": "current", "summary": "Drafting" },
         { "id": "research", "name": "Research", "state": "next", "summary": "Pending" },
@@ -148,10 +151,16 @@
       ],
       "blocker": {
         "stage": "intent",
-        "title": "Intent contract needed",
-        "reason": "The app is only a draft until target users, constraints, and approval gates are recorded.",
-        "waitingOn": "Operator intent review",
-        "nextAction": "Ask the runtime for an intent packet."
+        "title": "Foundation context needed",
+        "reason": "The app is only a draft until target users, constraints, app context, and approval gates are recorded.",
+        "waitingOn": "Telegram foundation interview",
+        "nextAction": "Hermes asks through Telegram; WEAVE verifies the documents before stage movement."
+      },
+      "foundationGate": {
+        "passed": false,
+        "missing": [],
+        "incomplete": ["context/app-context.md", "inventory/app-inventory.md", "contract/gestaltian-contract.md"],
+        "nextAction": "Ask through Telegram and update app context before Research."
       },
       "workCards": [
         { "id": "plan", "title": "A. Plan", "done": 1, "total": 4, "items": ["Name users", "State offer", "Define constraints", "Set checks"] },
@@ -159,22 +168,27 @@
         { "id": "execute", "title": "C. Execute", "done": 0, "total": 3, "items": ["Create tasks", "Run QA", "Publish evidence"] }
       ],
       "evidence": [
-        { "label": "Lifecycle contract", "path": "docs/month1/weave-lifecycle-contract-v0.md", "scope": "public", "stage": "Intent" },
-        { "label": "Agent contract", "path": "docs/month1/weave-agent-operating-contract-v0.md", "scope": "public", "stage": "Intent" }
+        { "label": "Runtime contract", "path": "docs/weave-runtime-technical-gestalt-contract-v0.1.md", "scope": "public", "stage": "Intent" }
       ],
       "decisions": [
-        { "label": "Admit to Research", "status": "owner_required", "evidence": "operator-ui draft", "note": "Needs intent review before Research." }
+        { "label": "Admit to Research", "status": "owner_required", "evidence": "foundation gate", "note": "Needs foundation completion before Research." }
       ],
       "kpis": [
-        { "label": "KPI setup", "value": "not started", "delta": "blocked by Intent" },
+        { "label": "Foundation", "value": "blocked", "delta": "app context incomplete" },
         { "label": "Public reporting", "value": "not started", "delta": "pending" }
       ],
-      "commands": [
-        { "id": "draft-intent", "title": "brief_stage_context", "status": "Draft", "stage": "intent" }
+      "events": [
+        { "type": "app.created", "status": "Recorded", "stage": "intent", "summary": "Draft app workspace exists." },
+        { "type": "foundation.missing_context", "status": "Open", "stage": "intent", "summary": "App context templates require owner input." }
       ],
-      "chat": [
-        { "role": "agent", "label": "WEAVE Runtime", "text": "This app is a public-safe draft. Start with Intent.", "time": "sample" }
-      ]
+      "changes": [
+        { "type": "app", "label": "Draft app registered", "detail": "App room exists but foundation gate blocks serious work.", "stage": "intent" }
+      ],
+      "restHealth": [
+        { "label": "Health", "value": "ok", "detail": "Local dispatch skeleton" },
+        { "label": "Foundation", "value": "blocked", "detail": "Incomplete app context" }
+      ],
+      "transcriptSummary": "No UI communication. Hermes must collect missing context through Telegram."
     },
     {
       "id": "livepeer-tooling-demo",
@@ -182,10 +196,10 @@
       "status": "Research draft",
       "tone": "draft",
       "currentStage": "research",
-      "summary": "A future demo for lifecycle-guided Livepeer app development.",
+      "summary": "A future demo for lifecycle-guided app development.",
       "task": "Map available capabilities and select the smallest public-safe wedge.",
       "owner": "WEAVE operator",
-      "runtime": "OpenClaw solo",
+      "runtime": "Hermes default",
       "stages": [
         { "id": "intent", "name": "Intent", "state": "done", "summary": "Demo target named" },
         { "id": "research", "name": "Research", "state": "current", "summary": "Capability mapping" },
@@ -205,7 +219,13 @@
         "title": "Research evidence needed",
         "reason": "The app should not enter Selection until capability, pricing, and target user evidence exist.",
         "waitingOn": "Research packet",
-        "nextAction": "Ask the runtime to compile capability and market evidence."
+        "nextAction": "Hermes compiles research through the external channel; WEAVE records evidence paths."
+      },
+      "foundationGate": {
+        "passed": true,
+        "missing": [],
+        "incomplete": [],
+        "nextAction": "Continue Research."
       },
       "workCards": [
         { "id": "plan", "title": "A. Plan", "done": 2, "total": 4, "items": ["Intent", "Research scope", "Selection criteria", "QA checks"] },
@@ -223,12 +243,17 @@
         { "label": "Research", "value": "draft", "delta": "source list needed" },
         { "label": "Selection", "value": "pending", "delta": "no app claim yet" }
       ],
-      "commands": [
-        { "id": "draft-research", "title": "request_research", "status": "Draft", "stage": "research" }
+      "events": [
+        { "type": "lifecycle.stage_derived", "status": "Recorded", "stage": "research", "summary": "Research became current from lifecycle evidence." }
       ],
-      "chat": [
-        { "role": "agent", "label": "WEAVE Runtime", "text": "Research is active. Selection remains gated by evidence.", "time": "sample" }
-      ]
+      "changes": [
+        { "type": "artifact", "label": "Research source list", "detail": "Primitive registry and market research skill are linked as evidence.", "stage": "research" }
+      ],
+      "restHealth": [
+        { "label": "Health", "value": "ok", "detail": "Local dispatch skeleton" },
+        { "label": "Stage", "value": "research", "detail": "Derived from lifecycle state" }
+      ],
+      "transcriptSummary": "Research state is displayed from sample ledger evidence. The UI does not send messages."
     }
   ]
 }
