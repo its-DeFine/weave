@@ -29,6 +29,11 @@ import weave_runtime_slice
 import provision_hermes
 import setup_gateway
 
+try:
+    import yaml
+except ImportError:  # pragma: no cover - fallback keeps setup usable without PyYAML
+    yaml = None
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "weave-tool"
@@ -36,6 +41,8 @@ DEFAULT_PROFILE_PATH = REPO_ROOT / "runs" / "runtime-profile.json"
 DEFAULT_WEAVE_ROOT = REPO_ROOT / "runs" / "weave-root"
 DEFAULT_FOUNDATION_APP_ID = "weave"
 DEFAULT_FOUNDATION_APP_NAME = "WEAVE App"
+HERMES_PLUGIN_SOURCE = REPO_ROOT / "integrations" / "hermes" / "weave-runtime"
+HERMES_PLUGIN_NAME = "weave-runtime"
 
 RUNTIME_BINARIES = {
     "hermes-default": ["hermes", "hermes-agent", "nous-hermes"],
@@ -64,6 +71,14 @@ def _single_allowed_user(value: str | None) -> str | None:
 def _load_yaml_config(path: Path) -> dict[str, object]:
     if not path.exists():
         return {}
+    if yaml is not None:
+        try:
+            loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception as exc:
+            raise RuntimeSetupError(f"could not read Hermes config at {path}: {exc}") from exc
+        if not isinstance(loaded, dict):
+            raise RuntimeSetupError(f"Hermes config at {path} must be a YAML mapping")
+        return loaded
     data: dict[str, object] = {}
     current_key: str | None = None
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -123,7 +138,7 @@ def _parse_yaml_scalar(value: str) -> object:
         return False
     if value in {"null", "None", "~"}:
         return None
-    if value.startswith(("'", '"')):
+    if value.startswith(("'", '"', "[", "{")):
         try:
             return json.loads(value)
         except json.JSONDecodeError:
@@ -133,7 +148,10 @@ def _parse_yaml_scalar(value: str) -> object:
 
 def _write_yaml_config(path: Path, data: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    rendered = _dump_minimal_yaml(data)
+    if yaml is not None:
+        rendered = yaml.safe_dump(data, sort_keys=False, allow_unicode=False)
+    else:
+        rendered = _dump_minimal_yaml(data)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(rendered, encoding="utf-8")
     try:
@@ -168,6 +186,8 @@ def _format_yaml_scalar(value: object) -> str:
         return "null"
     if isinstance(value, (int, float)):
         return str(value)
+    if isinstance(value, (list, dict)):
+        return json.dumps(value)
     return json.dumps(str(value))
 
 
@@ -227,11 +247,68 @@ def configure_hermes_gateway_context(
     gateway_workdir = Path(str(onboarding_status["gateway_workdir"])).expanduser().resolve()
     terminal["cwd"] = str(gateway_workdir)
     agent["system_prompt"] = render_gateway_runtime_system_prompt(onboarding_status)
+    weave_runtime = config.setdefault("weave_runtime", {})
+    if not isinstance(weave_runtime, dict):
+        weave_runtime = {}
+        config["weave_runtime"] = weave_runtime
+    weave_runtime["repo"] = str(REPO_ROOT)
+    weave_runtime["root"] = str(Path(str(onboarding_status["root_status"]["root"])).expanduser().resolve())
+    weave_runtime["source_map"] = str(onboarding_status["source_map_path"])
     _write_yaml_config(config_path, config)
     return {
         "config_path": str(config_path),
         "terminal_cwd": str(gateway_workdir),
         "agent_system_prompt_configured": True,
+    }
+
+
+def install_weave_runtime_hermes_plugin(
+    hermes_home: Path,
+    *,
+    weave_root: Path,
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, object]:
+    """Install the generic WEAVE runtime Hermes plugin into a local Hermes home."""
+    if not HERMES_PLUGIN_SOURCE.exists():
+        raise RuntimeSetupError(f"Hermes WEAVE plugin source is missing: {HERMES_PLUGIN_SOURCE}")
+    plugin_dir = hermes_home / "plugins" / HERMES_PLUGIN_NAME
+    if plugin_dir.exists():
+        shutil.rmtree(plugin_dir)
+    shutil.copytree(
+        HERMES_PLUGIN_SOURCE,
+        plugin_dir,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+
+    config_path = hermes_home / "config.yaml"
+    config = _load_yaml_config(config_path)
+    plugins = config.setdefault("plugins", {})
+    if not isinstance(plugins, dict):
+        plugins = {}
+        config["plugins"] = plugins
+    enabled = plugins.get("enabled", [])
+    if isinstance(enabled, str):
+        enabled = [enabled] if enabled else []
+    if not isinstance(enabled, list):
+        enabled = []
+    if HERMES_PLUGIN_NAME not in enabled:
+        enabled.append(HERMES_PLUGIN_NAME)
+    plugins["enabled"] = sorted(str(item) for item in enabled)
+
+    weave_runtime = config.setdefault("weave_runtime", {})
+    if not isinstance(weave_runtime, dict):
+        weave_runtime = {}
+        config["weave_runtime"] = weave_runtime
+    weave_runtime["repo"] = str(repo_root.expanduser().resolve())
+    weave_runtime["root"] = str(weave_root.expanduser().resolve())
+    weave_runtime["plugin"] = HERMES_PLUGIN_NAME
+    _write_yaml_config(config_path, config)
+
+    return {
+        "plugin": HERMES_PLUGIN_NAME,
+        "plugin_dir": str(plugin_dir),
+        "config_path": str(config_path),
+        "enabled": True,
     }
 
 
@@ -372,6 +449,8 @@ def runtime_profile(
             "terminal_cwd_configured": False,
             "agent_system_prompt_configured": False,
             "autonomy_mode": weave_runtime_slice.DEFAULT_AUTONOMY_MODE,
+            "weave_plugin_installed": False,
+            "weave_plugin_enabled": False,
             "verification_commands": [
                 "hermes status",
                 "hermes gateway status",
@@ -578,6 +657,7 @@ def main(argv: list[str] | None = None) -> int:
                 gateway["env_private_mode"] = gateway_result["env_private_mode"]
         root_status = None
         onboarding_status = None
+        plugin_result = None
         if args.check:
             print(json.dumps(profile, indent=2, sort_keys=True))
             return 0
@@ -625,6 +705,17 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 root_status = weave_runtime_slice.setup_weave_root(args.weave_root, autonomy_mode=args.autonomy_mode)
                 profile["authority"]["autonomy"] = root_status["autonomy"]
+            if runtime == "hermes-default":
+                plugin_result = install_weave_runtime_hermes_plugin(
+                    args.gateway_hermes_home.expanduser(),
+                    weave_root=args.weave_root,
+                )
+                gateway = profile["gateway"]
+                if isinstance(gateway, dict):
+                    gateway["weave_plugin_installed"] = True
+                    gateway["weave_plugin_enabled"] = bool(plugin_result["enabled"])
+                    gateway["weave_plugin"] = plugin_result["plugin"]
+                    gateway["weave_plugin_dir"] = plugin_result["plugin_dir"]
         args.profile_out.parent.mkdir(parents=True, exist_ok=True)
         args.profile_out.write_text(json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     except RuntimeSetupError as exc:
@@ -643,6 +734,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"gateway_started: {str(profile['gateway']['gateway_started']).lower()}")
     print(f"gateway_home_channel_configured: {str(profile['gateway'].get('home_channel_configured', False)).lower()}")
     print(f"gateway_runtime_config_written: {str(profile['gateway']['runtime_config_written']).lower()}")
+    print(f"gateway_weave_plugin_installed: {str(profile['gateway']['weave_plugin_installed']).lower()}")
+    print(f"gateway_weave_plugin_enabled: {str(profile['gateway']['weave_plugin_enabled']).lower()}")
     print(f"foundation_onboarding_active: {str(profile['foundation_onboarding']['active']).lower()}")
     print(f"foundation_gate_passed: {profile['foundation_onboarding']['gate_passed']}")
     if root_status:
