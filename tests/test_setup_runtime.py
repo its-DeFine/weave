@@ -79,6 +79,47 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertEqual(config["weave_runtime"]["root"], str(weave_root.resolve()))
             self.assertNotIn("telegram_bot_token", json.dumps(config).lower())
 
+    def test_setup_refreshes_agent_profile_when_profile_env_is_explicit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            hermes_home = root / "hermes-home"
+            weave_root = root / "weave-root"
+            profile_path = root / "runtime-profile.json"
+            setup_runtime.weave_runtime_slice.setup_weave_root(weave_root)
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "WEAVE_HERMES_MODEL": "gpt-5.5",
+                    "WEAVE_HERMES_REASONING_EFFORT": "high",
+                    "WEAVE_HERMES_PROVIDER_ADAPTER": "openai-codex",
+                },
+                clear=False,
+            ):
+                result = setup_runtime.main(
+                    [
+                        "--runtime",
+                        "hermes-default",
+                        "--weave-root",
+                        str(weave_root),
+                        "--gateway-hermes-home",
+                        str(hermes_home),
+                        "--skip-foundation-onboarding",
+                        "--profile-out",
+                        str(profile_path),
+                    ]
+                )
+
+            self.assertEqual(result, 0)
+            agent_profile = json.loads(
+                (weave_root / "runtime" / "profiles" / "agent-profile.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(agent_profile["model"], "gpt-5.5")
+            self.assertEqual(agent_profile["reasoning_effort"], "high")
+            self.assertEqual(agent_profile["provider_adapter"], "openai-codex")
+
     def test_installs_weave_runtime_plugin_and_enables_it(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

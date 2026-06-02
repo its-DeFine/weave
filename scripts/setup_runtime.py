@@ -43,6 +43,12 @@ DEFAULT_FOUNDATION_APP_ID = "weave"
 DEFAULT_FOUNDATION_APP_NAME = "WEAVE App"
 HERMES_PLUGIN_SOURCE = REPO_ROOT / "integrations" / "hermes" / "weave-runtime"
 HERMES_PLUGIN_NAME = "weave-runtime"
+AGENT_PROFILE_ENV_KEYS = (
+    "WEAVE_HERMES_MODEL",
+    "WEAVE_HERMES_REASONING_EFFORT",
+    "WEAVE_HERMES_PROVIDER_ADAPTER",
+    "WEAVE_HERMES_PROMPT_PACK",
+)
 
 RUNTIME_BINARIES = {
     "hermes-default": ["hermes", "hermes-agent", "nous-hermes"],
@@ -57,6 +63,17 @@ RUNTIME_AGENT = {
 
 class RuntimeSetupError(Exception):
     pass
+
+
+def refresh_agent_profile_from_environment(root: Path) -> dict[str, object] | None:
+    """Refresh the local agent profile only when setup receives explicit profile env."""
+    if not any(os.environ.get(key) for key in AGENT_PROFILE_ENV_KEYS):
+        return None
+    return weave_runtime_slice.write_agent_profile(
+        root,
+        weave_runtime_slice.default_agent_profile(root),
+        event_type="runtime.agent_profile.changed",
+    )
 
 
 def _single_allowed_user(value: str | None) -> str | None:
@@ -688,6 +705,7 @@ def main(argv: list[str] | None = None) -> int:
         root_status = None
         onboarding_status = None
         plugin_result = None
+        refreshed_agent_profile = None
         if args.check:
             print(json.dumps(profile, indent=2, sort_keys=True))
             return 0
@@ -735,6 +753,11 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 root_status = weave_runtime_slice.setup_weave_root(args.weave_root, autonomy_mode=args.autonomy_mode)
                 profile["authority"]["autonomy"] = root_status["autonomy"]
+            refreshed_agent_profile = refresh_agent_profile_from_environment(args.weave_root)
+            if refreshed_agent_profile and root_status:
+                root_status["agent_profile"] = refreshed_agent_profile
+                if onboarding_status:
+                    onboarding_status["root_status"] = root_status
             if runtime == "hermes-default":
                 plugin_result = install_weave_runtime_hermes_plugin(
                     args.gateway_hermes_home.expanduser(),
@@ -775,6 +798,8 @@ def main(argv: list[str] | None = None) -> int:
     if onboarding_status:
         print(f"foundation_app_id: {onboarding_status['app_id']}")
         print(f"foundation_gateway_workdir: {onboarding_status['gateway_workdir']}")
+    if refreshed_agent_profile:
+        print(f"agent_profile_refreshed: true")
     if profile.get("hermes_provision"):
         hermes = profile["hermes_provision"]
         print(f"hermes_provisioned: {str(bool(hermes.get('source_verified'))).lower()}")
