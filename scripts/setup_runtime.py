@@ -197,6 +197,16 @@ def render_gateway_runtime_system_prompt(onboarding_status: dict[str, object]) -
     autonomy = onboarding_status["autonomy"]
     assert isinstance(autonomy, dict)
     hard_gates = "\n".join(f"- {item['label']}" for item in autonomy["hard_approval_gates"])
+    root_status = onboarding_status["root_status"]
+    assert isinstance(root_status, dict)
+    root = Path(str(root_status["root"])).expanduser()
+    agent_profile = root_status.get("agent_profile_path") or str(weave_runtime_slice.agent_profile_path(root))
+    active_app = onboarding_status.get("active_app_path") or str(weave_runtime_slice.active_app_path(root))
+    lifecycle = " -> ".join(stage.id for stage in weave_runtime_slice.STAGES)
+    command_lines = "\n".join(
+        f"- `{command}`: {description}"
+        for command, description in sorted(weave_runtime_slice.TELEGRAM_COMMANDS.items())
+    )
     return f"""WEAVE foundation onboarding is mandatory for this gateway session.
 
 Before answering any app-building request, read:
@@ -204,6 +214,8 @@ Before answering any app-building request, read:
 - source map: {onboarding_status["source_map_path"]}
 - gateway context: {onboarding_status["context_path"]}
 - gateway rules: {onboarding_status["agents_path"]}
+- agent profile: {agent_profile}
+- active app profile: {active_app}
 
 Autonomy mode is `{autonomy["mode"]}`. {autonomy["confirmation_policy"]}
 Proceed without routine confirmation for non-gated local work. Ask the owner
@@ -214,14 +226,27 @@ before any hard approval gate:
 
 If the foundation gate is not passing, stay in Foundation Onboarding Mode. Ask
 the owner through Telegram only, ask at most three blocking questions at once,
-write the answers into the canonical WEAVE documents, and do not proceed to app
-work until the gate passes.
+write the answers into the canonical WEAVE documents, refresh the foundation
+gate, and do not proceed to app work until the gate passes.
+
+The foundation gate is blocking when required documents are missing, still
+contain template placeholders or TODOs, or your confidence that the owner,
+Hermes character, app context, inventory, and Gestaltian contract are complete
+is not high. Keep the owner moving with an elicitation loop: say what is
+missing, why it matters, and what answer is needed next.
 
 Telegram slash commands are reserved for deterministic WEAVE runtime status.
 When a message begins with `/`, route it to the WEAVE command layer and return
-that output without model-generated wording. The owner can use `/status`,
-`/sources`, `/apps`, `/app <app_id>`, `/blockers`, `/changes [app_id]`,
-`/next`, and `/help` to inspect state.
+that output without model-generated wording.
+
+Deterministic command surface:
+{command_lines}
+
+There is no dashboard or UI in this phase. Telegram is the communication
+channel, and slash commands are the deterministic status surface.
+
+Use product lifecycle language in owner-facing communication:
+{lifecycle}.
 
 Current WEAVE app: {onboarding_status["app_id"]} ({onboarding_status["app_name"]})
 Current foundation gate passed: {gate["passed"]}
@@ -540,6 +565,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gateway-allowed-users", help="comma-separated Telegram numeric user ids")
     parser.add_argument("--gateway-group-allowed-users", help="comma-separated Telegram numeric group user ids")
     parser.add_argument(
+        "--configure-gateway-context",
+        action="store_true",
+        help="refresh Hermes gateway cwd/system prompt/runtime config without touching bot credentials",
+    )
+    parser.add_argument(
         "--gateway-allow-all-users",
         action="store_true",
         help="temporary discovery mode; replace with --gateway-allowed-users after capturing the owner id",
@@ -688,7 +718,7 @@ def main(argv: list[str] | None = None) -> int:
                             "context_path": onboarding_status["context_path"],
                         }
                     )
-                if gateway_result:
+                if gateway_result or args.configure_gateway_context:
                     gateway_config = configure_hermes_gateway_context(
                         args.gateway_hermes_home.expanduser(),
                         onboarding_status,

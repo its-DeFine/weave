@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import sys
 import tempfile
@@ -31,6 +32,53 @@ plugin_spec.loader.exec_module(weave_runtime_plugin)
 
 
 class SetupRuntimeTests(unittest.TestCase):
+    def test_gateway_system_prompt_tracks_current_command_surface(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            weave_root = root / "weave-root"
+            onboarding = setup_runtime.weave_runtime_slice.setup_foundation_onboarding(
+                weave_root,
+                "visual-novel",
+                "Visual Novel",
+            )
+
+            prompt = setup_runtime.render_gateway_runtime_system_prompt(onboarding)
+
+            self.assertIn("There is no dashboard or UI in this phase", prompt)
+            self.assertIn("agent profile:", prompt)
+            self.assertIn("active app profile:", prompt)
+            self.assertIn("intent -> research -> selection", prompt)
+            for command in setup_runtime.weave_runtime_slice.TELEGRAM_COMMANDS:
+                self.assertIn(f"`{command}`", prompt)
+
+    def test_configure_gateway_context_refreshes_without_token_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            hermes_home = root / "hermes-home"
+            weave_root = root / "weave-root"
+            profile_path = root / "runtime-profile.json"
+
+            result = setup_runtime.main(
+                [
+                    "--runtime",
+                    "hermes-default",
+                    "--weave-root",
+                    str(weave_root),
+                    "--gateway-hermes-home",
+                    str(hermes_home),
+                    "--configure-gateway-context",
+                    "--profile-out",
+                    str(profile_path),
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            config = setup_runtime._load_yaml_config(hermes_home / "config.yaml")
+            self.assertIn("/create_app", config["agent"]["system_prompt"])
+            self.assertIn("There is no dashboard or UI", config["agent"]["system_prompt"])
+            self.assertEqual(config["weave_runtime"]["root"], str(weave_root.resolve()))
+            self.assertNotIn("telegram_bot_token", json.dumps(config).lower())
+
     def test_installs_weave_runtime_plugin_and_enables_it(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
