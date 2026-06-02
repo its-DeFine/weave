@@ -4,6 +4,10 @@ Date: 2026-05-30
 Status: architecture contract
 Scope: CLI launch, Hermes lifecycle authority, local state, and Telegram status UX
 
+Phase note: the web/dashboard UI is deprecated for the current phase. Telegram
+conversation plus deterministic slash-command status is the supported
+owner-facing UX.
+
 ## 1. Verdict
 
 WEAVE should not become a second brain beside Hermes.
@@ -52,9 +56,35 @@ Lifecycle stage: Hermes' current registered phase of work for an app or
 artifact. WEAVE may also show a derived stage when artifact rules make that
 stage mechanically provable.
 
+Product lifecycle: the owner-facing stage vocabulary is `intent`, `research`,
+`selection`, `plan`, `engineering`, `qa`, `kpi`, `marketing`, `iteration`, and
+`analysis`. Internal Gestalt artifact names may appear inside artifacts, but
+folder names and command output should use product lifecycle language.
+
 Derived state: a WEAVE runtime projection computed from artifacts, schemas,
 paths, and ledger events. Derived state is useful for command clarity, but it
 is not Hermes' semantic judgment.
+
+Status wall: the deterministic `/status` projection that replaces the dashboard
+for this phase. It shows agent profile, active app, product app portfolio,
+attention items, runtime source state, and next action.
+
+App wall: the deterministic `/status <app_id>` or `/app <app_id>` projection
+for one app. It shows summary, lifecycle, current-stage requirements, missing
+inputs, tasks, decisions, recent work, blockers, agent profile, and next action.
+
+Active app: the one product app currently exposed through the human Telegram
+UX. Programmatic clients may address multiple apps later, but Telegram defaults
+to one active app to reduce context switching and ambiguity.
+
+Agent profile: the recorded Hermes execution profile, including base model,
+reasoning effort, provider adapter, autonomy mode, prompt pack, active skills,
+timestamp, and profile hash.
+
+Elicitation loop: Hermes' missing-information behavior. Hermes should explain
+what is missing, why it matters, ask focused questions, and keep the owner
+moving. WEAVE may still block lifecycle progress or dependent execution until
+the answers are recorded and stage completion is owner-approved.
 
 ## 2. Finished-State UX
 
@@ -68,7 +98,8 @@ WEAVE starts or reconnects to the local runtime and gateway. The user
 communicates with Hermes through Telegram. Telegram slash commands are the
 deterministic operating surface that shows what Hermes currently understands,
 what lifecycle stage is registered or deterministically inferred, what is
-missing, what is blocked, and what action is next.
+missing, what is blocked, what model/reasoning profile is doing the work, and
+what action is next.
 
 The desired feeling is not "dashboard management." It is "I am in a calm
 operating room with the right agent, the right method, and the right state."
@@ -84,6 +115,7 @@ The user should be able to answer these questions in seconds:
 - What is blocked on me?
 - What evidence exists?
 - What will happen if I approve the next action?
+- Which Hermes model and reasoning effort produced the current work?
 
 ## 3. Gestalt Kernel For This Architecture Contract
 
@@ -314,16 +346,17 @@ Slash commands own projection, not interpretation.
 
 They show:
 
-- all known apps and current stage per app
+- product apps and current stage per app
+- hidden system app count for maintenance awareness
 - active app
 - Hermes connection status
+- Hermes model and reasoning effort
 - current Hermes-registered stage
 - stage rationale
-- Gestalt Kernel
+- current product lifecycle stage requirements
 - contract readiness
-- premortem blockers
-- handoff readiness
 - missing ingredients
+- owner questions
 - active assumptions
 - evidence binder
 - approval queue
@@ -338,6 +371,11 @@ clearly. They are not a model chat surface for Hermes communication.
 Hermes may propose command-output changes only through the app's normal
 contract, worktree, review, validation, and ledger flow.
 
+WEAVE tooling/system workspaces must not appear as normal product apps in
+`/apps` by default. They may be exposed through explicit maintenance views such
+as `/apps --all`, but the human Telegram UX should default to the active
+product app to avoid context drift.
+
 ## 6. Lifecycle Registration Model
 
 Hermes registers lifecycle state by emitting structured events.
@@ -350,16 +388,16 @@ Example event:
   "type": "lifecycle.stage_registered",
   "app_id": "local-repair-tracker",
   "created_by": "hermes",
-  "stage": "contract",
-  "previous_stage": "kernel",
-  "reason": "The Gestalt Kernel is complete and structural contract fields are being compiled.",
+  "stage": "plan",
+  "previous_stage": "selection",
+  "reason": "The selected direction is approved and Hermes is compiling the implementation plan.",
   "confidence": "high",
   "blocking_gaps": [],
   "non_blocking_gaps": [
     "Deployment target is not selected yet."
   ],
   "evidence_refs": [
-    "contracts/local-repair-tracker/gestalt-kernel.md"
+    "apps/local-repair-tracker/lifecycle/03-selection/artifacts/selection.md"
   ]
 }
 ```
@@ -397,11 +435,13 @@ Generic structure:
   .git/
   artifacts/
     general/
+      soul.md
+      owner-profile.md
   apps/
     <app_id>/
       app.weave.json
-      .git/ or git-reference.json
-      repos/
+      README.md
+      repo/
         primary/
         worktrees/
         prs/
@@ -420,34 +460,31 @@ Generic structure:
         01-intent/
           artifacts/
           refs/
-        02-kernel/
+        02-research/
           artifacts/
           refs/
-        03-contract/
+        03-selection/
           artifacts/
           refs/
-        04-premortem/
+        04-plan/
           artifacts/
           refs/
-        05-handoff/
+        05-engineering/
           artifacts/
           refs/
-        06-implementation/
+        06-qa/
           artifacts/
           refs/
-        07-qa/
+        07-kpi/
           artifacts/
           refs/
-        08-kpi-setup/
+        08-marketing/
           artifacts/
           refs/
-        09-marketing/
+        09-iteration/
           artifacts/
           refs/
-        10-iteration/
-          artifacts/
-          refs/
-        11-analysis/
+        10-analysis/
           artifacts/
           refs/
       evidence/
@@ -455,8 +492,15 @@ Generic structure:
       ledger/
         events.jsonl
       exports/
+      outputs/
+      refs/
+      other/
+  ledger/
+    events.jsonl
   runtime/
     profiles/
+      active-app.json
+      agent-profile.json
     logs/
     sockets/
 ```
@@ -468,9 +512,9 @@ Rules:
 3. The WEAVE root must be git tracked.
 4. Each app workspace must be git tracked, even if it is never published to a
    remote host.
-5. App repos live under the app folder's `repos/` directory or are referenced in
+5. App repos live under the app folder's `repo/` directory or are referenced in
    the app inventory when they must remain elsewhere.
-6. App worktrees and pull-request-like review branches live under `repos/`.
+6. App worktrees and pull-request-like review branches live under `repo/`.
 7. App inventories record repositories, external systems, artifacts, state
    files, owner-approved capabilities, and known blockers.
 8. App context records the app-specific world state that every lifecycle stage
@@ -489,11 +533,11 @@ Reference JSON shape:
 ```json
 {
   "schema": "weave-artifact-ref/v0.1",
-  "artifact_id": "contract-v3",
-  "canonical_path": "../../03-contract/artifacts/gestaltian-contract.md",
-  "source_stage": "contract",
+  "artifact_id": "plan-v3",
+  "canonical_path": "../../04-plan/artifacts/implementation-plan.md",
+  "source_stage": "plan",
   "used_by_stage": "qa",
-  "reason": "QA validates implementation against the current contract.",
+  "reason": "QA validates engineering work against the owner-approved plan.",
   "checksum": "sha256:<digest>"
 }
 ```
@@ -704,7 +748,9 @@ CLI session, while preserving the same audit and permission boundaries.
 
 The user should be able to talk to Hermes after setting up a communication
 channel. WEAVE should support this without forcing communication through a
-separate dashboard.
+separate dashboard. The dashboard/UI is intentionally out of scope for this
+phase because deterministic Telegram status is easier to operate, review, and
+repair.
 
 The first supported channel is Telegram.
 
@@ -739,13 +785,14 @@ Show one primary focus at a time:
 4. Next action
 
 Details such as raw logs, full event history, and artifact diffs stay behind
-explicit commands or links.
+explicit commands or file paths. `/status` is the wall; it should be rich but
+not a log dump.
 
 ### 11.2 Recognition Over Recall
 
-The user should not need to remember the lifecycle. `/apps` and `/app
-<app_id>` should show the active stage for each app, blocked stages, and the
-next action.
+The user should not need to remember the lifecycle. `/status`, `/apps`, `/app
+<app_id>`, `/stage`, and `/requirements` should show active stage, stage state,
+blocked stages, required inputs, and next action.
 
 ### 11.3 Chunking
 
@@ -758,10 +805,60 @@ Information should be grouped into stable regions:
 - Missing ingredients
 - Evidence
 - Approval queue
+- Agent model/reasoning profile
 - Next action
 
 Avoid mixing logs, files, lifecycle state, and approvals in one undifferentiated
 stream. Do not turn slash-command output into chat.
+
+### 11.3.1 Status Wall
+
+Plain `/status` is the WEAVE wall. It shows:
+
+- Hermes model, reasoning effort, provider adapter, autonomy mode, prompt pack,
+  active skills, and profile hash
+- active Telegram product app
+- product app count, hidden system app count, blocked app count
+- one compact line per product app
+- attention items that need owner answers, approvals, credentials, or blocker
+  resolution
+- root/source/ledger health
+- one deterministic next action
+
+### 11.3.2 App Wall
+
+`/status <app_id>` and `/app <app_id>` are the app wall. They show:
+
+- app summary and type
+- current lifecycle stage and stage state
+- lifecycle row for every product stage
+- current-stage requirements
+- missing inputs and owner questions
+- tasks
+- decisions
+- recent meaningful ledger events
+- blockers, including credential blockers
+- agent model/reasoning profile
+- next action
+
+The app wall is allowed to be visually rich, but it must remain deterministic:
+Hermes may update records, but WEAVE renders the status from structured state.
+
+### 11.3.3 Elicitation Loop
+
+When required information is missing, Hermes should not stop in a dead-end
+way. It should enter an elicitation loop:
+
+1. Say what is missing.
+2. Say why it matters.
+3. Ask focused questions.
+4. Update the canonical documents and ledger after the owner answers.
+5. Re-check stage requirements.
+
+Conversation may continue while a stage is `collecting`. Lifecycle progress,
+dependent execution, publishing, paid work, production changes, and destructive
+work remain blocked until the relevant stage requirements pass and owner review
+marks the stage complete.
 
 ### 11.4 Cognitive Offloading
 
@@ -1020,15 +1117,17 @@ that stage is mechanically proven by artifacts and ledger events.
 
 Examples:
 
-- Kernel stage is complete when
-  `lifecycle/02-kernel/artifacts/kernel.md` exists, validates against the
-  kernel schema, and has a matching `artifact.created` event.
-- Contract stage is complete when
-  `lifecycle/03-contract/artifacts/gestaltian-contract.md` exists, includes
-  the required sections, and has a matching Hermes-authored event.
-- QA stage is active when a Build-Ready Handoff Packet exists, implementation
-  artifacts exist, and validation artifacts are being written under
-  `lifecycle/07-qa/artifacts/`.
+- Research stage is active when research questions and evidence artifacts exist
+  under `lifecycle/02-research/artifacts/` and have matching ledger events.
+- Selection stage is ready for review when candidate approaches, selected
+  direction, and decision rationale exist under
+  `lifecycle/03-selection/artifacts/`.
+- Plan stage is ready for review when implementation plan, task list,
+  acceptance checks, risks, and stop boundaries exist under
+  `lifecycle/04-plan/artifacts/`.
+- QA stage is active when engineering artifacts exist, validation artifacts are
+  being written under `lifecycle/06-qa/artifacts/`, and the current tests or
+  checks are recorded in the ledger.
 
 Rules:
 
@@ -1066,9 +1165,9 @@ Included:
 - Hermes initialization event schema
 - lifecycle stage registration event schema
 - deterministic stage projection for at least one artifact rule
-- one sample raw intent reaching Gestalt Kernel
+- one sample raw intent reaching an intent-stage app packet
 - `/apps` app list with stage per app
-- `/app <app_id>` current-stage and missing-ingredients projection
+- `/status <app_id>` current-stage and missing-ingredients projection
 - versioned Gestaltian Contract and diff recording for one update
 
 Excluded:
@@ -1078,7 +1177,7 @@ Excluded:
 - external sends
 - provider mutation
 - credential loading
-- full implementation executor
+- full app execution/deployment system
 - real app deployment
 - multi-user sync
 - web UI or message composer

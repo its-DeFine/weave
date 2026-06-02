@@ -70,7 +70,7 @@ class SetupRuntimeTests(unittest.TestCase):
             ):
                 result = weave_runtime_plugin._dispatch("/status")
 
-            self.assertIn("WEAVE runtime status", result)
+            self.assertIn("WEAVE Status", result)
             self.assertIn("root_ready: true", result)
 
     def test_status_hook_handles_builtin_status(self) -> None:

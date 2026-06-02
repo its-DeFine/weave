@@ -193,6 +193,9 @@ def validate_runtime_slice() -> int:
         if setup["schema"] != weave_runtime_slice.ROOT_SCHEMA:
             print("runtime slice setup returned wrong schema", file=sys.stderr)
             return 1
+        if setup.get("agent_profile", {}).get("schema") != weave_runtime_slice.AGENT_PROFILE_SCHEMA:
+            print(f"runtime slice setup did not record an agent profile: {setup}", file=sys.stderr)
+            return 1
         weave_runtime_slice.create_app(root, "alpha-app", "Alpha App")
         weave_runtime_slice.create_app(root, "beta-app", "Beta App")
         apps = weave_runtime_slice.list_apps(root)
@@ -253,8 +256,19 @@ def validate_telegram_commands() -> int:
         if status.get("payload", {}).get("app_count") != 1:
             print(f"telegram /status app count mismatch: {status}", file=sys.stderr)
             return 1
+        if status.get("payload", {}).get("agent_profile", {}).get("schema") != weave_runtime_slice.AGENT_PROFILE_SCHEMA:
+            print(f"telegram /status did not expose agent profile: {status}", file=sys.stderr)
+            return 1
         if status.get("payload", {}).get("source_map", {}).get("canonical_source_id") != "weave-root":
             print(f"telegram /status source map mismatch: {status}", file=sys.stderr)
+            return 1
+        created = weave_runtime_slice.dispatch_telegram_command(root, "/create_app Visual Novel")
+        if created.get("payload", {}).get("active_app", {}).get("app_id") != "visual-novel":
+            print(f"telegram /create_app did not select active app: {created}", file=sys.stderr)
+            return 1
+        active_status = weave_runtime_slice.dispatch_telegram_command(root, "/status visual-novel")
+        if "WEAVE App Status" not in active_status.get("text", ""):
+            print(f"telegram /status <app_id> did not render app wall: {active_status}", file=sys.stderr)
             return 1
         sources = weave_runtime_slice.dispatch_telegram_command(root, "/sources")
         if sources.get("payload", {}).get("source_map", {}).get("schema") != weave_runtime_slice.SOURCE_MAP_SCHEMA:

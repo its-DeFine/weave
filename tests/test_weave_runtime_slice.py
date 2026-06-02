@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,13 +30,36 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue((root / "apps" / "registry.json").exists())
             self.assertTrue((root / "artifacts" / "general" / "soul.md").exists())
             self.assertTrue((root / "artifacts" / "general" / "owner-profile.md").exists())
+            self.assertTrue((root / "ledger" / "events.jsonl").exists())
             self.assertTrue((root / "runtime" / "tokens" / "local-api-token").exists())
             self.assertTrue((root / "runtime" / "profiles" / "autonomy-policy.json").exists())
+            self.assertTrue((root / "runtime" / "profiles" / "agent-profile.json").exists())
             self.assertTrue((root / "runtime" / "source-map.json").exists())
             self.assertEqual(result["autonomy"]["mode"], "yolo")
+            self.assertEqual(result["agent_profile"]["prompt_pack"], "hermes-gestalt-runtime-pack")
             self.assertEqual(result["source_map_summary"]["canonical_source_id"], "weave-root")
             self.assertTrue(result["autonomy"]["llm_must_request_owner_authorization_for_hard_gates"])
             self.assertEqual(runtime.load_registry(root)["apps"], [])
+
+    def test_agent_profile_records_model_and_reasoning_from_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "WEAVE_HERMES_MODEL": "gpt-5.5",
+                    "WEAVE_HERMES_REASONING_EFFORT": "xhigh",
+                    "WEAVE_HERMES_PROVIDER_ADAPTER": "codex",
+                },
+            ):
+                result = runtime.setup_weave_root(root)
+
+            profile = result["agent_profile"]
+            self.assertEqual(profile["model"], "gpt-5.5")
+            self.assertEqual(profile["reasoning_effort"], "xhigh")
+            self.assertEqual(profile["provider_adapter"], "codex")
+            status = runtime.dispatch_telegram_command(root, "/status")
+            self.assertIn("model=gpt-5.5; reasoning=xhigh; adapter=codex", status["text"])
 
     def test_source_map_records_active_and_sensitive_sources_without_secret_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -65,8 +89,11 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue((app_root / "inventory" / "app-inventory.md").exists())
             self.assertTrue((app_root / "contract" / "gestaltian-contract.md").exists())
             self.assertTrue((app_root / "lifecycle" / "01-intent" / "artifacts").is_dir())
+            self.assertTrue((app_root / "lifecycle" / "02-research" / "artifacts").is_dir())
+            self.assertTrue((app_root / "repo" / "primary").is_dir())
             registry = runtime.load_registry(root)
             self.assertEqual(registry["apps"][0]["app_id"], "demo-app")
+            self.assertEqual(registry["apps"][0]["app_type"], "product")
             gate = runtime.foundation_gate(root, "demo-app")
             self.assertFalse(gate["passed"])
             self.assertIn("soul.md", gate["incomplete"])
@@ -107,11 +134,16 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("Autonomy mode: `yolo`", agents)
             self.assertIn("must ask the owner through the LLM conversation", agents)
             self.assertIn("Ask at most three blocking questions", agents)
+            self.assertIn("elicitation loop", agents)
+            self.assertIn("There is no dashboard", agents)
+            self.assertIn("intent -> research -> selection -> plan", agents)
             self.assertIn("Communication channel: Telegram", agents)
             soul = Path(result["soul_path"]).read_text(encoding="utf-8")
             self.assertIn("WEAVE Gateway Soul Bootstrap", soul)
             context = Path(result["context_path"]).read_text(encoding="utf-8")
             self.assertIn('"required_before_app_work": true', context)
+            self.assertIn('"dashboard_ui_enabled": false', context)
+            self.assertIn('"agent_profile"', context)
             self.assertIn('"mode": "yolo"', context)
 
     def test_ledger_appends_valid_events_and_rejects_malformed_events(self) -> None:
@@ -131,14 +163,15 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "weave-root"
             runtime.create_app(root, "demo", "Demo")
-            contract_artifact = root / "apps" / "demo" / "lifecycle" / "03-contract" / "artifacts" / "contract.md"
-            contract_artifact.write_text("# Contract\n", encoding="utf-8")
+            selection_artifact = root / "apps" / "demo" / "lifecycle" / "03-selection" / "artifacts" / "selection.md"
+            selection_artifact.write_text("# Selection\n", encoding="utf-8")
 
-            self.assertEqual(runtime.derive_stage(root, "demo")["stage"], "contract")
+            self.assertEqual(runtime.derive_stage(root, "demo")["stage"], "selection")
 
             qa_ref = root / "apps" / "demo" / "lifecycle" / "07-qa" / "refs" / "contract-ref.json"
+            qa_ref.parent.mkdir(parents=True, exist_ok=True)
             qa_ref.write_text(
-                '{"schema":"weave-artifact-ref/v0.1","canonical_path":"apps/demo/lifecycle/03-contract/artifacts/contract.md"}\n',
+                '{"schema":"weave-artifact-ref/v0.1","canonical_path":"apps/demo/lifecycle/03-selection/artifacts/selection.md"}\n',
                 encoding="utf-8",
             )
 
@@ -185,8 +218,12 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(status["payload"]["blocked_apps"], ["demo"])
             self.assertEqual(status["payload"]["foundation_blocked_apps"], ["demo"])
             self.assertEqual(status["payload"]["app_blocked_apps"], [])
+            self.assertEqual(status["payload"]["agent_profile"]["model"], "unknown")
             self.assertEqual(status["payload"]["autonomy"]["mode"], "yolo")
             self.assertEqual(status["payload"]["source_map"]["canonical_source_id"], "weave-root")
+            self.assertIn("WEAVE Status", status["text"])
+            self.assertIn("Agent", status["text"])
+            self.assertIn("product_apps: 1", status["text"])
 
             sources = runtime.dispatch_telegram_command(root, "/sources")
             self.assertEqual(sources["schema"], runtime.TELEGRAM_COMMAND_SCHEMA)
@@ -203,10 +240,25 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             apps = runtime.dispatch_telegram_command(root, "/apps")
             self.assertIn("Demo (demo)", apps["text"])
             self.assertEqual(apps["payload"]["apps"][0]["stage"], "intent")
+            self.assertEqual(apps["payload"]["apps"][0]["stage_state"], "collecting")
 
             app = runtime.dispatch_telegram_command(root, "/app demo")
+            self.assertIn("WEAVE App Status", app["text"])
             self.assertIn("foundation: blocking", app["text"])
+            self.assertIn("Lifecycle", app["text"])
             self.assertIn("foundation_gate", app["payload"])
+
+            app_status = runtime.dispatch_telegram_command(root, "/status demo")
+            self.assertIn("WEAVE App Status", app_status["text"])
+            self.assertEqual(app_status["payload"]["app_id"], "demo")
+
+            stage = runtime.dispatch_telegram_command(root, "/stage demo")
+            self.assertIn("WEAVE Stage", stage["text"])
+            self.assertEqual(stage["payload"]["stage_status"]["stage"], "intent")
+
+            requirements = runtime.dispatch_telegram_command(root, "/requirements demo")
+            self.assertIn("WEAVE Requirements", requirements["text"])
+            self.assertIn("owner intent", requirements["text"])
 
             blockers = runtime.dispatch_telegram_command(root, "/blockers")
             self.assertIn("foundation", blockers["text"])
@@ -247,10 +299,49 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("blocked_apps: 1", status["text"])
             self.assertIn("foundation_blocked_apps: 0", status["text"])
             self.assertIn("app_blocked_apps: 1", status["text"])
-            self.assertIn("next: resolve blocker for demo.", status["text"])
+            self.assertIn("Resolve blocker for demo", status["text"])
             self.assertEqual(status["payload"]["blocked_apps"], ["demo"])
             self.assertEqual(status["payload"]["foundation_blocked_apps"], [])
             self.assertEqual(status["payload"]["app_blocked_apps"], ["demo"])
+
+    def test_create_and_switch_app_commands_manage_active_product_app(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.setup_weave_root(root)
+
+            created = runtime.dispatch_telegram_command(root, "/create_app Visual Novel")
+
+            self.assertTrue(created["handled"])
+            self.assertEqual(created["payload"]["active_app"]["app_id"], "visual-novel")
+            self.assertEqual(runtime.load_active_app(root)["app_id"], "visual-novel")
+            self.assertIn("Created product app", created["text"])
+
+            status = runtime.dispatch_telegram_command(root, "/status")
+            self.assertIn("active_app: visual-novel", status["text"])
+
+            second = runtime.dispatch_telegram_command(root, "/create_app Puzzle Tool")
+            self.assertEqual(second["payload"]["active_app"]["app_id"], "puzzle-tool")
+
+            switched = runtime.dispatch_telegram_command(root, "/switch_app visual-novel")
+            self.assertEqual(switched["payload"]["active_app"]["app_id"], "visual-novel")
+
+            active_app_wall = runtime.dispatch_telegram_command(root, "/app")
+            self.assertEqual(active_app_wall["payload"]["app_id"], "visual-novel")
+
+    def test_system_apps_are_hidden_from_default_apps_view(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "weave", "WEAVE")
+            runtime.create_app(root, "visual-novel", "Visual Novel")
+
+            apps = runtime.dispatch_telegram_command(root, "/apps")
+            self.assertNotIn("WEAVE (weave)", apps["text"])
+            self.assertIn("Visual Novel (visual-novel)", apps["text"])
+            self.assertEqual([app["app_id"] for app in apps["payload"]["apps"]], ["visual-novel"])
+
+            all_apps = runtime.dispatch_telegram_command(root, "/apps --all")
+            self.assertIn("WEAVE (weave)", all_apps["text"])
+            self.assertEqual(len(all_apps["payload"]["apps"]), 2)
 
     def test_rest_dispatch_exposes_telegram_command_catalog(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import secrets
 import subprocess
@@ -31,6 +32,8 @@ GATEWAY_CONTEXT_SCHEMA = "weave-gateway-context/v0.1"
 TELEGRAM_COMMAND_SCHEMA = "weave-telegram-command/v0.1"
 AUTONOMY_SCHEMA = "weave-autonomy-policy/v0.1"
 SOURCE_MAP_SCHEMA = "weave-runtime-source-map/v0.1"
+AGENT_PROFILE_SCHEMA = "weave-agent-profile/v0.1"
+ACTIVE_APP_SCHEMA = "weave-active-app/v0.1"
 
 TEMPLATE_MARKER = "template-needs-owner-input"
 DEFAULT_AUTONOMY_MODE = "yolo"
@@ -56,50 +59,83 @@ EVENT_TYPES = {
     "procedure.feedback_sent",
     "validation.completed",
     "window.changed",
+    "runtime.agent_profile.recorded",
+    "runtime.agent_profile.changed",
+    "runtime.active_app.changed",
 }
 
 CREATORS = {"hermes", "weave-runtime", "owner"}
 
 LIFECYCLE_STAGES = [
     ("intent", "01-intent"),
-    ("kernel", "02-kernel"),
-    ("contract", "03-contract"),
-    ("premortem", "04-premortem"),
-    ("handoff", "05-handoff"),
-    ("implementation", "06-implementation"),
-    ("qa", "07-qa"),
-    ("kpi-setup", "08-kpi-setup"),
-    ("marketing", "09-marketing"),
-    ("iteration", "10-iteration"),
-    ("analysis", "11-analysis"),
+    ("research", "02-research"),
+    ("selection", "03-selection"),
+    ("plan", "04-plan"),
+    ("engineering", "05-engineering"),
+    ("qa", "06-qa"),
+    ("kpi", "07-kpi"),
+    ("marketing", "08-marketing"),
+    ("iteration", "09-iteration"),
+    ("analysis", "10-analysis"),
 ]
 
 APP_DIRS = [
     "context/reality-briefs",
     "inventory",
-    "repos/primary",
-    "repos/worktrees",
-    "repos/prs",
+    "repo/primary",
+    "repo/worktrees",
+    "repo/prs",
     "contract/versions",
     "contract/diffs",
     "evidence",
     "approvals",
     "ledger/procedure-feedback",
     "exports",
+    "outputs",
+    "refs",
+    "other",
 ]
 
 TELEGRAM_COMMANDS = {
     "/start": "Show the deterministic WEAVE command surface.",
     "/help": "List deterministic WEAVE commands.",
     "/autonomy": "Show autonomy mode and hard approval gates.",
-    "/status": "Show runtime readiness and aggregate app status.",
+    "/status": "Show the WEAVE wall or one app wall. Usage: /status [app_id]",
     "/sources": "Show runtime history and source-of-truth surfaces.",
-    "/apps": "List apps, lifecycle stages, and foundation gate state.",
-    "/app": "Show one app state. Usage: /app <app_id>",
+    "/apps": "List product apps, lifecycle stages, and attention state.",
+    "/app": "Show one app wall. Usage: /app <app_id>",
+    "/create_app": "Create and select a product app workspace. Usage: /create_app <name>",
+    "/switch_app": "Select the active Telegram app. Usage: /switch_app <app_id>",
+    "/stage": "Show lifecycle stage state. Usage: /stage [app_id]",
+    "/requirements": "Show current-stage requirements. Usage: /requirements [app_id]",
     "/blockers": "Show apps that need owner or Hermes action.",
     "/changes": "Show latest recorded changes. Usage: /changes [app_id]",
     "/next": "Show the next deterministic owner-visible action.",
 }
+
+STAGE_STATES = {"not_started", "collecting", "blocked", "ready_for_review", "approved", "active"}
+
+LEGACY_STAGE_ALIASES = {
+    "02-kernel": "research",
+    "03-contract": "selection",
+    "04-premortem": "plan",
+    "05-handoff": "engineering",
+    "06-implementation": "engineering",
+    "07-qa": "qa",
+    "08-kpi-setup": "kpi",
+    "09-marketing": "marketing",
+    "10-iteration": "iteration",
+    "11-analysis": "analysis",
+}
+
+SYSTEM_APP_IDS = {"weave", "weave-runtime", "weave-tooling"}
+
+DEFAULT_ACTIVE_SKILLS = [
+    "weave-lifecycle",
+    "implementation-planning",
+    "qa-verification",
+    "evidence-packet",
+]
 
 HARD_APPROVAL_GATES = [
     {
@@ -141,6 +177,13 @@ class Stage:
 
 
 STAGES = [Stage(stage_id, directory) for stage_id, directory in LIFECYCLE_STAGES]
+
+
+def stage_by_id(stage_id: str) -> Stage:
+    for stage in STAGES:
+        if stage.id == stage_id:
+            return stage
+    raise RuntimeSliceError(f"unsupported lifecycle stage: {stage_id}")
 
 
 def utc_now() -> str:
@@ -338,6 +381,28 @@ def default_source_map(root: Path) -> dict[str, Any]:
             "path_status": path_status(autonomy_policy_path(root)),
         },
         {
+            "id": "agent-profile",
+            "label": "Hermes agent profile",
+            "kind": "json",
+            "role": "active model, reasoning effort, prompt pack, and skill profile",
+            "status": "active" if agent_profile_path(root).exists() else "missing",
+            "path": str(agent_profile_path(root)),
+            "mutable": True,
+            "sensitive": False,
+            "path_status": path_status(agent_profile_path(root)),
+        },
+        {
+            "id": "active-app",
+            "label": "Active app profile",
+            "kind": "json",
+            "role": "one active product app for the Telegram UX",
+            "status": "active" if active_app_path(root).exists() else "missing",
+            "path": str(active_app_path(root)),
+            "mutable": True,
+            "sensitive": False,
+            "path_status": path_status(active_app_path(root)),
+        },
+        {
             "id": "local-api-token",
             "label": "Local API token",
             "kind": "secret_ref",
@@ -391,9 +456,29 @@ def write_source_map(root: Path, source_map: dict[str, Any]) -> dict[str, Any]:
 
 def ensure_source_map(root: Path) -> dict[str, Any]:
     path = source_map_path(root)
-    if path.exists():
-        return load_source_map(root)
-    return write_source_map(root, default_source_map(root))
+    if not path.exists():
+        return write_source_map(root, default_source_map(root))
+    source_map = load_source_map(root)
+    defaults = default_source_map(root)
+    changed = False
+    defaults_by_id = {source["id"]: source for source in defaults["sources"]}
+    existing_ids = {source["id"] for source in source_map.get("sources", []) if isinstance(source, dict)}
+    for source in source_map.get("sources", []):
+        if not isinstance(source, dict) or source.get("id") not in defaults_by_id:
+            continue
+        default_source = defaults_by_id[source["id"]]
+        for field in ("status", "path_status"):
+            if source.get(field) != default_source.get(field):
+                source[field] = default_source.get(field)
+                changed = True
+    missing_sources = [source for source in defaults["sources"] if source["id"] not in existing_ids]
+    if missing_sources:
+        source_map["sources"].extend(missing_sources)
+        changed = True
+    if changed:
+        source_map["generated_at"] = utc_now()
+        return write_source_map(root, source_map)
+    return source_map
 
 
 def load_source_map(root: Path) -> dict[str, Any]:
@@ -405,12 +490,164 @@ def load_source_map(root: Path) -> dict[str, Any]:
     return source_map
 
 
+def runtime_ledger_path(root: Path) -> Path:
+    return root / "ledger" / "events.jsonl"
+
+
+def active_app_path(root: Path) -> Path:
+    return root / "runtime" / "profiles" / "active-app.json"
+
+
+def agent_profile_path(root: Path) -> Path:
+    return root / "runtime" / "profiles" / "agent-profile.json"
+
+
+def profile_hash(profile: dict[str, Any]) -> str:
+    material = {key: value for key, value in profile.items() if key != "profile_hash"}
+    encoded = json.dumps(material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def default_agent_profile(root: Path) -> dict[str, Any]:
+    profile = {
+        "schema": AGENT_PROFILE_SCHEMA,
+        "model": os.environ.get("WEAVE_HERMES_MODEL", "unknown"),
+        "reasoning_effort": os.environ.get("WEAVE_HERMES_REASONING_EFFORT", "unknown"),
+        "provider_adapter": os.environ.get("WEAVE_HERMES_PROVIDER_ADAPTER", "unknown"),
+        "autonomy_mode": load_autonomy_policy(root)["mode"],
+        "prompt_pack": os.environ.get("WEAVE_HERMES_PROMPT_PACK", "hermes-gestalt-runtime-pack"),
+        "active_skills": DEFAULT_ACTIVE_SKILLS,
+        "recorded_at": utc_now(),
+    }
+    profile["profile_hash"] = profile_hash(profile)
+    return profile
+
+
+def validate_agent_profile(profile: dict[str, Any]) -> None:
+    if profile.get("schema") != AGENT_PROFILE_SCHEMA:
+        raise RuntimeSliceError(f"agent profile schema must be {AGENT_PROFILE_SCHEMA}")
+    for field in ("model", "reasoning_effort", "provider_adapter", "autonomy_mode", "prompt_pack", "recorded_at"):
+        if field not in profile:
+            raise RuntimeSliceError(f"agent profile missing {field}")
+    if not isinstance(profile.get("active_skills"), list):
+        raise RuntimeSliceError("agent profile active_skills must be a list")
+    expected_hash = profile_hash(profile)
+    if profile.get("profile_hash") and profile["profile_hash"] != expected_hash:
+        raise RuntimeSliceError("agent profile hash does not match profile content")
+    profile["profile_hash"] = expected_hash
+
+
+def append_runtime_event(root: Path, event: dict[str, Any]) -> dict[str, Any]:
+    validate_event(event)
+    path = runtime_ledger_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, sort_keys=True) + "\n")
+    return event
+
+
+def read_runtime_events(root: Path) -> list[dict[str, Any]]:
+    path = runtime_ledger_path(root)
+    if not path.exists():
+        return []
+    events: list[dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise RuntimeSliceError(f"invalid runtime ledger JSON at line {line_number}: {exc}") from exc
+        validate_event(event)
+        events.append(event)
+    return events
+
+
+def write_agent_profile(root: Path, profile: dict[str, Any], *, event_type: str = "runtime.agent_profile.changed") -> dict[str, Any]:
+    validate_agent_profile(profile)
+    path = agent_profile_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    append_runtime_event(
+        root,
+        new_event(
+            event_type,
+            "weave-runtime",
+            "runtime",
+            f"Recorded Hermes agent profile {profile['model']} / {profile['reasoning_effort']}.",
+            payload={"agent_profile": profile},
+        ),
+    )
+    return profile
+
+
+def ensure_agent_profile(root: Path) -> dict[str, Any]:
+    path = agent_profile_path(root)
+    if path.exists():
+        profile = load_json(path)
+        validate_agent_profile(profile)
+        return profile
+    return write_agent_profile(root, default_agent_profile(root), event_type="runtime.agent_profile.recorded")
+
+
+def is_system_app(app: dict[str, Any] | str) -> bool:
+    if isinstance(app, str):
+        app_id = slugify(app)
+        return app_id in SYSTEM_APP_IDS
+    app_id = slugify(str(app.get("app_id") or ""))
+    return app.get("app_type") == "system" or app_id in SYSTEM_APP_IDS
+
+
+def load_active_app(root: Path) -> dict[str, Any]:
+    path = active_app_path(root)
+    if not path.exists():
+        return {
+            "schema": ACTIVE_APP_SCHEMA,
+            "app_id": "",
+            "source": "unset",
+            "updated_at": "",
+        }
+    data = load_json(path)
+    if data.get("schema") != ACTIVE_APP_SCHEMA:
+        raise RuntimeSliceError(f"active app schema must be {ACTIVE_APP_SCHEMA}")
+    return data
+
+
+def set_active_app(root: Path, app_id: str, *, created_by: str = "weave-runtime") -> dict[str, Any]:
+    clean_id = slugify(app_id)
+    app = load_app(root, clean_id)
+    if is_system_app(app):
+        raise RuntimeSliceError(f"system app cannot be selected as the Telegram active product app: {clean_id}")
+    data = {
+        "schema": ACTIVE_APP_SCHEMA,
+        "app_id": clean_id,
+        "source": "telegram",
+        "updated_at": utc_now(),
+    }
+    path = active_app_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    ensure_source_map(root)
+    append_runtime_event(
+        root,
+        new_event(
+            "runtime.active_app.changed",
+            "weave-runtime",
+            "runtime",
+            f"Active Telegram app changed to {clean_id}.",
+            created_by=created_by,
+            payload={"active_app": data},
+        ),
+    )
+    return data
+
+
 def setup_weave_root(root: Path, *, init_git: bool = True, autonomy_mode: str | None = None) -> dict[str, Any]:
     root.mkdir(parents=True, exist_ok=True)
     created: list[str] = []
     git_tracked = ensure_git_repo(root) if init_git else (root / ".git").exists()
 
-    for directory in ("artifacts/general", "apps", "runtime/profiles", "runtime/logs", "runtime/tokens"):
+    for directory in ("artifacts/general", "apps", "ledger", "runtime/profiles", "runtime/logs", "runtime/tokens"):
         path = root / directory
         if not path.exists():
             path.mkdir(parents=True)
@@ -436,14 +673,18 @@ def setup_weave_root(root: Path, *, init_git: bool = True, autonomy_mode: str | 
     )
     ensure_runtime_token(root, created)
     policy = write_autonomy_policy(root, autonomy_mode)
+    agent_profile = ensure_agent_profile(root)
     source_map = ensure_source_map(root)
     return {
         "schema": ROOT_SCHEMA,
         "root": str(root),
         "git_tracked": git_tracked,
         "registry_path": "apps/registry.json",
+        "runtime_ledger_path": "ledger/events.jsonl",
         "autonomy": policy,
+        "agent_profile": agent_profile,
         "autonomy_policy_path": "runtime/profiles/autonomy-policy.json",
+        "agent_profile_path": "runtime/profiles/agent-profile.json",
         "source_map_path": "runtime/source-map.json",
         "source_map_summary": summarize_source_map(source_map),
         "created": created,
@@ -567,12 +808,15 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
         "schema": APP_SCHEMA,
         "app_id": clean_id,
         "name": name,
+        "app_type": "system" if clean_id in SYSTEM_APP_IDS else "product",
         "status": "active",
         "created_at": now,
         "current_stage": "intent",
         "stage_source": "derived",
+        "stage_state": "collecting",
+        "stage_completion_requires_owner_review": True,
         "contract_version": "0.1-template",
-        "primary_repo": "repos/primary",
+        "primary_repo": "repo/primary",
         "context_paths": [
             "context/app-context.md",
             "context/user-context-for-this-app.md",
@@ -580,6 +824,11 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
             "context/decisions.md",
         ],
         "ledger_path": "ledger/events.jsonl",
+        "decision_log_path": "context/decisions.md",
+        "required_inputs": [],
+        "owner_questions": [],
+        "tasks": [],
+        "credential_requirements": [],
         "capabilities": [
             "local-filesystem",
             "git-tracked-workspace",
@@ -597,9 +846,11 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
         {
             "app_id": clean_id,
             "name": name,
+            "app_type": metadata["app_type"],
             "path": f"apps/{clean_id}",
             "stage": "intent",
             "stage_source": "derived",
+            "stage_state": metadata["stage_state"],
             "last_changed_at": now,
             "contract_version": metadata["contract_version"],
         }
@@ -627,7 +878,7 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
                 "foundation.missing_context",
                 clean_id,
                 "intent",
-                "Foundation context is incomplete; Hermes must ask through Telegram before serious app work.",
+                "Foundation context is incomplete; Hermes must enter an elicitation loop through Telegram before serious app work.",
                 payload={"missing": gate["missing"], "incomplete": gate["incomplete"]},
             ),
         )
@@ -806,6 +1057,8 @@ active operating rule.
 - Communication channel: Telegram
 - Autonomy mode: `{autonomy["mode"]}`
 - Autonomy policy: `{autonomy_policy_path(root)}`
+- Agent profile: `{agent_profile_path(root)}`
+- Active app profile: `{active_app_path(root)}`
 - Source map: `{source_map_path(root)}`
 
 ## Autonomy Mode
@@ -851,7 +1104,9 @@ When the gate is blocking:
 3. Ask at most three blocking questions in one message.
 4. Ask for the missing context in this order: Hermes character, owner profile,
    active app context, app inventory, Gestaltian contract.
-5. Do not continue into app work until the missing answers are reflected into
+5. Keep the owner moving with an elicitation loop: explain what is missing, why
+   it matters, and what answer is needed next.
+6. Do not continue into app work until the missing answers are reflected into
    the canonical documents and the gate can pass.
 
 ## How To Proceed
@@ -868,10 +1123,15 @@ Result -> Contract Update Log.
 
 ## Operator-Facing Summary
 
-Normal conversation stays with Hermes through Telegram. Deterministic slash
-commands such as `/status`, `/apps`, `/app`, `/blockers`, `/changes`, and
-`/next` are handled by the WEAVE runtime command layer and must not be answered
-with model-generated text.
+Normal conversation stays with Hermes through Telegram. There is no dashboard
+or UI in this phase. Deterministic slash commands such as `/status`,
+`/status <app_id>`, `/apps`, `/app`, `/create_app`, `/switch_app`, `/stage`,
+`/requirements`, `/blockers`, `/changes`, and `/next` are handled by the WEAVE
+runtime command layer and must not be answered with model-generated text.
+
+Use product lifecycle language in owner-facing communication:
+intent -> research -> selection -> plan -> engineering -> qa -> kpi ->
+marketing -> iteration -> analysis.
 """
 
 
@@ -942,11 +1202,16 @@ def setup_foundation_onboarding(
         "communication_channel": "telegram",
         "foundation_gate_path": str(gate_path),
         "source_map_path": str(source_map_path(root)),
+        "agent_profile_path": str(agent_profile_path(root)),
+        "active_app_path": str(active_app_path(root)),
         "gateway_workdir": str(workdir),
         "required_before_app_work": True,
         "question_limit": 3,
+        "dashboard_ui_enabled": False,
+        "product_lifecycle": [stage.id for stage in STAGES],
         "deterministic_telegram_commands": sorted(TELEGRAM_COMMANDS),
         "autonomy": autonomy,
+        "agent_profile": ensure_agent_profile(root),
     }
     context_path.write_text(json.dumps(context, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     agents_path = workdir / "AGENTS.md"
@@ -991,15 +1256,23 @@ def stage_has_artifacts(stage_root: Path) -> bool:
     return False
 
 
+def stage_roots(base: Path, stage: Stage) -> list[Path]:
+    roots = [base / "lifecycle" / stage.directory]
+    for legacy_directory, mapped_stage in LEGACY_STAGE_ALIASES.items():
+        if mapped_stage == stage.id:
+            roots.append(base / "lifecycle" / legacy_directory)
+    return roots
+
+
 def derive_stage(root: Path, app_id: str) -> dict[str, Any]:
     base = app_root(root, app_id)
     derived = "intent"
     source_path = ""
     for stage in STAGES:
-        stage_root = base / "lifecycle" / stage.directory
-        if stage_has_artifacts(stage_root):
+        matched_root = next((stage_root for stage_root in stage_roots(base, stage) if stage_has_artifacts(stage_root)), None)
+        if matched_root:
             derived = stage.id
-            source_path = relative(stage_root, root)
+            source_path = relative(matched_root, root)
     app = load_app(root, app_id)
     if app.get("current_stage") != derived or app.get("stage_source") != "derived":
         app["current_stage"] = derived
@@ -1013,26 +1286,26 @@ def artifact_checksum(path: Path) -> str:
 
 
 def list_artifacts(root: Path, app_id: str) -> list[dict[str, str]]:
-    base = app_root(root, app_id) / "lifecycle"
+    base = app_root(root, app_id)
     artifacts: list[dict[str, str]] = []
-    if not base.exists():
+    if not (base / "lifecycle").exists():
         return artifacts
     for stage in STAGES:
-        stage_root = base / stage.directory
-        for kind in ("artifacts", "refs"):
-            directory = stage_root / kind
-            if not directory.exists():
-                continue
-            for path in sorted(directory.iterdir()):
-                if path.is_file():
-                    artifacts.append(
-                        {
-                            "stage": stage.id,
-                            "kind": kind[:-1],
-                            "path": relative(path, root),
-                            "checksum": artifact_checksum(path),
-                        }
-                    )
+        for stage_root in stage_roots(base, stage):
+            for kind in ("artifacts", "refs"):
+                directory = stage_root / kind
+                if not directory.exists():
+                    continue
+                for path in sorted(directory.iterdir()):
+                    if path.is_file():
+                        artifacts.append(
+                            {
+                                "stage": stage.id,
+                                "kind": kind[:-1],
+                                "path": relative(path, root),
+                                "checksum": artifact_checksum(path),
+                            }
+                        )
     return artifacts
 
 
@@ -1052,6 +1325,181 @@ def latest_changes(root: Path, app_id: str) -> dict[str, Any]:
     return {name: data["latest"] for name, data in categories.items()}
 
 
+STAGE_REQUIREMENTS = {
+    "intent": [
+        "owner intent and success definition",
+        "app context",
+        "owner preferences for this app",
+        "initial lifecycle expectations",
+        "likely credential and capability needs",
+    ],
+    "research": [
+        "research questions",
+        "evidence sources",
+        "domain constraints",
+        "unknowns that must be answered before selection",
+    ],
+    "selection": [
+        "candidate approaches",
+        "tradeoff decision",
+        "selected direction",
+        "decision rationale",
+    ],
+    "plan": [
+        "implementation plan",
+        "tasks",
+        "acceptance checks",
+        "risks and stop boundaries",
+    ],
+    "engineering": [
+        "repo/worktree target",
+        "implementation packet",
+        "code changes",
+        "local verification evidence",
+    ],
+    "qa": [
+        "test results",
+        "known issues",
+        "acceptance check evidence",
+        "owner review request",
+    ],
+    "kpi": [
+        "success metrics",
+        "instrumentation plan",
+        "analytics or reporting capability",
+    ],
+    "marketing": [
+        "marketing goal",
+        "channel plan",
+        "credential requirements",
+        "approval for external/public sends",
+    ],
+    "iteration": [
+        "feedback or observed issue",
+        "iteration goal",
+        "proposed change",
+        "review target",
+    ],
+    "analysis": [
+        "outcome evidence",
+        "lessons learned",
+        "next decision",
+    ],
+}
+
+
+def short_list(values: list[Any], limit: int = 5) -> list[str]:
+    items = [str(value) for value in values if str(value).strip()]
+    if len(items) <= limit:
+        return items
+    return items[:limit] + [f"... {len(items) - limit} more"]
+
+
+def stage_index(stage_id: str) -> int:
+    for index, stage in enumerate(STAGES):
+        if stage.id == stage_id:
+            return index
+    return 0
+
+
+def artifact_counts_by_stage(artifacts: list[dict[str, str]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for artifact in artifacts:
+        stage = artifact["stage"]
+        counts[stage] = counts.get(stage, 0) + 1
+    return counts
+
+
+def app_stage_state(root: Path, app_id: str, state: dict[str, Any] | None = None) -> dict[str, Any]:
+    state = state or app_state(root, app_id)
+    app = state["app"]
+    gate = state["foundation_gate"]
+    stage = state["stage"]["stage"]
+    raw_stage_state = str(app.get("stage_state") or "collecting")
+    stage_state = raw_stage_state if raw_stage_state in STAGE_STATES else "collecting"
+    missing_inputs = short_list(app.get("required_inputs", []), 10)
+    owner_questions = short_list(app.get("owner_questions", []), 10)
+    required_capabilities = app.get("credential_requirements", [])
+    credential_blockers = [
+        str(item.get("label") or item.get("id") or item)
+        for item in required_capabilities
+        if isinstance(item, dict) and item.get("required") is not False and item.get("status") not in {"available", "deferred"}
+    ]
+    if not gate["passed"]:
+        stage_state = "collecting"
+        missing_inputs = short_list(gate["missing"] + gate["incomplete"], 10)
+        next_action = "Hermes should ask focused foundation questions and update the required documents."
+    elif app.get("blockers"):
+        stage_state = "blocked"
+        next_action = f"Resolve blocker: {app['blockers'][0]}"
+    elif credential_blockers and stage in {"kpi", "marketing"}:
+        stage_state = "blocked"
+        next_action = f"Provide or defer credential capability: {credential_blockers[0]}"
+    elif stage_state == "ready_for_review":
+        next_action = "Owner review is needed before the lifecycle stage can be marked approved."
+    elif stage_state == "approved":
+        next_action = "Hermes may continue to the next admitted lifecycle stage."
+    else:
+        next_action = "Hermes should continue eliciting missing context or drafting the current stage packet."
+    requirements = STAGE_REQUIREMENTS.get(stage, [])
+    return {
+        "stage": stage,
+        "stage_state": stage_state,
+        "requirements": requirements,
+        "missing_inputs": missing_inputs,
+        "owner_questions": owner_questions,
+        "credential_blockers": credential_blockers,
+        "tasks": short_list(app.get("tasks", []), 10),
+        "next_action": next_action,
+    }
+
+
+def lifecycle_rows(state: dict[str, Any], stage_status: dict[str, Any]) -> list[dict[str, Any]]:
+    current_stage = state["stage"]["stage"]
+    current_index = stage_index(current_stage)
+    approved = set(state["app"].get("approved_stages", []))
+    counts = artifact_counts_by_stage(state["artifacts"])
+    rows: list[dict[str, Any]] = []
+    for index, stage in enumerate(STAGES):
+        if stage.id in approved:
+            display_state = "approved"
+        elif stage.id == current_stage:
+            display_state = stage_status["stage_state"]
+        elif counts.get(stage.id):
+            display_state = "evidence_recorded"
+        elif index < current_index:
+            display_state = "not_approved"
+        else:
+            display_state = "not_started"
+        rows.append({"stage": stage.id, "state": display_state, "artifact_count": counts.get(stage.id, 0)})
+    return rows
+
+
+def recent_event_summaries(root: Path, app_id: str, limit: int = 5) -> list[str]:
+    events = read_events(root, app_id)
+    return [f"{event['type']}: {event['summary']} [{event['stage']}]" for event in events[-limit:]]
+
+
+def decision_summaries(state: dict[str, Any], limit: int = 5) -> list[str]:
+    app_decisions = short_list(state["app"].get("decisions", []), limit)
+    if app_decisions:
+        return app_decisions
+    lines = []
+    for category, event in state["latest_changes"].items():
+        if event and category in {"contract", "app_context", "approval"}:
+            lines.append(f"{category}: {event['summary']}")
+    return short_list(lines, limit)
+
+
+def format_agent_line(profile: dict[str, Any]) -> str:
+    return (
+        f"model={profile.get('model', 'unknown')}; "
+        f"reasoning={profile.get('reasoning_effort', 'unknown')}; "
+        f"adapter={profile.get('provider_adapter', 'unknown')}; "
+        f"prompt_pack={profile.get('prompt_pack', 'unknown')}"
+    )
+
+
 def contract_diff(root: Path, app_id: str) -> dict[str, Any]:
     diff_dir = app_root(root, app_id) / "contract" / "diffs"
     files = sorted(path for path in diff_dir.glob("*") if path.is_file()) if diff_dir.exists() else []
@@ -1064,7 +1512,7 @@ def contract_diff(root: Path, app_id: str) -> dict[str, Any]:
 def app_state(root: Path, app_id: str) -> dict[str, Any]:
     stage = derive_stage(root, app_id)
     app = load_app(root, app_id)
-    return {
+    state = {
         "schema": "weave-app-state/v0.1",
         "app": app,
         "stage": stage,
@@ -1073,22 +1521,32 @@ def app_state(root: Path, app_id: str) -> dict[str, Any]:
         "artifacts": list_artifacts(root, app_id),
         "contract_diff": contract_diff(root, app_id),
     }
+    stage_status = app_stage_state(root, app_id, state)
+    state["stage_status"] = stage_status
+    state["lifecycle"] = lifecycle_rows(state, stage_status)
+    return state
 
 
-def list_apps(root: Path) -> list[dict[str, Any]]:
+def list_apps(root: Path, *, include_system: bool = False) -> list[dict[str, Any]]:
     registry = load_registry(root)
     apps: list[dict[str, Any]] = []
     for entry in registry["apps"]:
         state = app_state(root, entry["app_id"])
         app = state["app"]
+        if is_system_app(app) and not include_system:
+            continue
         apps.append(
             {
                 "app_id": app["app_id"],
                 "name": app["name"],
+                "app_type": "system" if is_system_app(app) else app.get("app_type", "product"),
                 "path": entry["path"],
                 "stage": state["stage"]["stage"],
                 "stage_source": state["stage"]["stage_source"],
+                "stage_state": state["stage_status"]["stage_state"],
                 "foundation_passed": state["foundation_gate"]["passed"],
+                "blocker_count": len(app.get("blockers", [])),
+                "next_action": state["stage_status"]["next_action"],
                 "last_changed_at": entry.get("last_changed_at", app.get("created_at", "")),
                 "contract_version": app.get("contract_version", ""),
             }
@@ -1100,10 +1558,10 @@ def root_ready(root: Path) -> bool:
     return registry_path(root).exists()
 
 
-def safe_list_apps(root: Path) -> list[dict[str, Any]]:
+def safe_list_apps(root: Path, *, include_system: bool = False) -> list[dict[str, Any]]:
     if not root_ready(root):
         return []
-    return list_apps(root)
+    return list_apps(root, include_system=include_system)
 
 
 def telegram_command_response(
@@ -1154,11 +1612,28 @@ def foundation_status_label(gate: dict[str, Any]) -> str:
 
 def app_status_line(app: dict[str, Any]) -> str:
     gate = "passed" if app["foundation_passed"] else "blocking"
-    return f"{app['name']} ({app['app_id']}): stage={app['stage']}; foundation={gate}"
+    blockers = f"; blockers={app['blocker_count']}" if app.get("blocker_count") else ""
+    return f"- {app['name']} ({app['app_id']}): {app['stage']} / {app['stage_state']}; foundation={gate}{blockers}"
+
+
+def next_from_apps(apps: list[dict[str, Any]], foundation_blocked: list[dict[str, Any]], app_blocked_ids: list[str]) -> str:
+    if foundation_blocked:
+        return f"Hermes should collect foundation answers for {foundation_blocked[0]['app_id']}."
+    if app_blocked_ids:
+        return f"Resolve blocker for {app_blocked_ids[0]}."
+    if apps:
+        return "No deterministic blocker is recorded; Hermes can continue from the active stage."
+    return "Create or select a product app workspace."
+
+
+def active_app_label(active_app: dict[str, Any]) -> str:
+    return active_app.get("app_id") or "none"
 
 
 def runtime_status_command(root: Path) -> dict[str, Any]:
     apps = safe_list_apps(root)
+    all_apps = safe_list_apps(root, include_system=True)
+    system_apps = [app for app in all_apps if app["app_type"] == "system"]
     foundation_blocked = [app for app in apps if not app["foundation_passed"]]
     app_blocked_ids: list[str] = []
     for app in apps:
@@ -1170,39 +1645,68 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             app_blocked_ids.append(app["app_id"])
     blocked_ids = sorted({app["app_id"] for app in foundation_blocked} | set(app_blocked_ids))
     autonomy = load_autonomy_policy(root)
+    agent_profile = ensure_agent_profile(root)
+    active_app = load_active_app(root)
     source_map = load_source_map(root)
     source_summary = summarize_source_map(source_map)
+    next_action = next_from_apps(apps, foundation_blocked, app_blocked_ids)
+    attention: list[str] = []
+    attention.extend(f"{app['app_id']}: foundation onboarding" for app in foundation_blocked)
+    attention.extend(f"{app_id}: app blocker" for app_id in app_blocked_ids)
+    if not attention:
+        attention.append("none")
     lines = [
-        "WEAVE runtime status",
-        f"root_ready: {str(root_ready(root)).lower()}",
-        f"autonomy_mode: {autonomy['mode']}",
-        f"apps: {len(apps)}",
-        f"blocked_apps: {len(blocked_ids)}",
-        f"foundation_blocked_apps: {len(foundation_blocked)}",
-        f"app_blocked_apps: {len(app_blocked_ids)}",
-        f"sources: {source_summary['source_count']}",
-        f"canonical_source: {source_summary['canonical_source_id']}",
+        "WEAVE Status",
+        "",
+        "Agent",
+        f"- {format_agent_line(agent_profile)}",
+        f"- autonomy={autonomy['mode']}",
+        "",
+        "Apps",
+        f"- active_app: {active_app_label(active_app)}",
+        f"- product_apps: {len(apps)}",
+        f"- system_apps_hidden: {len(system_apps)}",
+        f"- blocked_apps: {len(blocked_ids)}",
+        f"- foundation_blocked_apps: {len(foundation_blocked)}",
+        f"- app_blocked_apps: {len(app_blocked_ids)}",
     ]
-    if foundation_blocked:
-        lines.append(f"next: Hermes must complete foundation onboarding for {foundation_blocked[0]['app_id']}.")
-    elif app_blocked_ids:
-        lines.append(f"next: resolve blocker for {app_blocked_ids[0]}.")
-    elif apps:
-        lines.append("next: no blockers recorded.")
+    if apps:
+        lines.extend(app_status_line(app) for app in apps)
     else:
-        lines.append("next: create or attach an app workspace.")
+        lines.append("- none registered")
+    lines.extend(
+        [
+            "",
+            "Attention",
+            *[f"- {item}" for item in attention],
+            "",
+            "System",
+            f"- root_ready: {str(root_ready(root)).lower()}",
+            f"- sources: {source_summary['source_count']}",
+            f"- canonical_source: {source_summary['canonical_source_id']}",
+            f"- runtime_events: {len(read_runtime_events(root))}",
+            "",
+            "Next",
+            f"- {next_action}",
+        ]
+    )
     return telegram_command_response(
         command="/status",
         text="\n".join(lines),
         payload={
             "root_ready": root_ready(root),
             "app_count": len(apps),
+            "system_app_count": len(system_apps),
             "blocked_app_count": len(blocked_ids),
             "blocked_apps": blocked_ids,
             "foundation_blocked_apps": [app["app_id"] for app in foundation_blocked],
             "app_blocked_apps": app_blocked_ids,
+            "active_app": active_app,
+            "agent_profile": agent_profile,
             "autonomy": autonomy,
             "source_map": source_summary,
+            "attention": attention,
+            "next_action": next_action,
         },
     )
 
@@ -1244,56 +1748,244 @@ def autonomy_command(root: Path) -> dict[str, Any]:
     return telegram_command_response(command="/autonomy", text="\n".join(lines), payload={"autonomy": policy})
 
 
-def apps_command(root: Path) -> dict[str, Any]:
-    apps = safe_list_apps(root)
+def apps_command(root: Path, args: list[str] | None = None) -> dict[str, Any]:
+    args = args or []
+    include_system = "--all" in args
+    apps = safe_list_apps(root, include_system=include_system)
     if not apps:
-        text = "No WEAVE apps are registered yet."
+        text = "No WEAVE product apps are registered yet." if not include_system else "No WEAVE apps are registered yet."
     else:
-        text = "WEAVE apps:\n" + "\n".join(app_status_line(app) for app in apps)
-    return telegram_command_response(command="/apps", text=text, payload={"apps": apps})
+        header = "WEAVE apps:" if include_system else "WEAVE product apps:"
+        text = header + "\n" + "\n".join(app_status_line(app) for app in apps)
+    return telegram_command_response(command="/apps", text=text, payload={"apps": apps, "include_system": include_system})
 
 
-def app_command(root: Path, args: list[str]) -> dict[str, Any]:
-    if not args:
-        return telegram_command_response(
-            command="/app",
-            handled=False,
-            error="missing_app_id",
-            text="Usage: /app <app_id>",
-            payload={"usage": "/app <app_id>"},
-        )
-    app_id = slugify(args[0])
-    try:
-        state = app_state(root, app_id)
-    except RuntimeSliceError as exc:
-        return telegram_command_response(
-            command="/app",
-            handled=False,
-            error="app_not_found",
-            text=f"App not found: {app_id}",
-            payload={"app_id": app_id, "detail": str(exc)},
-        )
-    gate = state["foundation_gate"]
+def resolve_app_id(root: Path, args: list[str]) -> tuple[str, str]:
+    if args:
+        return slugify(args[0]), "argument"
+    active = load_active_app(root)
+    if active.get("app_id"):
+        return active["app_id"], "active_app"
+    apps = safe_list_apps(root)
+    if len(apps) == 1:
+        return apps[0]["app_id"], "single_product_app"
+    raise RuntimeSliceError("No app id was provided and no active app is selected.")
+
+
+def lifecycle_line(row: dict[str, Any]) -> str:
+    suffix = f"; artifacts={row['artifact_count']}" if row["artifact_count"] else ""
+    return f"- {row['stage']}: {row['state']}{suffix}"
+
+
+def render_app_wall(root: Path, app_id: str) -> tuple[str, dict[str, Any]]:
+    state = app_state(root, app_id)
     app = state["app"]
-    text = "\n".join(
+    gate = state["foundation_gate"]
+    stage_status = state["stage_status"]
+    profile = ensure_agent_profile(root)
+    decisions = decision_summaries(state)
+    recent = recent_event_summaries(root, app_id)
+    blockers = [str(blocker) for blocker in app.get("blockers", [])]
+    if not gate["passed"]:
+        blockers.append(f"foundation {foundation_status_label(gate)}")
+    if stage_status["credential_blockers"]:
+        blockers.extend(f"credential: {item}" for item in stage_status["credential_blockers"])
+    needs = stage_status["missing_inputs"] + stage_status["owner_questions"]
+    lines = [
+        f"WEAVE App Status: {app['name']} ({app['app_id']})",
+        "",
+        "Summary",
+        f"- type: {'system' if is_system_app(app) else 'product'}",
+        f"- stage: {stage_status['stage']}",
+        f"- state: {stage_status['stage_state']}",
+        f"- foundation: {foundation_status_label(gate)}",
+        f"- contract_version: {app.get('contract_version', '')}",
+        "",
+        "Lifecycle",
+        *[lifecycle_line(row) for row in state["lifecycle"]],
+        "",
+        "Current Stage",
+        *[f"- requires: {item}" for item in stage_status["requirements"]],
+    ]
+    lines.extend(["", "Needs You"])
+    lines.extend(f"- {item}" for item in (needs or ["none"]))
+    lines.extend(["", "Tasks"])
+    lines.extend(f"- {item}" for item in (stage_status["tasks"] or ["none recorded"]))
+    lines.extend(["", "Decisions"])
+    lines.extend(f"- {item}" for item in (decisions or ["none recorded"]))
+    lines.extend(["", "Recent Work"])
+    lines.extend(f"- {item}" for item in (recent or ["none recorded"]))
+    lines.extend(["", "Blockers"])
+    lines.extend(f"- {item}" for item in (blockers or ["none"]))
+    lines.extend(
         [
-            f"{app['name']} ({app['app_id']})",
-            f"stage: {state['stage']['stage']} ({state['stage']['stage_source']})",
-            f"foundation: {foundation_status_label(gate)}",
-            f"contract_version: {app.get('contract_version', '')}",
-            f"artifacts: {len(state['artifacts'])}",
+            "",
+            "Agent",
+            f"- {format_agent_line(profile)}",
+            "",
+            "Next",
+            f"- {stage_status['next_action']}",
         ]
     )
     payload = {
         "app_id": app["app_id"],
         "name": app["name"],
+        "app_type": "system" if is_system_app(app) else "product",
         "stage": state["stage"],
+        "stage_status": stage_status,
+        "lifecycle": state["lifecycle"],
         "foundation_gate": gate,
         "contract_version": app.get("contract_version", ""),
         "artifact_count": len(state["artifacts"]),
         "latest_changes": state["latest_changes"],
+        "decisions": decisions,
+        "recent_work": recent,
+        "blockers": blockers,
+        "agent_profile": profile,
     }
-    return telegram_command_response(command="/app", text=text, payload=payload)
+    return "\n".join(lines), payload
+
+
+def app_wall_command(root: Path, args: list[str], *, command: str) -> dict[str, Any]:
+    try:
+        app_id, source = resolve_app_id(root, args)
+        text, payload = render_app_wall(root, app_id)
+        payload["app_resolution_source"] = source
+        return telegram_command_response(command=command, text=text, payload=payload)
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command=command,
+            handled=False,
+            error="app_not_found_or_unselected",
+            text=str(exc),
+            payload={"usage": f"{command} [app_id]"},
+        )
+
+
+def app_command(root: Path, args: list[str]) -> dict[str, Any]:
+    return app_wall_command(root, args, command="/app")
+
+
+def create_app_command(root: Path, args: list[str]) -> dict[str, Any]:
+    if not args:
+        return telegram_command_response(
+            command="/create_app",
+            handled=False,
+            error="missing_app_name",
+            text="Usage: /create_app <name>",
+            payload={"usage": "/create_app <name>"},
+        )
+    name = " ".join(args).strip()
+    clean_id = slugify(name)
+    if clean_id in SYSTEM_APP_IDS:
+        return telegram_command_response(
+            command="/create_app",
+            handled=False,
+            error="reserved_system_app",
+            text=f"Reserved system app id cannot be created as a product app: {clean_id}",
+            payload={"app_id": clean_id},
+        )
+    result = create_app(root, clean_id, name)
+    active = set_active_app(root, clean_id)
+    text = "\n".join(
+        [
+            f"Created product app: {name} ({clean_id})",
+            f"Active app: {active['app_id']}",
+            "Next: Hermes should collect or update intent-stage context before lifecycle progress.",
+        ]
+    )
+    return telegram_command_response(
+        command="/create_app",
+        text=text,
+        payload={"result": result, "active_app": active},
+    )
+
+
+def switch_app_command(root: Path, args: list[str]) -> dict[str, Any]:
+    if not args:
+        return telegram_command_response(
+            command="/switch_app",
+            handled=False,
+            error="missing_app_id",
+            text="Usage: /switch_app <app_id>",
+            payload={"usage": "/switch_app <app_id>"},
+        )
+    try:
+        active = set_active_app(root, args[0])
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/switch_app",
+            handled=False,
+            error="app_not_found",
+            text=str(exc),
+            payload={"app_id": slugify(args[0]), "detail": str(exc)},
+        )
+    return telegram_command_response(
+        command="/switch_app",
+        text=f"Active app: {active['app_id']}",
+        payload={"active_app": active},
+    )
+
+
+def stage_command(root: Path, args: list[str]) -> dict[str, Any]:
+    try:
+        app_id, source = resolve_app_id(root, args)
+        state = app_state(root, app_id)
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/stage",
+            handled=False,
+            error="app_not_found_or_unselected",
+            text=str(exc),
+            payload={"usage": "/stage [app_id]"},
+        )
+    stage_status = state["stage_status"]
+    lines = [
+        f"WEAVE Stage: {state['app']['name']} ({app_id})",
+        f"- stage: {stage_status['stage']}",
+        f"- state: {stage_status['stage_state']}",
+        f"- source: {state['stage']['stage_source']}",
+        "Lifecycle:",
+        *[lifecycle_line(row) for row in state["lifecycle"]],
+        f"Next: {stage_status['next_action']}",
+    ]
+    return telegram_command_response(
+        command="/stage",
+        text="\n".join(lines),
+        payload={"app_id": app_id, "app_resolution_source": source, "stage_status": stage_status, "lifecycle": state["lifecycle"]},
+    )
+
+
+def requirements_command(root: Path, args: list[str]) -> dict[str, Any]:
+    try:
+        app_id, source = resolve_app_id(root, args)
+        state = app_state(root, app_id)
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/requirements",
+            handled=False,
+            error="app_not_found_or_unselected",
+            text=str(exc),
+            payload={"usage": "/requirements [app_id]"},
+        )
+    stage_status = state["stage_status"]
+    lines = [
+        f"WEAVE Requirements: {state['app']['name']} ({app_id})",
+        f"- stage: {stage_status['stage']}",
+        f"- state: {stage_status['stage_state']}",
+        "Requires:",
+        *[f"- {item}" for item in stage_status["requirements"]],
+        "Missing or needed:",
+        *[f"- {item}" for item in (stage_status["missing_inputs"] + stage_status["owner_questions"] or ["none"])],
+    ]
+    if stage_status["credential_blockers"]:
+        lines.append("Credential capabilities:")
+        lines.extend(f"- {item}" for item in stage_status["credential_blockers"])
+    return telegram_command_response(
+        command="/requirements",
+        text="\n".join(lines),
+        payload={"app_id": app_id, "app_resolution_source": source, "stage_status": stage_status},
+    )
 
 
 def blockers_command(root: Path) -> dict[str, Any]:
@@ -1414,15 +2106,25 @@ def dispatch_telegram_command(root: Path, text: str) -> dict[str, Any]:
             payload={"commands": TELEGRAM_COMMANDS, "root_ready": root_ready(root)},
         )
     if command == "/status":
+        if args:
+            return app_wall_command(root, args, command="/status")
         return runtime_status_command(root)
     if command == "/sources":
         return sources_command(root)
     if command == "/autonomy":
         return autonomy_command(root)
     if command == "/apps":
-        return apps_command(root)
+        return apps_command(root, args)
     if command == "/app":
         return app_command(root, args)
+    if command == "/create_app":
+        return create_app_command(root, args)
+    if command == "/switch_app":
+        return switch_app_command(root, args)
+    if command == "/stage":
+        return stage_command(root, args)
+    if command == "/requirements":
+        return requirements_command(root, args)
     if command == "/blockers":
         return blockers_command(root)
     if command == "/changes":
