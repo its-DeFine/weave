@@ -183,6 +183,8 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertFalse(status["llm_used"])
             self.assertEqual(status["payload"]["app_count"], 1)
             self.assertEqual(status["payload"]["blocked_apps"], ["demo"])
+            self.assertEqual(status["payload"]["foundation_blocked_apps"], ["demo"])
+            self.assertEqual(status["payload"]["app_blocked_apps"], [])
             self.assertEqual(status["payload"]["autonomy"]["mode"], "yolo")
             self.assertEqual(status["payload"]["source_map"]["canonical_source_id"], "weave-root")
 
@@ -221,6 +223,34 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             passthrough = runtime.dispatch_telegram_command(root, "normal Hermes chat")
             self.assertFalse(passthrough["handled"])
             self.assertEqual(passthrough["error"], "not_slash_command")
+
+    def test_status_counts_app_blockers_after_foundation_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.setup_foundation_onboarding(root, "demo", "Demo")
+            required = {
+                root / "artifacts" / "general" / "soul.md": "# Soul\n\nStatus: complete\n",
+                root / "artifacts" / "general" / "owner-profile.md": "# Owner Profile\n\nStatus: complete\n",
+                root / "apps" / "demo" / "context" / "app-context.md": "# App Context\n\nStatus: complete\n",
+                root / "apps" / "demo" / "inventory" / "app-inventory.md": "# App Inventory\n\nStatus: complete\n",
+                root / "apps" / "demo" / "contract" / "gestaltian-contract.md": "# Contract\n\nStatus: complete\n",
+            }
+            for path, content in required.items():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content, encoding="utf-8")
+            app = runtime.load_app(root, "demo")
+            app["blockers"] = ["Unify stale runtime status surface."]
+            runtime.write_app(root, app)
+
+            status = runtime.dispatch_telegram_command(root, "/status")
+
+            self.assertIn("blocked_apps: 1", status["text"])
+            self.assertIn("foundation_blocked_apps: 0", status["text"])
+            self.assertIn("app_blocked_apps: 1", status["text"])
+            self.assertIn("next: resolve blocker for demo.", status["text"])
+            self.assertEqual(status["payload"]["blocked_apps"], ["demo"])
+            self.assertEqual(status["payload"]["foundation_blocked_apps"], [])
+            self.assertEqual(status["payload"]["app_blocked_apps"], ["demo"])
 
     def test_rest_dispatch_exposes_telegram_command_catalog(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

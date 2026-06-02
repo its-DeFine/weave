@@ -1159,7 +1159,16 @@ def app_status_line(app: dict[str, Any]) -> str:
 
 def runtime_status_command(root: Path) -> dict[str, Any]:
     apps = safe_list_apps(root)
-    blocked = [app for app in apps if not app["foundation_passed"]]
+    foundation_blocked = [app for app in apps if not app["foundation_passed"]]
+    app_blocked_ids: list[str] = []
+    for app in apps:
+        try:
+            state = app_state(root, app["app_id"])
+        except RuntimeSliceError:
+            continue
+        if state["app"].get("blockers"):
+            app_blocked_ids.append(app["app_id"])
+    blocked_ids = sorted({app["app_id"] for app in foundation_blocked} | set(app_blocked_ids))
     autonomy = load_autonomy_policy(root)
     source_map = load_source_map(root)
     source_summary = summarize_source_map(source_map)
@@ -1168,14 +1177,18 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
         f"root_ready: {str(root_ready(root)).lower()}",
         f"autonomy_mode: {autonomy['mode']}",
         f"apps: {len(apps)}",
-        f"blocked_apps: {len(blocked)}",
+        f"blocked_apps: {len(blocked_ids)}",
+        f"foundation_blocked_apps: {len(foundation_blocked)}",
+        f"app_blocked_apps: {len(app_blocked_ids)}",
         f"sources: {source_summary['source_count']}",
         f"canonical_source: {source_summary['canonical_source_id']}",
     ]
-    if blocked:
-        lines.append(f"next: Hermes must complete foundation onboarding for {blocked[0]['app_id']}.")
+    if foundation_blocked:
+        lines.append(f"next: Hermes must complete foundation onboarding for {foundation_blocked[0]['app_id']}.")
+    elif app_blocked_ids:
+        lines.append(f"next: resolve blocker for {app_blocked_ids[0]}.")
     elif apps:
-        lines.append("next: no foundation blockers recorded.")
+        lines.append("next: no blockers recorded.")
     else:
         lines.append("next: create or attach an app workspace.")
     return telegram_command_response(
@@ -1184,8 +1197,10 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
         payload={
             "root_ready": root_ready(root),
             "app_count": len(apps),
-            "blocked_app_count": len(blocked),
-            "blocked_apps": [app["app_id"] for app in blocked],
+            "blocked_app_count": len(blocked_ids),
+            "blocked_apps": blocked_ids,
+            "foundation_blocked_apps": [app["app_id"] for app in foundation_blocked],
+            "app_blocked_apps": app_blocked_ids,
             "autonomy": autonomy,
             "source_map": source_summary,
         },
