@@ -229,6 +229,10 @@ def validate_runtime_slice() -> int:
         if status != 200 or health.get("real_hermes_runtime") is not False:
             print(f"runtime slice health endpoint mismatch: {health}", file=sys.stderr)
             return 1
+        source_map = weave_runtime_slice.load_source_map(root)
+        if source_map.get("schema") != weave_runtime_slice.SOURCE_MAP_SCHEMA:
+            print(f"runtime slice source map mismatch: {source_map}", file=sys.stderr)
+            return 1
         status, app_state = weave_runtime_slice.dispatch_rest(root, "GET", "/apps/alpha-app/state")
         if status != 200 or app_state["foundation_gate"]["passed"] is not False:
             print(f"runtime slice app state mismatch: {app_state}", file=sys.stderr)
@@ -248,6 +252,13 @@ def validate_telegram_commands() -> int:
             return 1
         if status.get("payload", {}).get("app_count") != 1:
             print(f"telegram /status app count mismatch: {status}", file=sys.stderr)
+            return 1
+        if status.get("payload", {}).get("source_map", {}).get("canonical_source_id") != "weave-root":
+            print(f"telegram /status source map mismatch: {status}", file=sys.stderr)
+            return 1
+        sources = weave_runtime_slice.dispatch_telegram_command(root, "/sources")
+        if sources.get("payload", {}).get("source_map", {}).get("schema") != weave_runtime_slice.SOURCE_MAP_SCHEMA:
+            print(f"telegram /sources did not expose source map: {sources}", file=sys.stderr)
             return 1
         apps = weave_runtime_slice.dispatch_telegram_command(root, "/apps")
         if "Alpha App (alpha-app)" not in apps.get("text", ""):

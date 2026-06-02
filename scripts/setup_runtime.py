@@ -181,6 +181,7 @@ def render_gateway_runtime_system_prompt(onboarding_status: dict[str, object]) -
 
 Before answering any app-building request, read:
 - foundation gate: {onboarding_status["foundation_gate_path"]}
+- source map: {onboarding_status["source_map_path"]}
 - gateway context: {onboarding_status["context_path"]}
 - gateway rules: {onboarding_status["agents_path"]}
 
@@ -199,8 +200,8 @@ work until the gate passes.
 Telegram slash commands are reserved for deterministic WEAVE runtime status.
 When a message begins with `/`, route it to the WEAVE command layer and return
 that output without model-generated wording. The owner can use `/status`,
-`/apps`, `/app <app_id>`, `/blockers`, `/changes [app_id]`, `/next`, and
-`/help` to inspect state.
+`/sources`, `/apps`, `/app <app_id>`, `/blockers`, `/changes [app_id]`,
+`/next`, and `/help` to inspect state.
 
 Current WEAVE app: {onboarding_status["app_id"]} ({onboarding_status["app_name"]})
 Current foundation gate passed: {gate["passed"]}

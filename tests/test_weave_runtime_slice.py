@@ -31,9 +31,27 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue((root / "artifacts" / "general" / "owner-profile.md").exists())
             self.assertTrue((root / "runtime" / "tokens" / "local-api-token").exists())
             self.assertTrue((root / "runtime" / "profiles" / "autonomy-policy.json").exists())
+            self.assertTrue((root / "runtime" / "source-map.json").exists())
             self.assertEqual(result["autonomy"]["mode"], "yolo")
+            self.assertEqual(result["source_map_summary"]["canonical_source_id"], "weave-root")
             self.assertTrue(result["autonomy"]["llm_must_request_owner_authorization_for_hard_gates"])
             self.assertEqual(runtime.load_registry(root)["apps"], [])
+
+    def test_source_map_records_active_and_sensitive_sources_without_secret_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.setup_weave_root(root)
+
+            source_map = runtime.load_source_map(root)
+
+            self.assertEqual(source_map["schema"], runtime.SOURCE_MAP_SCHEMA)
+            self.assertEqual(source_map["canonical_source_id"], "weave-root")
+            source_ids = {source["id"] for source in source_map["sources"]}
+            self.assertIn("app-registry", source_ids)
+            token_sources = [source for source in source_map["sources"] if source["id"] == "local-api-token"]
+            self.assertEqual(token_sources[0]["kind"], "secret_ref")
+            self.assertTrue(token_sources[0]["sensitive"])
+            self.assertFalse(token_sources[0]["secret_value_printed"])
 
     def test_create_app_registers_context_lifecycle_and_blocks_foundation_templates(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -166,6 +184,14 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(status["payload"]["app_count"], 1)
             self.assertEqual(status["payload"]["blocked_apps"], ["demo"])
             self.assertEqual(status["payload"]["autonomy"]["mode"], "yolo")
+            self.assertEqual(status["payload"]["source_map"]["canonical_source_id"], "weave-root")
+
+            sources = runtime.dispatch_telegram_command(root, "/sources")
+            self.assertEqual(sources["schema"], runtime.TELEGRAM_COMMAND_SCHEMA)
+            self.assertFalse(sources["llm_used"])
+            self.assertIn("WEAVE source map", sources["text"])
+            self.assertIn("App registry", sources["text"])
+            self.assertEqual(sources["payload"]["summary"]["canonical_source_id"], "weave-root")
 
             autonomy = runtime.dispatch_telegram_command(root, "/autonomy")
             self.assertIn("mode: yolo", autonomy["text"])
@@ -207,6 +233,10 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue(response["deterministic"])
             self.assertFalse(response["llm_used"])
             self.assertIn("/apps", response["commands"])
+
+            status, response = runtime.dispatch_rest(root, "GET", "/runtime/sources")
+            self.assertEqual(status, 200)
+            self.assertEqual(response["source_map"]["schema"], runtime.SOURCE_MAP_SCHEMA)
 
 
 if __name__ == "__main__":

@@ -150,6 +150,7 @@ Available commands:
 | `/start` | Show the deterministic WEAVE command surface. |
 | `/help` | List deterministic WEAVE commands. |
 | `/status` | Show runtime readiness, app count, blocked app count, and next action. |
+| `/sources` | Show runtime source map, history surfaces, and active/stale/missing state. |
 | `/apps` | List apps, lifecycle stage per app, and foundation gate state. |
 | `/app <app_id>` | Show one app's stage, foundation gate, contract version, artifact count, and latest changes. |
 | `/blockers` | Show apps that need owner or Hermes action. |

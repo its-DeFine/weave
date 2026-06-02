@@ -30,6 +30,7 @@ REST_SCHEMA = "weave-rest-dispatch/v0.1"
 GATEWAY_CONTEXT_SCHEMA = "weave-gateway-context/v0.1"
 TELEGRAM_COMMAND_SCHEMA = "weave-telegram-command/v0.1"
 AUTONOMY_SCHEMA = "weave-autonomy-policy/v0.1"
+SOURCE_MAP_SCHEMA = "weave-runtime-source-map/v0.1"
 
 TEMPLATE_MARKER = "template-needs-owner-input"
 DEFAULT_AUTONOMY_MODE = "yolo"
@@ -92,6 +93,7 @@ TELEGRAM_COMMANDS = {
     "/help": "List deterministic WEAVE commands.",
     "/autonomy": "Show autonomy mode and hard approval gates.",
     "/status": "Show runtime readiness and aggregate app status.",
+    "/sources": "Show runtime history and source-of-truth surfaces.",
     "/apps": "List apps, lifecycle stages, and foundation gate state.",
     "/app": "Show one app state. Usage: /app <app_id>",
     "/blockers": "Show apps that need owner or Hermes action.",
@@ -254,6 +256,10 @@ def autonomy_policy_path(root: Path) -> Path:
     return root / "runtime" / "profiles" / "autonomy-policy.json"
 
 
+def source_map_path(root: Path) -> Path:
+    return root / "runtime" / "source-map.json"
+
+
 def write_autonomy_policy(root: Path, mode: str | None = None) -> dict[str, Any]:
     policy = autonomy_policy(mode)
     path = autonomy_policy_path(root)
@@ -270,6 +276,133 @@ def load_autonomy_policy(root: Path) -> dict[str, Any]:
     if data.get("schema") != AUTONOMY_SCHEMA:
         raise RuntimeSliceError(f"autonomy policy schema must be {AUTONOMY_SCHEMA}")
     return autonomy_policy(str(data.get("mode") or DEFAULT_AUTONOMY_MODE))
+
+
+def path_status(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"exists": False, "kind": "missing"}
+    if path.is_dir():
+        return {"exists": True, "kind": "directory"}
+    return {"exists": True, "kind": "file", "size_bytes": path.stat().st_size}
+
+
+def summarize_source_map(source_map: dict[str, Any]) -> dict[str, Any]:
+    sources = source_map.get("sources", [])
+    if not isinstance(sources, list):
+        sources = []
+    statuses: dict[str, int] = {}
+    for source in sources:
+        status = str(source.get("status") or "unknown") if isinstance(source, dict) else "unknown"
+        statuses[status] = statuses.get(status, 0) + 1
+    return {
+        "source_count": len(sources),
+        "status_counts": statuses,
+        "canonical_source_id": source_map.get("canonical_source_id", ""),
+        "history_source_ids": source_map.get("history_source_ids", []),
+    }
+
+
+def default_source_map(root: Path) -> dict[str, Any]:
+    sources = [
+        {
+            "id": "weave-root",
+            "label": "WEAVE root",
+            "kind": "workspace",
+            "role": "canonical local runtime substrate",
+            "status": "active" if root.exists() else "missing",
+            "path": str(root),
+            "mutable": True,
+            "sensitive": False,
+            "path_status": path_status(root),
+        },
+        {
+            "id": "app-registry",
+            "label": "App registry",
+            "kind": "json",
+            "role": "registered apps and lifecycle stage summary",
+            "status": "active" if registry_path(root).exists() else "missing",
+            "path": str(registry_path(root)),
+            "mutable": True,
+            "sensitive": False,
+            "path_status": path_status(registry_path(root)),
+        },
+        {
+            "id": "autonomy-policy",
+            "label": "Autonomy policy",
+            "kind": "json",
+            "role": "runtime confirmation and approval-gate policy",
+            "status": "active" if autonomy_policy_path(root).exists() else "missing",
+            "path": str(autonomy_policy_path(root)),
+            "mutable": True,
+            "sensitive": False,
+            "path_status": path_status(autonomy_policy_path(root)),
+        },
+        {
+            "id": "local-api-token",
+            "label": "Local API token",
+            "kind": "secret_ref",
+            "role": "loopback REST authorization",
+            "status": "active" if (root / "runtime" / "tokens" / "local-api-token").exists() else "missing",
+            "path": "runtime/tokens/local-api-token",
+            "mutable": False,
+            "sensitive": True,
+            "secret_value_printed": False,
+        },
+    ]
+    return {
+        "schema": SOURCE_MAP_SCHEMA,
+        "generated_at": utc_now(),
+        "canonical_source_id": "weave-root",
+        "history_source_ids": ["app-registry"],
+        "sources": sources,
+        "next_unification_action": "Attach external history ledgers or Hermes session stores with the source-map generator.",
+    }
+
+
+def validate_source_map(source_map: dict[str, Any]) -> None:
+    if source_map.get("schema") != SOURCE_MAP_SCHEMA:
+        raise RuntimeSliceError(f"source map schema must be {SOURCE_MAP_SCHEMA}")
+    sources = source_map.get("sources")
+    if not isinstance(sources, list):
+        raise RuntimeSliceError("source map sources must be a list")
+    seen: set[str] = set()
+    for source in sources:
+        if not isinstance(source, dict):
+            raise RuntimeSliceError("source map entries must be objects")
+        source_id = str(source.get("id") or "")
+        if not source_id:
+            raise RuntimeSliceError("source map entry id is required")
+        if source_id in seen:
+            raise RuntimeSliceError(f"duplicate source map entry id: {source_id}")
+        seen.add(source_id)
+        if "status" not in source:
+            raise RuntimeSliceError(f"source map entry {source_id} missing status")
+        if source.get("sensitive") is True and source.get("secret_value_printed") is not False:
+            raise RuntimeSliceError(f"sensitive source map entry {source_id} must prove secret_value_printed=false")
+
+
+def write_source_map(root: Path, source_map: dict[str, Any]) -> dict[str, Any]:
+    validate_source_map(source_map)
+    path = source_map_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(source_map, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return source_map
+
+
+def ensure_source_map(root: Path) -> dict[str, Any]:
+    path = source_map_path(root)
+    if path.exists():
+        return load_source_map(root)
+    return write_source_map(root, default_source_map(root))
+
+
+def load_source_map(root: Path) -> dict[str, Any]:
+    path = source_map_path(root)
+    if not path.exists():
+        return default_source_map(root)
+    source_map = load_json(path)
+    validate_source_map(source_map)
+    return source_map
 
 
 def setup_weave_root(root: Path, *, init_git: bool = True, autonomy_mode: str | None = None) -> dict[str, Any]:
@@ -303,6 +436,7 @@ def setup_weave_root(root: Path, *, init_git: bool = True, autonomy_mode: str | 
     )
     ensure_runtime_token(root, created)
     policy = write_autonomy_policy(root, autonomy_mode)
+    source_map = ensure_source_map(root)
     return {
         "schema": ROOT_SCHEMA,
         "root": str(root),
@@ -310,6 +444,8 @@ def setup_weave_root(root: Path, *, init_git: bool = True, autonomy_mode: str | 
         "registry_path": "apps/registry.json",
         "autonomy": policy,
         "autonomy_policy_path": "runtime/profiles/autonomy-policy.json",
+        "source_map_path": "runtime/source-map.json",
+        "source_map_summary": summarize_source_map(source_map),
         "created": created,
         "rest_api": {
             "bind": "loopback-only",
@@ -670,6 +806,7 @@ active operating rule.
 - Communication channel: Telegram
 - Autonomy mode: `{autonomy["mode"]}`
 - Autonomy policy: `{autonomy_policy_path(root)}`
+- Source map: `{source_map_path(root)}`
 
 ## Autonomy Mode
 
@@ -693,7 +830,7 @@ and resolution in the app ledger when the app is known.
 
 Before doing app work, implementation planning, approval routing, external
 sends, provider changes, deployments, or repo mutations, read the foundation
-gate and the required source documents.
+gate, source map, and the required source documents.
 
 Required source documents:
 
@@ -804,6 +941,7 @@ def setup_foundation_onboarding(
         "app_name": app_name,
         "communication_channel": "telegram",
         "foundation_gate_path": str(gate_path),
+        "source_map_path": str(source_map_path(root)),
         "gateway_workdir": str(workdir),
         "required_before_app_work": True,
         "question_limit": 3,
@@ -835,6 +973,7 @@ def setup_foundation_onboarding(
         "app_name": app_name,
         "foundation_gate": gate_with_meta,
         "foundation_gate_path": str(gate_path),
+        "source_map_path": str(source_map_path(root)),
         "gateway_workdir": str(workdir),
         "agents_path": str(agents_path),
         "soul_path": str(soul_path),
@@ -1022,12 +1161,16 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
     apps = safe_list_apps(root)
     blocked = [app for app in apps if not app["foundation_passed"]]
     autonomy = load_autonomy_policy(root)
+    source_map = load_source_map(root)
+    source_summary = summarize_source_map(source_map)
     lines = [
         "WEAVE runtime status",
         f"root_ready: {str(root_ready(root)).lower()}",
         f"autonomy_mode: {autonomy['mode']}",
         f"apps: {len(apps)}",
         f"blocked_apps: {len(blocked)}",
+        f"sources: {source_summary['source_count']}",
+        f"canonical_source: {source_summary['canonical_source_id']}",
     ]
     if blocked:
         lines.append(f"next: Hermes must complete foundation onboarding for {blocked[0]['app_id']}.")
@@ -1044,7 +1187,32 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             "blocked_app_count": len(blocked),
             "blocked_apps": [app["app_id"] for app in blocked],
             "autonomy": autonomy,
+            "source_map": source_summary,
         },
+    )
+
+
+def source_status_line(source: dict[str, Any]) -> str:
+    marker = "sensitive" if source.get("sensitive") else "public"
+    return f"{source['label']} ({source['id']}): {source['status']}; {source['role']}; {marker}"
+
+
+def sources_command(root: Path) -> dict[str, Any]:
+    source_map = load_source_map(root)
+    sources = source_map.get("sources", [])
+    lines = [
+        "WEAVE source map",
+        f"canonical_source: {source_map.get('canonical_source_id', '')}",
+        f"history_sources: {', '.join(source_map.get('history_source_ids', [])) or 'none'}",
+    ]
+    lines.extend(source_status_line(source) for source in sources)
+    next_action = source_map.get("next_unification_action")
+    if next_action:
+        lines.append(f"next: {next_action}")
+    return telegram_command_response(
+        command="/sources",
+        text="\n".join(lines),
+        payload={"source_map": source_map, "summary": summarize_source_map(source_map)},
     )
 
 
@@ -1232,6 +1400,8 @@ def dispatch_telegram_command(root: Path, text: str) -> dict[str, Any]:
         )
     if command == "/status":
         return runtime_status_command(root)
+    if command == "/sources":
+        return sources_command(root)
     if command == "/autonomy":
         return autonomy_command(root)
     if command == "/apps":
@@ -1266,11 +1436,13 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
             "real_hermes_runtime": False,
         }
     if method == "GET" and parts == ["runtime", "status"]:
+        source_map = load_source_map(root)
         return 200, {
             "schema": REST_SCHEMA,
             "root_ready": (root / "apps" / "registry.json").exists(),
             "app_count": len(load_registry(root)["apps"]),
             "autonomy": load_autonomy_policy(root),
+            "source_map": summarize_source_map(source_map),
             "real_hermes_runtime": False,
             "claim": "local first-slice substrate only",
         }
@@ -1284,6 +1456,8 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
         return 200, {"schema": REST_SCHEMA, "commands": TELEGRAM_COMMANDS, "deterministic": True, "llm_used": False}
     if method == "GET" and parts == ["runtime", "autonomy"]:
         return 200, {"schema": REST_SCHEMA, "autonomy": load_autonomy_policy(root)}
+    if method == "GET" and parts == ["runtime", "sources"]:
+        return 200, {"schema": REST_SCHEMA, "source_map": load_source_map(root)}
     if method == "POST" and parts == ["apps"]:
         result = create_app(root, body.get("app_id", body.get("name", "app")), body.get("name", "Untitled app"))
         return 201, {"schema": REST_SCHEMA, "result": result}

@@ -28,6 +28,7 @@ the runtime command handler before Hermes sees it.
 | `/help` | List deterministic WEAVE commands. |
 | `/autonomy` | Show autonomy mode and hard approval gates. |
 | `/status` | Show runtime readiness, app count, blocked app count, and next action. |
+| `/sources` | Show the runtime source map: canonical root, history surfaces, active/stale/missing state, and next unification action. |
 | `/apps` | List apps, lifecycle stage per app, and foundation gate state. |
 | `/app <app_id>` | Show one app's stage, foundation gate, contract version, artifact count, and latest categorized changes. |
 | `/blockers` | Show apps that need owner or Hermes action. |
@@ -59,6 +60,11 @@ Use `/blockers` and `/next` when you want the lowest-cognitive-load answer to
 
 Use `/autonomy` to see whether the gateway is in `yolo` mode and which gates
 still require owner authorization through the Telegram LLM conversation.
+
+Use `/sources` when runtime state feels split across multiple places. The
+response is deterministic and names which surfaces are active, stale, missing,
+or historical. Sensitive entries are represented as references and never expose
+secret values.
 
 ## Autonomy Mode
 

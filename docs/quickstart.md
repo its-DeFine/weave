@@ -186,6 +186,7 @@ local runtime state:
 
 ```text
 /status
+/sources
 /apps
 /app <app_id>
 /blockers
