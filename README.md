@@ -62,26 +62,24 @@ Run the lifecycle and deterministic Telegram command smoke:
 python3 scripts/runtime_smoke.py
 ```
 
-Set up the local Hermes runtime profile:
+Run guided onboarding:
 
 ```bash
-python3 scripts/setup_runtime.py
+bin/weave onboard
 ```
 
-Setup also creates an ignored WEAVE root and a Hermes gateway workdir containing
-generated `AGENTS.md`/`SOUL.md` enforcement files. Start the Telegram gateway
-from the generated `foundation_gateway_workdir` path printed by setup so Hermes
-loads the unskippable foundation onboarding gate before app work. When gateway
-flags are supplied, setup also writes Hermes `terminal.cwd` and a runtime system
-prompt so gateway sessions use that context.
+The guided command creates the ignored WEAVE root, prepares the Hermes gateway
+context, explains the dedicated Telegram bot requirement, hides token input,
+and configures the deterministic command plugin without printing secrets. It
+does not start the gateway, install autostart, or perform external sends.
 
 Provision the real pinned upstream Hermes Agent into ignored local state:
 
 ```bash
-python3 scripts/setup_runtime.py --install-hermes
+bin/weave onboard --install-hermes
 ```
 
-Configure the Telegram gateway from an owner-approved token file:
+For CI and operator automation, the backend script remains available:
 
 ```bash
 python3 scripts/setup_runtime.py \
@@ -166,22 +164,22 @@ reviewable contract for moving a user from raw app idea to Gestalt Kernel,
 Gestaltian Contract, Premortem, Build-Ready Handoff Packet, bounded
 implementation, validation, and Contract Update.
 
-Use `scripts/setup_runtime.py` to write an ignored local runtime profile and to
-check whether a Hermes executable is already on `PATH`. Add `--install-hermes`
-to clone the real upstream Nous Hermes Agent at pinned commit
+Use `bin/weave onboard` for the human setup flow. Use
+`scripts/setup_runtime.py` for automation, CI, and non-interactive runtime
+profiles. Add `--install-hermes` to clone the real upstream Nous Hermes Agent
+at pinned commit
 `5921d667855880b0aa2083a50f001748aed52f3e`, create an isolated venv under
 `runs/hermes-agent/`, install the CLI package there, and attach that proof to
 `runs/runtime-profile.json`. This optional install path uses outbound network
 access, but it does not install services, read secrets, contact private
 gateways, pair Telegram, or claim that a hosted runtime exists.
 
-For Telegram, install Hermes with `--hermes-extras cli,messaging`, then run
-`scripts/setup_runtime.py` with `--gateway-token-file` and either an explicit
-numeric user allowlist or temporary discovery mode. This writes only local
-Hermes environment state and does not start the gateway, install autostart, or
-place secrets in tracked files and public artifacts. The narrower
-`scripts/setup_gateway.py` helper is also available when Hermes is already
-installed.
+For Telegram, guided onboarding asks for a dedicated bot token and numeric
+Telegram user id. Token input is hidden and copied only into local Hermes
+environment state. It does not start the gateway, install autostart, or place
+secrets in tracked files and public artifacts. The narrower
+`scripts/setup_gateway.py` helper is available when Hermes is already
+installed and only gateway environment configuration is needed.
 
 The public workstation context sync contract in
 `docs/workstation-context-sync.md` shows how completed local work can be

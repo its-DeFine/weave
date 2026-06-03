@@ -13,7 +13,17 @@ state.
 
 ## What Setup Does
 
-Run:
+For the human setup path, run:
+
+```bash
+bin/weave onboard
+```
+
+This presents a guided ASCII flow, creates the local WEAVE root, explains the
+dedicated Telegram bot requirement, hides token input, and calls the same
+public-safe setup backend without printing secrets.
+
+For CI or non-interactive operator setup, run the backend directly:
 
 ```bash
 python3 scripts/setup_runtime.py
@@ -72,8 +82,18 @@ or enable autostart.
 
 ## Telegram Gateway Dependency Install
 
-Telegram setup has two required parts. First, Hermes must be installed with the
-gateway dependencies available:
+The recommended human path is:
+
+```bash
+bin/weave onboard --install-hermes
+```
+
+The guided command installs Hermes with the messaging dependency set, then asks
+for a dedicated Telegram bot token and numeric Telegram user id. It writes the
+token only into the local Hermes `.env` file with private file permissions.
+
+The scriptable path has two required parts. First, Hermes must be installed
+with the gateway dependencies available:
 
 ```bash
 python3 scripts/setup_runtime.py --install-hermes --require-runtime-binary --hermes-extras cli,messaging

@@ -42,43 +42,57 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 All tests should pass. The suite exercises the package validator and the
 lifecycle dependency rules.
 
-## 4. Set up the local runtime profile
+## 4. Run guided onboarding
 
 ```bash
-python3 scripts/setup_runtime.py
+bin/weave onboard
 ```
 
-Expected output when Hermes is not installed locally:
+Expected shape:
 
 ```text
-runtime setup: profile_written_runtime_binary_missing
-profile: runs/runtime-profile.json
-runtime: hermes-default
-agent: ceo-hermes
-gateway_setup_required: true
-gateway_started: false
-network_install_performed: false
-service_installed: false
++--------------------------------------------------+
+| WEAVE Onboarding                                 |
+| Hermes + Telegram runtime setup                  |
++--------------------------------------------------+
+
+Step 1/5  Runtime
+  [ok] WEAVE root ready: runs/weave-root
+
+Step 2/5  Telegram
+  Create a dedicated Telegram bot with BotFather.
+  WEAVE will hide token input and will not print it back.
 ```
 
-The setup command writes an ignored local profile, checks whether Hermes is
-already on `PATH`, creates or verifies an ignored local WEAVE root under
-`runs/weave-root`, and preserves Local Fallback as fallback. This default command is
-offline and does not download binaries, install services, read secrets, or
-claim a remote runtime exists. See [Hermes Runtime Setup](hermes-setup.md).
+The guided command writes an ignored local profile, creates or verifies
+`runs/weave-root`, creates the generated Hermes gateway workdir, asks for a
+dedicated Telegram bot token, hides token input, and writes only local Hermes
+environment state. It does not start services, install autostart, contact
+Telegram, send messages, or place secrets in tracked files.
 
-To provision the real pinned Nous Hermes Agent into ignored local state:
+To preview the flow without entering a token:
 
 ```bash
-python3 scripts/setup_runtime.py --install-hermes
+bin/weave onboard --dry-run
 ```
 
-This clones the upstream Hermes repository, checks out the pinned commit,
-creates `runs/hermes-agent/venv`, installs the CLI package there, and records
-the proof in `runs/hermes-agent/profile.json` plus `runs/runtime-profile.json`.
-It still does not start services, run the Hermes setup wizard, pair Telegram,
-or load credentials. It requires outbound access to GitHub and the Python
-package registry.
+To provision the real pinned Nous Hermes Agent during onboarding:
+
+```bash
+bin/weave onboard --install-hermes
+```
+
+This uses outbound access to GitHub and the Python package registry, then keeps
+the installed Hermes state under ignored local runtime paths. It still does
+not start the gateway.
+
+For CI or scripted setup, use the backend command directly:
+
+```bash
+python3 scripts/setup_runtime.py \
+  --gateway-token-file <owner-approved-token-file> \
+  --gateway-allowed-users <numeric-telegram-user-id>
+```
 
 The same setup path creates the ignored WEAVE root and a generated Hermes
 gateway workdir. Use the printed `foundation_gateway_workdir` as the gateway
@@ -86,24 +100,6 @@ working directory; it contains the active onboarding `AGENTS.md` and `SOUL.md`
 that force Hermes to ask the missing foundation questions through Telegram
 before app work. When gateway flags are supplied, setup also writes Hermes
 `terminal.cwd` and a runtime system prompt so gateway sessions load this context.
-
-For Telegram, install Hermes with the messaging extra first:
-
-```bash
-python3 scripts/setup_runtime.py --install-hermes --require-runtime-binary --hermes-extras cli,messaging
-```
-
-Then configure the gateway from an owner-approved token file. Use an allowlist
-when the numeric Telegram user id is known:
-
-```bash
-python3 scripts/setup_runtime.py \
-  --install-hermes \
-  --require-runtime-binary \
-  --hermes-extras cli,messaging \
-  --gateway-token-file <owner-approved-token-file> \
-  --gateway-allowed-users <numeric-telegram-user-id>
-```
 
 Temporary discovery mode is available only long enough to capture the owner id:
 

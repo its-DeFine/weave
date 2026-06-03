@@ -39,10 +39,10 @@ contract and deterministic Telegram slash-command output:
 python3 scripts/runtime_smoke.py
 ```
 
-To write the ignored local Hermes runtime profile:
+To run the guided local onboarding flow from the repository root:
 
 ```bash
-python3 scripts/setup_runtime.py
+bin/weave onboard
 ```
 
 This also writes a generated Hermes gateway workdir under ignored local state.
@@ -54,11 +54,10 @@ supplied.
 To provision the real pinned upstream Hermes Agent into ignored local state:
 
 ```bash
-python3 scripts/setup_runtime.py --install-hermes
+bin/weave onboard --install-hermes
 ```
 
-To configure the approval-gated Telegram gateway after Hermes is installed
-with messaging support:
+For CI or operator automation, the backend setup script remains available:
 
 ```bash
 python3 scripts/setup_runtime.py \
@@ -96,6 +95,9 @@ prompt_packs: 1
   raw idea to contract, handoff, implementation, validation, and contract
   update.
 - `primitives/registry.json`: local primitive catalog and future adapter mapping.
+- Repository `bin/weave`: human-facing CLI launcher.
+- Repository `scripts/weave_cli.py`: guided onboarding CLI backed by the
+  public-safe runtime setup scripts.
 - `scripts/validate_company_package.py`: local package validator.
 - Repository `scripts/setup_runtime.py`: local runtime profile and ignored
   WEAVE root setup, generated Hermes foundation onboarding workdir, and opt-in
