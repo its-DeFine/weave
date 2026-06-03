@@ -45,16 +45,25 @@ To run the guided local onboarding flow from the repository root:
 bin/weave onboard
 ```
 
-This also writes a generated Hermes gateway workdir under ignored local state.
-Run the live Telegram gateway from that workdir so Hermes loads the
-unskippable foundation onboarding gate before app work. Gateway setup also
-writes Hermes `terminal.cwd` and a runtime system prompt when gateway flags are
-supplied.
+This builds the pinned Hermes container image, writes a generated Hermes
+gateway workdir under ignored local state, and configures the deterministic
+Telegram command plugin. Start the live Telegram gateway with `bin/weave start`
+so Hermes loads the unskippable foundation onboarding gate before app work.
+Gateway setup also writes Hermes `terminal.cwd` and a runtime system prompt
+when gateway flags are supplied.
 
-To provision the real pinned upstream Hermes Agent into ignored local state:
+To inspect or stop the containerized gateway:
 
 ```bash
-bin/weave onboard --install-hermes
+bin/weave status
+bin/weave stop
+```
+
+For a host-local fallback instead of the default container, provision the real
+pinned upstream Hermes Agent into ignored local state:
+
+```bash
+bin/weave onboard --local --install-hermes
 ```
 
 For CI or operator automation, the backend setup script remains available:
@@ -122,9 +131,11 @@ Allowed now:
 - map lifecycle stages to tasks and routines
 - keep primitive registry aligned with the deterministic runtime status surface
 - run the Hermes-default lifecycle package locally
-- provision pinned upstream Hermes locally under ignored `runs/`
+- run pinned upstream Hermes through the default container image
+- provision pinned upstream Hermes locally under ignored `runs/` as a fallback
 - configure Hermes Telegram gateway environment from an owner-approved token
   file outside tracked state
+- start, stop, and inspect the containerized gateway with `bin/weave`
 - inspect app status through deterministic Telegram slash commands
 
 Approval-gated later:

@@ -1,9 +1,9 @@
 # WEAVE Quickstart
 
 The base validation path runs locally with no API keys and no network calls.
-The optional real-Hermes provisioning step uses outbound network access to fetch
-the pinned upstream Hermes source and Python packages. Requires Python 3.9+ and
-git.
+Guided onboarding uses Docker to build a pinned Hermes runtime container from
+the public repository Dockerfile. Requires Python 3.9+, git, and Docker for the
+default runtime path.
 
 ## 1. Clone
 
@@ -57,6 +57,9 @@ Expected shape:
 +--------------------------------------------------+
 
 Step 1/5  Runtime
+  [ok] Docker available
+  building image: weave-hermes-runtime:local
+  [ok] Hermes image ready: weave-hermes-runtime:local
   [ok] WEAVE root ready: runs/weave-root
 
 Step 2/5  Telegram
@@ -64,11 +67,12 @@ Step 2/5  Telegram
   WEAVE will hide token input and will not print it back.
 ```
 
-The guided command writes an ignored local profile, creates or verifies
-`runs/weave-root`, creates the generated Hermes gateway workdir, asks for a
-dedicated Telegram bot token, hides token input, and writes only local Hermes
-environment state. It does not start services, install autostart, contact
-Telegram, send messages, or place secrets in tracked files.
+The guided command builds the pinned Hermes container image, writes an ignored
+local profile, creates or verifies `runs/weave-root`, creates the generated
+Hermes gateway workdir, asks for a dedicated Telegram bot token, hides token
+input, and writes only local Hermes environment state. It does not start the
+gateway, install autostart, contact Telegram, send messages, or place secrets
+in tracked files.
 
 To preview the flow without entering a token:
 
@@ -76,15 +80,27 @@ To preview the flow without entering a token:
 bin/weave onboard --dry-run
 ```
 
-To provision the real pinned Nous Hermes Agent during onboarding:
+After onboarding, run the gateway in the container:
 
 ```bash
-bin/weave onboard --install-hermes
+bin/weave start
+bin/weave status
+bin/weave stop
+```
+
+`weave start` launches a Docker container with the local WEAVE root, Hermes
+home, and repository mounted in. Docker's `unless-stopped` restart policy makes
+the gateway restartable without installing host startup services.
+
+For a host-local fallback instead of the default container:
+
+```bash
+bin/weave onboard --local --install-hermes
 ```
 
 This uses outbound access to GitHub and the Python package registry, then keeps
-the installed Hermes state under ignored local runtime paths. It still does
-not start the gateway.
+the installed Hermes state under ignored local runtime paths. It still does not
+start the gateway or install autostart.
 
 For CI or scripted setup, use the backend command directly:
 
@@ -112,8 +128,9 @@ python3 scripts/setup_runtime.py \
 The helper writes only local Hermes environment state, redacts the token from
 output, configures the generated foundation gateway context, and does not start
 the gateway. With one allowed Telegram user and no explicit home channel, it
-also sets that direct chat as the home channel. After setup, verify with
-`hermes status`, `hermes gateway status`, and a foreground
+also sets that direct chat as the home channel. After guided container
+onboarding, verify with `bin/weave status`; for host-local fallback, verify
+with `hermes status`, `hermes gateway status`, and a foreground
 `hermes gateway run` started from the generated foundation gateway workdir.
 
 Gateway setup defaults to `--autonomy-mode yolo`. That mode removes routine
@@ -151,6 +168,7 @@ skills: 13
 primitives: 9
 prompt_packs: 1
 runtime setup check: ok
+container runtime profile check: ok
 Hermes provisioner check: ok
 runtime first-slice check: ok
 telegram command smoke: ok

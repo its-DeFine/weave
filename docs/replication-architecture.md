@@ -76,14 +76,16 @@ scrubbed.
 
 The public replication path should be:
 
-1. Install Hermes and authenticate the model provider in the local runtime.
-2. Clone the WEAVE repository.
-3. Validate the WEAVE company package.
-4. Run the runtime smoke.
-5. Configure the Telegram gateway when live communication is needed.
-6. Use deterministic slash commands to inspect app status.
-7. Run or inspect the Hermes CEO/runtime agent instructions and Gestalt Runtime Pack.
-8. Run the first lifecycle wedge: Research admits one opportunity before Engineering starts.
+1. Clone the WEAVE repository.
+2. Validate the WEAVE company package.
+3. Run the runtime smoke.
+4. Run `bin/weave onboard` to build the pinned Hermes container and prepare
+   local WEAVE/Hermes state.
+5. Configure the dedicated Telegram gateway when live communication is needed.
+6. Start the containerized gateway with `bin/weave start`.
+7. Use deterministic slash commands to inspect app status.
+8. Run or inspect the Hermes CEO/runtime agent instructions and Gestalt Runtime Pack.
+9. Run the first lifecycle wedge: Research admits one opportunity before Engineering starts.
 
 The WEAVE repository should never require committed secrets. Local credentials
 belong in the user's secret store, environment, or Hermes profile.

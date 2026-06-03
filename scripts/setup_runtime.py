@@ -2,13 +2,14 @@
 """Set up a local WEAVE runtime profile.
 
 This command is public-safe by construction: it reads package metadata, selects
-the default runtime, checks whether the runtime executable is already present,
-and writes a local ignored profile under runs/. With ``--install-hermes`` it
-can also provision the real pinned Nous Hermes Agent into the ignored local
-runtime directory. When explicitly given gateway flags, it can configure the
-local Hermes Telegram environment from an owner-approved token file and point
-Hermes gateway sessions at the generated foundation onboarding context. It
-never installs services, starts gateways, or writes secrets into tracked state.
+the default runtime, checks whether a runtime executable or container image is
+available, and writes a local ignored profile under runs/. With
+``--install-hermes`` it can also provision the real pinned Nous Hermes Agent
+into the ignored local runtime directory. When explicitly given gateway flags,
+it can configure the local Hermes Telegram environment from an owner-approved
+token file and point Hermes gateway sessions at the generated foundation
+onboarding context. It never installs services, starts gateways, or writes
+secrets into tracked state.
 """
 
 from __future__ import annotations
@@ -425,6 +426,7 @@ def runtime_profile(
     hermes_provision_profile: dict[str, object] | None = None,
     hermes_profile_path: Path = provision_hermes.DEFAULT_PROFILE_PATH,
     network_install_performed: bool = False,
+    runtime_container_image: str | None = None,
 ) -> dict[str, object]:
     company = parse_frontmatter(PACKAGE_ROOT / "COMPANY.md")
     default_runtime = company.get("runtime")
@@ -536,6 +538,16 @@ def runtime_profile(
             "profile_path": str(hermes_profile_path.relative_to(REPO_ROOT)) if hermes_profile_path.is_relative_to(REPO_ROOT) else str(hermes_profile_path),
             "wrapper_path": local.get("wrapper_path") if isinstance(local, dict) else None,
         }
+    if runtime_container_image:
+        runtime_info = profile["runtime"]
+        assert isinstance(runtime_info, dict)
+        runtime_info["container"] = {
+            "enabled": True,
+            "engine": "docker",
+            "image": runtime_container_image,
+            "supervision": "weave start uses Docker restart policy unless-stopped",
+            "service_installed": False,
+        }
     return profile
 
 
@@ -548,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
         help="runtime to select; defaults to COMPANY.md runtime",
     )
     parser.add_argument("--runtime-binary", help="explicit runtime executable to check")
+    parser.add_argument("--runtime-container-image", help="container image that provides the Hermes runtime")
     parser.add_argument(
         "--install-hermes",
         action="store_true",
@@ -669,6 +682,7 @@ def main(argv: list[str] | None = None) -> int:
             hermes_provision_profile=hermes_profile,
             hermes_profile_path=args.hermes_profile_out,
             network_install_performed=network_install_performed,
+            runtime_container_image=args.runtime_container_image,
         )
         if args.require_runtime_binary and not profile["runtime"]["binary"]["found"]:
             raise RuntimeSetupError(f"{runtime} binary was not found on PATH")
@@ -775,11 +789,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"runtime setup failed: {exc}", file=sys.stderr)
         return 1
 
-    status = "ready" if profile["runtime"]["binary"]["found"] else "profile_written_runtime_binary_missing"
+    container_ready = bool(profile["runtime"].get("container", {}).get("enabled"))
+    status = "ready" if profile["runtime"]["binary"]["found"] or container_ready else "profile_written_runtime_binary_missing"
     print(f"runtime setup: {status}")
     print(f"profile: {args.profile_out}")
     print(f"runtime: {profile['runtime']['id']}")
     print(f"agent: {profile['runtime']['agent_slug']}")
+    print(f"runtime_container_enabled: {str(container_ready).lower()}")
     print(f"gateway_setup_required: {str(profile['gateway']['setup_required']).lower()}")
     print(f"gateway_token_loaded: {str(profile['gateway']['token_loaded']).lower()}")
     print(f"gateway_allowlist_mode: {profile['gateway']['allowlist_mode']}")

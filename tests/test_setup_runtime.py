@@ -120,6 +120,34 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertEqual(agent_profile["reasoning_effort"], "high")
             self.assertEqual(agent_profile["provider_adapter"], "openai-codex")
 
+    def test_setup_records_container_runtime_image(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            profile_path = root / "runtime-profile.json"
+            weave_root = root / "weave-root"
+
+            result = setup_runtime.main(
+                [
+                    "--runtime",
+                    "hermes-default",
+                    "--weave-root",
+                    str(weave_root),
+                    "--runtime-container-image",
+                    "weave-hermes-runtime:test",
+                    "--profile-out",
+                    str(profile_path),
+                    "--skip-foundation-onboarding",
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            profile = json.loads(profile_path.read_text(encoding="utf-8"))
+            container = profile["runtime"]["container"]
+            self.assertTrue(container["enabled"])
+            self.assertEqual(container["engine"], "docker")
+            self.assertEqual(container["image"], "weave-hermes-runtime:test")
+            self.assertIn("Docker restart policy", container["supervision"])
+
     def test_installs_weave_runtime_plugin_and_enables_it(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

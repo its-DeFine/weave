@@ -1,0 +1,14 @@
+.git
+.DS_Store
+.workflow
+__pycache__
+*.pyc
+dist
+runs
+evidence
+node_modules
+.venv
+venv
+.pytest_cache
+.mypy_cache
+.ruff_cache

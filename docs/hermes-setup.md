@@ -5,10 +5,11 @@ Audience: builders configuring WEAVE locally
 
 WEAVE defaults to Hermes for the runtime agent and keeps Local Fallback as an
 explicit fallback. The public repository can set up the WEAVE-side runtime
-profile, provision the real upstream Nous Hermes Agent into ignored local
-state, and configure the owner-approved Telegram gateway environment from a
-token file when explicitly given gateway flags. It does not install services,
-mutate shell startup files, start a gateway daemon, or place secrets in tracked
+profile, build a pinned Hermes container, provision the real upstream Nous
+Hermes Agent into ignored local state for host-local fallback, and configure
+the owner-approved Telegram gateway environment from a token file when
+explicitly given gateway flags. It does not install services, mutate shell
+startup files, start a gateway daemon during setup, or place secrets in tracked
 state.
 
 ## What Setup Does
@@ -19,9 +20,10 @@ For the human setup path, run:
 bin/weave onboard
 ```
 
-This presents a guided ASCII flow, creates the local WEAVE root, explains the
-dedicated Telegram bot requirement, hides token input, and calls the same
-public-safe setup backend without printing secrets.
+This presents a guided ASCII flow, builds the pinned Hermes container image,
+creates the local WEAVE root, explains the dedicated Telegram bot requirement,
+hides token input, and calls the same public-safe setup backend without
+printing secrets.
 
 For CI or non-interactive operator setup, run the backend directly:
 
@@ -34,7 +36,7 @@ The command:
 - reads `packages/weave-tool/COMPANY.md`
 - selects `hermes-default`
 - loads `packages/weave-tool/agents/ceo-hermes/AGENTS.md`
-- checks whether a Hermes executable is already on `PATH`
+- checks whether a Hermes executable or runtime container image is available
 - writes `runs/runtime-profile.json`
 - creates or verifies the ignored local WEAVE root
 - creates or verifies a foundation app workspace
@@ -56,9 +58,36 @@ Hermes must ask the owner through Telegram, ask at most three blocking
 questions at once, update the canonical WEAVE documents, and stop before app
 work until the gate can pass.
 
-## Real Hermes Provisioning
+## Default Container Provisioning
 
-To install the pinned upstream Hermes Agent for WEAVE:
+The recommended human path is:
+
+```bash
+bin/weave onboard
+```
+
+By default this builds `weave-hermes-runtime:local` from
+`container/hermes/Dockerfile`. The image clones the upstream Hermes Agent
+source at pinned commit `5921d667855880b0aa2083a50f001748aed52f3e` and installs
+the `cli,messaging` dependency set inside the image. The runtime profile records
+that Hermes is supplied by that container image.
+
+After onboarding, run the gateway with:
+
+```bash
+bin/weave start
+bin/weave status
+bin/weave stop
+```
+
+`weave start` mounts the local WEAVE root, Hermes home, and repository into the
+container, starts `hermes gateway run --replace`, and applies Docker's
+`unless-stopped` restart policy. It does not install host services or autostart
+units.
+
+## Host-Local Hermes Provisioning
+
+To install the pinned upstream Hermes Agent on the host as a fallback:
 
 ```bash
 python3 scripts/setup_runtime.py --install-hermes
@@ -82,15 +111,22 @@ or enable autostart.
 
 ## Telegram Gateway Dependency Install
 
-The recommended human path is:
+The recommended human path remains:
 
 ```bash
-bin/weave onboard --install-hermes
+bin/weave onboard
 ```
 
-The guided command installs Hermes with the messaging dependency set, then asks
-for a dedicated Telegram bot token and numeric Telegram user id. It writes the
-token only into the local Hermes `.env` file with private file permissions.
+The guided command builds the Hermes image with the messaging dependency set,
+then asks for a dedicated Telegram bot token and numeric Telegram user id. It
+writes the token only into the local Hermes `.env` file with private file
+permissions.
+
+For host-local fallback, use:
+
+```bash
+bin/weave onboard --local --install-hermes
+```
 
 The scriptable path has two required parts. First, Hermes must be installed
 with the gateway dependencies available:
@@ -144,7 +180,14 @@ The narrower `scripts/setup_gateway.py` helper remains available for runtimes
 that already completed Hermes installation and only need gateway environment
 configuration.
 
-After configuration, verify the gateway path:
+After default container configuration, verify the gateway path:
+
+```bash
+bin/weave status
+bin/weave start
+```
+
+For host-local fallback, verify with:
 
 ```bash
 hermes status
@@ -156,7 +199,7 @@ hermes gateway run
 The owner must still send the first Telegram message to the bot before Hermes
 can learn the owner chat target.
 
-After provisioning, this stricter check should pass:
+After host-local provisioning, this stricter check should pass:
 
 ```bash
 python3 scripts/setup_runtime.py --require-runtime-binary
@@ -191,7 +234,8 @@ This checks for `local-fallback` on `PATH` and writes the fallback profile local
 
 ## Boundaries
 
-The default setup command does not:
+The profile-only backend command without container build, host install, or
+gateway flags does not:
 
 - download runtime binaries
 - run package managers
@@ -202,9 +246,10 @@ The default setup command does not:
 - mutate hosted runtime state
 - claim a remote runtime or production service exists
 
-The `--install-hermes` path does clone upstream source and install Python
-packages into `runs/hermes-agent/venv`, but it keeps the same service, secret,
-gateway, shell-startup, and production boundaries.
+The default guided container path does clone upstream source and install Python
+packages inside the Docker image build. The host-local `--install-hermes` path
+does the same inside ignored local runtime state. Both paths keep the same
+service, secret, gateway, shell-startup, and production boundaries.
 
 The `--gateway-token-file` setup path is the approval-gated gateway setup
 step. It may read the owner-supplied token file and write Hermes local

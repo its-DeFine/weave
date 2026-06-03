@@ -10,8 +10,8 @@ agent-run product lifecycle work.
 Clone the repo and follow [docs/quickstart.md](docs/quickstart.md) to validate
 the package, run the test suite, execute a lifecycle dry-run, and configure the
 approval-gated Telegram gateway. The base validation path needs no API keys and
-no network calls; the optional real Hermes provisioning path fetches the pinned
-upstream Hermes source and Python packages.
+no network calls; guided onboarding builds a pinned Hermes container when Docker
+is available.
 
 ## Version
 
@@ -68,15 +68,25 @@ Run guided onboarding:
 bin/weave onboard
 ```
 
-The guided command creates the ignored WEAVE root, prepares the Hermes gateway
-context, explains the dedicated Telegram bot requirement, hides token input,
-and configures the deterministic command plugin without printing secrets. It
-does not start the gateway, install autostart, or perform external sends.
+The guided command builds a pinned Hermes container, creates the ignored WEAVE
+root, prepares the Hermes gateway context, explains the dedicated Telegram bot
+requirement, hides token input, and configures the deterministic command plugin
+without printing secrets. It does not start the gateway, install autostart, or
+perform external sends.
 
-Provision the real pinned upstream Hermes Agent into ignored local state:
+After onboarding, run the containerized gateway:
 
 ```bash
-bin/weave onboard --install-hermes
+bin/weave start
+bin/weave status
+bin/weave stop
+```
+
+For a host-local fallback instead of the default container, install the real
+pinned upstream Hermes Agent into ignored local state:
+
+```bash
+bin/weave onboard --local --install-hermes
 ```
 
 For CI and operator automation, the backend script remains available:
@@ -164,15 +174,17 @@ reviewable contract for moving a user from raw app idea to Gestalt Kernel,
 Gestaltian Contract, Premortem, Build-Ready Handoff Packet, bounded
 implementation, validation, and Contract Update.
 
-Use `bin/weave onboard` for the human setup flow. Use
-`scripts/setup_runtime.py` for automation, CI, and non-interactive runtime
-profiles. Add `--install-hermes` to clone the real upstream Nous Hermes Agent
-at pinned commit
-`5921d667855880b0aa2083a50f001748aed52f3e`, create an isolated venv under
+Use `bin/weave onboard` for the human setup flow. It builds a local Docker
+image from `container/hermes/Dockerfile` at pinned upstream Hermes commit
+`5921d667855880b0aa2083a50f001748aed52f3e`, then records the image in
+`runs/runtime-profile.json`. Use `scripts/setup_runtime.py` for automation, CI,
+and non-interactive runtime profiles. Add `--local --install-hermes` to clone
+the real upstream Nous Hermes Agent into an isolated venv under
 `runs/hermes-agent/`, install the CLI package there, and attach that proof to
-`runs/runtime-profile.json`. This optional install path uses outbound network
-access, but it does not install services, read secrets, contact private
-gateways, pair Telegram, or claim that a hosted runtime exists.
+the runtime profile. These install paths use outbound network access, but they
+do not install services, read secrets outside the explicit Telegram token flow,
+contact private gateways, pair Telegram without owner input, or claim that a
+hosted runtime exists.
 
 For Telegram, guided onboarding asks for a dedicated bot token and numeric
 Telegram user id. Token input is hidden and copied only into local Hermes

@@ -100,6 +100,44 @@ def validate_runtime_setup() -> int:
     return 0
 
 
+def validate_container_runtime_profile() -> int:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SETUP_RUNTIME),
+            "--runtime-container-image",
+            "weave-hermes-runtime:smoke",
+            "--check",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(result.stderr, end="", file=sys.stderr)
+        return result.returncode
+    try:
+        profile = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        print(f"container runtime profile check returned invalid JSON: {exc}", file=sys.stderr)
+        return 1
+    container = profile.get("runtime", {}).get("container", {})
+    if container.get("enabled") is not True:
+        print(f"container runtime profile did not mark container enabled: {container}", file=sys.stderr)
+        return 1
+    if container.get("image") != "weave-hermes-runtime:smoke":
+        print(f"container runtime profile image mismatch: {container}", file=sys.stderr)
+        return 1
+    if "Docker restart policy" not in str(container.get("supervision", "")):
+        print(f"container runtime profile did not record supervision: {container}", file=sys.stderr)
+        return 1
+    if container.get("service_installed") is not False:
+        print(f"container runtime profile should not claim a service install: {container}", file=sys.stderr)
+        return 1
+
+    print("container runtime profile check: ok")
+    return 0
+
+
 def run_checked(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=cwd, capture_output=True, text=True, check=True)
 
@@ -296,6 +334,8 @@ def main() -> int:
     rc = validate_package()
     if rc == 0:
         rc = validate_runtime_setup()
+    if rc == 0:
+        rc = validate_container_runtime_profile()
     if rc == 0:
         rc = validate_hermes_provisioner_contract()
     if rc == 0:

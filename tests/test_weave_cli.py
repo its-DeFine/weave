@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +48,8 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertIn("WEAVE Onboarding", text)
             self.assertIn("Step 1/5  Runtime", text)
+            self.assertIn("mode: container", text)
+            self.assertIn("would verify Docker and build image", text)
             self.assertIn("Step 2/5  Telegram", text)
             self.assertIn("Create a dedicated Telegram bot with BotFather", text)
             self.assertIn("stopped before token entry", text)
@@ -71,6 +74,7 @@ class WeaveCliTests(unittest.TestCase):
                     "qa-app",
                     "--foundation-app-name",
                     "QA App",
+                    "--local",
                 ],
                 input_stream=io.StringIO("12345\n"),
                 output=output,
@@ -89,6 +93,35 @@ class WeaveCliTests(unittest.TestCase):
             self.assertTrue(profile["gateway"]["token_loaded"])
             self.assertTrue(profile["gateway"]["runtime_config_written"])
             self.assertFalse(list((root / "weave-root" / "runtime" / "tokens").glob(".weave-telegram-token.*")))
+
+    def test_container_start_command_mounts_repo_runtime_and_hermes_home(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            args = type(
+                "Args",
+                (),
+                {
+                    "weave_root": root / "weave-root",
+                    "hermes_home": root / "hermes-home",
+                    "container_name": "weave-test",
+                    "container_image": "weave-hermes-runtime:test",
+                },
+            )()
+            (args.weave_root / "runtime" / "hermes-gateway").mkdir(parents=True)
+            args.hermes_home.mkdir(parents=True)
+            (args.hermes_home / ".env").write_text("WEAVE_AUTONOMY_MODE=yolo\n", encoding="utf-8")
+
+            with mock.patch.object(weave_cli.shutil, "which", return_value="/usr/bin/docker"):
+                command = weave_cli.container_start_command(args)
+
+            self.assertIn("run", command)
+            self.assertIn("--env-file", command)
+            self.assertIn("--restart", command)
+            self.assertIn("unless-stopped", command)
+            self.assertIn(f"{REPO_ROOT}:{REPO_ROOT}:ro", command)
+            self.assertIn(f"{args.weave_root}:{args.weave_root}", command)
+            self.assertIn(f"{args.hermes_home}:{args.hermes_home}", command)
+            self.assertEqual(command[-3:], ["gateway", "run", "--replace"])
 
 
 if __name__ == "__main__":
