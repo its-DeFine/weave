@@ -79,6 +79,28 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertEqual(config["weave_runtime"]["root"], str(weave_root.resolve()))
             self.assertNotIn("telegram_bot_token", json.dumps(config).lower())
 
+    def test_plugin_install_overlays_existing_cache_without_deleting_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            hermes_home = root / "hermes-home"
+            weave_root = root / "weave-root"
+            plugin_dir = hermes_home / "plugins" / setup_runtime.HERMES_PLUGIN_NAME
+            cache_dir = plugin_dir / "__pycache__"
+            cache_dir.mkdir(parents=True)
+            cache_file = cache_dir / "stale.pyc"
+            cache_file.write_bytes(b"cache")
+
+            result = setup_runtime.install_weave_runtime_hermes_plugin(
+                hermes_home,
+                weave_root=weave_root,
+                runtime_home=root / "runtime-home",
+            )
+
+            self.assertEqual(result["plugin"], setup_runtime.HERMES_PLUGIN_NAME)
+            self.assertTrue((plugin_dir / "__init__.py").exists())
+            self.assertTrue((plugin_dir / "plugin.yaml").exists())
+            self.assertTrue(cache_file.exists())
+
     def test_setup_refreshes_agent_profile_when_profile_env_is_explicit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

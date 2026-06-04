@@ -325,12 +325,11 @@ def install_weave_runtime_hermes_plugin(
     if not HERMES_PLUGIN_SOURCE.exists():
         raise RuntimeSetupError(f"Hermes WEAVE plugin source is missing: {HERMES_PLUGIN_SOURCE}")
     plugin_dir = hermes_home / "plugins" / HERMES_PLUGIN_NAME
-    if plugin_dir.exists():
-        shutil.rmtree(plugin_dir)
     shutil.copytree(
         HERMES_PLUGIN_SOURCE,
         plugin_dir,
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        dirs_exist_ok=True,
     )
 
     config_path = hermes_home / "config.yaml"
