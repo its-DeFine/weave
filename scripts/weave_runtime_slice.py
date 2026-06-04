@@ -21,8 +21,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import weave_provider_auth
+
 
 ROOT_SCHEMA = "weave-root/v0.1"
+RUNTIME_HOME_SCHEMA = "weave-runtime-home/v0.1"
 APP_SCHEMA = "weave-app/v0.1"
 REGISTRY_SCHEMA = "weave-app-registry/v0.1"
 EVENT_SCHEMA = "weave-event/v0.1"
@@ -345,13 +348,32 @@ def summarize_source_map(source_map: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def runtime_home_from_root(root: Path) -> Path:
+    if root.name == "weave-state":
+        return root.parent
+    return root
+
+
 def default_source_map(root: Path) -> dict[str, Any]:
+    runtime_home = runtime_home_from_root(root)
     sources = [
         {
-            "id": "weave-root",
-            "label": "WEAVE root",
+            "id": "runtime-home",
+            "label": "Runtime home",
             "kind": "workspace",
-            "role": "canonical local runtime substrate",
+            "role": "durable local home for WEAVE state, Hermes home, profiles, logs, and migration archives",
+            "status": "active" if runtime_home.exists() else "missing",
+            "path": str(runtime_home),
+            "mutable": True,
+            "sensitive": False,
+            "path_status": path_status(runtime_home),
+            "layout_schema": RUNTIME_HOME_SCHEMA,
+        },
+        {
+            "id": "weave-root",
+            "label": "WEAVE state root",
+            "kind": "workspace",
+            "role": "canonical local app, lifecycle, ledger, and review state",
             "status": "active" if root.exists() else "missing",
             "path": str(root),
             "mutable": True,
@@ -418,7 +440,7 @@ def default_source_map(root: Path) -> dict[str, Any]:
         "schema": SOURCE_MAP_SCHEMA,
         "generated_at": utc_now(),
         "canonical_source_id": "weave-root",
-        "history_source_ids": ["app-registry"],
+        "history_source_ids": ["runtime-home", "app-registry"],
         "sources": sources,
         "next_unification_action": "Attach external history ledgers or Hermes session stores with the source-map generator.",
     }
@@ -678,6 +700,8 @@ def setup_weave_root(root: Path, *, init_git: bool = True, autonomy_mode: str | 
     return {
         "schema": ROOT_SCHEMA,
         "root": str(root),
+        "runtime_home_schema": RUNTIME_HOME_SCHEMA,
+        "runtime_home": str(runtime_home_from_root(root)),
         "git_tracked": git_tracked,
         "registry_path": "apps/registry.json",
         "runtime_ledger_path": "ledger/events.jsonl",
@@ -1631,6 +1655,7 @@ def active_app_label(active_app: dict[str, Any]) -> str:
 
 
 def runtime_status_command(root: Path) -> dict[str, Any]:
+    runtime_home = runtime_home_from_root(root)
     apps = safe_list_apps(root)
     all_apps = safe_list_apps(root, include_system=True)
     system_apps = [app for app in all_apps if app["app_type"] == "system"]
@@ -1646,6 +1671,7 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
     blocked_ids = sorted({app["app_id"] for app in foundation_blocked} | set(app_blocked_ids))
     autonomy = load_autonomy_policy(root)
     agent_profile = ensure_agent_profile(root)
+    provider_status = weave_provider_auth.provider_auth_status(runtime_home / "hermes-home")
     active_app = load_active_app(root)
     source_map = load_source_map(root)
     source_summary = summarize_source_map(source_map)
@@ -1661,6 +1687,12 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
         "Agent",
         f"- {format_agent_line(agent_profile)}",
         f"- autonomy={autonomy['mode']}",
+        "",
+        "Provider Auth",
+        f"- state: {provider_status['state']}",
+        f"- chat_ready: {str(provider_status['chat_ready']).lower()}",
+        f"- provider: {provider_status['provider']}",
+        f"- model: {provider_status['model']}",
         "",
         "Apps",
         f"- active_app: {active_app_label(active_app)}",
@@ -1681,6 +1713,8 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             *[f"- {item}" for item in attention],
             "",
             "System",
+            f"- runtime_home: {runtime_home}",
+            f"- state_root: {root}",
             f"- root_ready: {str(root_ready(root)).lower()}",
             f"- sources: {source_summary['source_count']}",
             f"- canonical_source: {source_summary['canonical_source_id']}",
@@ -1695,6 +1729,8 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
         text="\n".join(lines),
         payload={
             "root_ready": root_ready(root),
+            "runtime_home": str(runtime_home),
+            "state_root": str(root),
             "app_count": len(apps),
             "system_app_count": len(system_apps),
             "blocked_app_count": len(blocked_ids),
@@ -1703,6 +1739,7 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             "app_blocked_apps": app_blocked_ids,
             "active_app": active_app,
             "agent_profile": agent_profile,
+            "provider_auth": provider_status,
             "autonomy": autonomy,
             "source_map": source_summary,
             "attention": attention,

@@ -21,7 +21,8 @@ import weave_runtime_slice
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_WEAVE_ROOT = REPO_ROOT / "runs" / "weave-root"
+DEFAULT_RUNTIME_HOME = REPO_ROOT / "runs" / "runtime-home"
+DEFAULT_WEAVE_ROOT = DEFAULT_RUNTIME_HOME / "weave-state"
 
 
 def utc_now() -> str:
@@ -215,10 +216,11 @@ def latest_child(path: Path) -> Path | None:
 
 
 def build_source_map(args: argparse.Namespace) -> dict[str, Any]:
-    root = args.weave_root.expanduser().resolve()
+    runtime_home = (getattr(args, "runtime_home", None) or DEFAULT_RUNTIME_HOME).expanduser().resolve()
+    root = (getattr(args, "weave_root", None) or (runtime_home / "weave-state")).expanduser().resolve()
     weave_runtime_slice.setup_weave_root(root, autonomy_mode=args.autonomy_mode)
     sources = weave_runtime_slice.default_source_map(root)["sources"]
-    history_ids = ["app-registry"]
+    history_ids = ["runtime-home", "app-registry"]
 
     if args.history_root:
         history_ids.extend(add_history_sources(sources, args.history_root.expanduser().resolve()))
@@ -257,7 +259,8 @@ def build_source_map(args: argparse.Namespace) -> dict[str, Any]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--weave-root", type=Path, default=DEFAULT_WEAVE_ROOT)
+    parser.add_argument("--runtime-home", type=Path)
+    parser.add_argument("--weave-root", type=Path)
     parser.add_argument("--history-root", type=Path)
     parser.add_argument("--hermes-home", type=Path)
     parser.add_argument("--repo-root", type=Path)
@@ -272,10 +275,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    runtime_home = (args.runtime_home or DEFAULT_RUNTIME_HOME).expanduser().resolve()
+    resolved_weave_root = (args.weave_root or (runtime_home / "weave-state")).expanduser().resolve()
     source_map = build_source_map(args)
     weave_runtime_slice.validate_source_map(source_map)
     if not args.check:
-        weave_runtime_slice.write_source_map(args.weave_root.expanduser().resolve(), source_map)
+        weave_runtime_slice.write_source_map(resolved_weave_root, source_map)
     if args.json:
         print(json.dumps(source_map, indent=2, sort_keys=True))
     else:

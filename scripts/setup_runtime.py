@@ -29,6 +29,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 import weave_runtime_slice
 import provision_hermes
 import setup_gateway
+import weave_provider_auth
 
 try:
     import yaml
@@ -38,8 +39,12 @@ except ImportError:  # pragma: no cover - fallback keeps setup usable without Py
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "weave-tool"
-DEFAULT_PROFILE_PATH = REPO_ROOT / "runs" / "runtime-profile.json"
-DEFAULT_WEAVE_ROOT = REPO_ROOT / "runs" / "weave-root"
+DEFAULT_RUNTIME_HOME = REPO_ROOT / "runs" / "runtime-home"
+DEFAULT_WEAVE_STATE_DIR = "weave-state"
+DEFAULT_HERMES_HOME_DIR = "hermes-home"
+DEFAULT_PROFILE_PATH = DEFAULT_RUNTIME_HOME / "runtime-profile.json"
+DEFAULT_WEAVE_ROOT = DEFAULT_RUNTIME_HOME / DEFAULT_WEAVE_STATE_DIR
+DEFAULT_GATEWAY_HERMES_HOME = DEFAULT_RUNTIME_HOME / DEFAULT_HERMES_HOME_DIR
 DEFAULT_FOUNDATION_APP_ID = "weave"
 DEFAULT_FOUNDATION_APP_NAME = "WEAVE App"
 HERMES_PLUGIN_SOURCE = REPO_ROOT / "integrations" / "hermes" / "weave-runtime"
@@ -274,6 +279,8 @@ Current foundation gate passed: {gate["passed"]}
 def configure_hermes_gateway_context(
     hermes_home: Path,
     onboarding_status: dict[str, object],
+    *,
+    runtime_home: Path | None = None,
 ) -> dict[str, object]:
     """Point Hermes gateway sessions at the generated WEAVE onboarding context."""
     config_path = hermes_home / "config.yaml"
@@ -296,6 +303,8 @@ def configure_hermes_gateway_context(
         config["weave_runtime"] = weave_runtime
     weave_runtime["repo"] = str(REPO_ROOT)
     weave_runtime["root"] = str(Path(str(onboarding_status["root_status"]["root"])).expanduser().resolve())
+    if runtime_home is not None:
+        weave_runtime["runtime_home"] = str(runtime_home.expanduser().resolve())
     weave_runtime["source_map"] = str(onboarding_status["source_map_path"])
     _write_yaml_config(config_path, config)
     return {
@@ -309,6 +318,7 @@ def install_weave_runtime_hermes_plugin(
     hermes_home: Path,
     *,
     weave_root: Path,
+    runtime_home: Path | None = None,
     repo_root: Path = REPO_ROOT,
 ) -> dict[str, object]:
     """Install the generic WEAVE runtime Hermes plugin into a local Hermes home."""
@@ -344,6 +354,8 @@ def install_weave_runtime_hermes_plugin(
         config["weave_runtime"] = weave_runtime
     weave_runtime["repo"] = str(repo_root.expanduser().resolve())
     weave_runtime["root"] = str(weave_root.expanduser().resolve())
+    if runtime_home is not None:
+        weave_runtime["runtime_home"] = str(runtime_home.expanduser().resolve())
     weave_runtime["plugin"] = HERMES_PLUGIN_NAME
     _write_yaml_config(config_path, config)
 
@@ -422,7 +434,9 @@ def runtime_profile(
     runtime: str,
     runtime_binary: str | None = None,
     *,
+    runtime_home: Path = DEFAULT_RUNTIME_HOME,
     weave_root: Path = DEFAULT_WEAVE_ROOT,
+    hermes_home: Path = DEFAULT_GATEWAY_HERMES_HOME,
     hermes_provision_profile: dict[str, object] | None = None,
     hermes_profile_path: Path = provision_hermes.DEFAULT_PROFILE_PATH,
     network_install_performed: bool = False,
@@ -461,6 +475,16 @@ def runtime_profile(
             "agent_contract": str(agent_path.relative_to(REPO_ROOT)),
             "binary": binary,
         },
+        "runtime_home": {
+            "schema": weave_runtime_slice.RUNTIME_HOME_SCHEMA,
+            "path": str(runtime_home),
+            "weave_state_path": str(weave_root),
+            "hermes_home_path": str(hermes_home),
+            "profile_path": str(DEFAULT_PROFILE_PATH if runtime_home == DEFAULT_RUNTIME_HOME else runtime_home / "runtime-profile.json"),
+            "durable_state_owner": "local runtime home",
+            "container_state_policy": "replaceable; durable state is mounted from runtime home",
+            "secret_migration_policy": "raw secrets are not exported by default; relink credentials after import",
+        },
         "authority": {
             "public_safe": True,
             "network_install_performed": network_install_performed,
@@ -480,6 +504,7 @@ def runtime_profile(
         },
         "gateway": {
             "channel": "telegram" if runtime == "hermes-default" else None,
+            "hermes_home": str(hermes_home),
             "setup_required": runtime == "hermes-default",
             "setup_command": "scripts/setup_runtime.py --gateway-token-file",
             "standalone_setup_command": "scripts/setup_gateway.py",
@@ -502,8 +527,20 @@ def runtime_profile(
             ],
             "deterministic_slash_commands": sorted(weave_runtime_slice.TELEGRAM_COMMANDS),
         },
+        "provider_auth": {
+            "schema": weave_provider_auth.SCHEMA,
+            "required_for_normal_chat": runtime == "hermes-default",
+            "status_command": "weave provider status",
+            "verify_command": "weave provider verify",
+            "slash_only_command": "weave onboard --slash-only",
+            "hermes_home": str(hermes_home),
+            "state": weave_provider_auth.provider_auth_status(hermes_home)["state"],
+            "chat_ready": weave_provider_auth.provider_auth_status(hermes_home)["chat_ready"],
+            "secret_value_printed": False,
+        },
         "weave_root": {
             "path": str(weave_root),
+            "runtime_home_path": str(runtime_home),
             "schema": weave_runtime_slice.ROOT_SCHEMA,
             "setup_command": "scripts/setup_runtime.py",
             "writes_only_ignored_local_artifacts": True,
@@ -551,6 +588,15 @@ def runtime_profile(
     return profile
 
 
+def resolve_runtime_paths(args: argparse.Namespace) -> None:
+    args.runtime_home = (args.runtime_home or DEFAULT_RUNTIME_HOME).expanduser().resolve()
+    args.weave_root = (args.weave_root or (args.runtime_home / DEFAULT_WEAVE_STATE_DIR)).expanduser().resolve()
+    args.gateway_hermes_home = (
+        args.gateway_hermes_home or (args.runtime_home / DEFAULT_HERMES_HOME_DIR)
+    ).expanduser().resolve()
+    args.profile_out = (args.profile_out or (args.runtime_home / "runtime-profile.json")).expanduser().resolve()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Set up a local WEAVE runtime profile.")
     parser.add_argument(
@@ -591,7 +637,7 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="owner-approved file containing the Telegram bot token",
     )
-    parser.add_argument("--gateway-hermes-home", type=Path, default=setup_gateway.default_hermes_home())
+    parser.add_argument("--gateway-hermes-home", type=Path, default=None)
     parser.add_argument("--gateway-allowed-users", help="comma-separated Telegram numeric user ids")
     parser.add_argument("--gateway-group-allowed-users", help="comma-separated Telegram numeric group user ids")
     parser.add_argument(
@@ -612,15 +658,21 @@ def main(argv: list[str] | None = None) -> int:
         help="runtime confirmation mode; yolo proceeds on non-gated work and asks through the LLM for hard gates",
     )
     parser.add_argument(
+        "--runtime-home",
+        type=Path,
+        default=None,
+        help="durable local runtime home; defaults to runs/runtime-home",
+    )
+    parser.add_argument(
         "--profile-out",
         type=Path,
-        default=DEFAULT_PROFILE_PATH,
+        default=None,
         help="local profile path to write",
     )
     parser.add_argument(
         "--weave-root",
         type=Path,
-        default=DEFAULT_WEAVE_ROOT,
+        default=None,
         help="ignored local WEAVE root to create or verify",
     )
     parser.add_argument(
@@ -654,6 +706,7 @@ def main(argv: list[str] | None = None) -> int:
         help="validate setup inputs and print the profile without writing it",
     )
     args = parser.parse_args(argv)
+    resolve_runtime_paths(args)
 
     try:
         company = parse_frontmatter(PACKAGE_ROOT / "COMPANY.md")
@@ -678,7 +731,9 @@ def main(argv: list[str] | None = None) -> int:
         profile = runtime_profile(
             runtime,
             args.runtime_binary,
+            runtime_home=args.runtime_home,
             weave_root=args.weave_root,
+            hermes_home=args.gateway_hermes_home,
             hermes_provision_profile=hermes_profile,
             hermes_profile_path=args.hermes_profile_out,
             network_install_performed=network_install_performed,
@@ -720,6 +775,9 @@ def main(argv: list[str] | None = None) -> int:
         onboarding_status = None
         plugin_result = None
         refreshed_agent_profile = None
+        runtime_home_profile = profile.get("runtime_home")
+        if isinstance(runtime_home_profile, dict):
+            runtime_home_profile["profile_path"] = str(args.profile_out)
         if args.check:
             print(json.dumps(profile, indent=2, sort_keys=True))
             return 0
@@ -754,6 +812,7 @@ def main(argv: list[str] | None = None) -> int:
                     gateway_config = configure_hermes_gateway_context(
                         args.gateway_hermes_home.expanduser(),
                         onboarding_status,
+                        runtime_home=args.runtime_home,
                     )
                     gateway = profile["gateway"]
                     if isinstance(gateway, dict):
@@ -776,6 +835,7 @@ def main(argv: list[str] | None = None) -> int:
                 plugin_result = install_weave_runtime_hermes_plugin(
                     args.gateway_hermes_home.expanduser(),
                     weave_root=args.weave_root,
+                    runtime_home=args.runtime_home,
                 )
                 gateway = profile["gateway"]
                 if isinstance(gateway, dict):
@@ -793,6 +853,7 @@ def main(argv: list[str] | None = None) -> int:
     status = "ready" if profile["runtime"]["binary"]["found"] or container_ready else "profile_written_runtime_binary_missing"
     print(f"runtime setup: {status}")
     print(f"profile: {args.profile_out}")
+    print(f"runtime_home: {args.runtime_home}")
     print(f"runtime: {profile['runtime']['id']}")
     print(f"agent: {profile['runtime']['agent_slug']}")
     print(f"runtime_container_enabled: {str(container_ready).lower()}")

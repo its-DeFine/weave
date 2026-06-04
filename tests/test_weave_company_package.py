@@ -77,6 +77,10 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(profile["runtime"]["agent_slug"], "ceo-hermes")
         self.assertEqual(profile["runtime"]["adapter_type"], "hermes_runtime")
         self.assertFalse(profile["runtime"]["binary"]["found"])
+        self.assertEqual(profile["runtime_home"]["schema"], "weave-runtime-home/v0.1")
+        self.assertIn("weave-state", profile["runtime_home"]["weave_state_path"])
+        self.assertIn("hermes-home", profile["runtime_home"]["hermes_home_path"])
+        self.assertIn("not exported by default", profile["runtime_home"]["secret_migration_policy"])
         self.assertTrue(profile["authority"]["public_safe"])
         self.assertFalse(profile["authority"]["network_install_performed"])
         self.assertFalse(profile["authority"]["service_installed"])
@@ -147,6 +151,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
 
             self.assertEqual(rc, 0)
             profile = json.loads(profile_path.read_text(encoding="utf-8"))
+            self.assertEqual(profile["runtime_home"]["profile_path"], str(profile_path.resolve()))
             foundation = profile["foundation_onboarding"]
             self.assertTrue(foundation["active"])
             self.assertEqual(foundation["app_id"], "demo-app")

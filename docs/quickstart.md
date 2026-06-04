@@ -56,23 +56,56 @@ Expected shape:
 | Hermes + Telegram runtime setup                  |
 +--------------------------------------------------+
 
-Step 1/5  Runtime
+Step 1/6  Runtime
   [ok] Docker available
   building image: weave-hermes-runtime:local
   [ok] Hermes image ready: weave-hermes-runtime:local
-  [ok] WEAVE root ready: runs/weave-root
+  [ok] runtime home ready: runs/runtime-home
+  [ok] WEAVE root ready: runs/runtime-home/weave-state
 
-Step 2/5  Telegram
+Step 2/6  Provider
+  Hermes chat needs a verified model provider before normal messages can work.
+  Fast path, if you use Nous Portal:
+    HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
+  Alternative provider/model picker:
+    HERMES_HOME=runs/runtime-home/hermes-home hermes model
+  Then verify with:
+    weave provider verify
+
+Step 3/6  Telegram
   Create a dedicated Telegram bot with BotFather.
+  Telegram steps:
+    1. Open Telegram and search for BotFather.
+    2. Send /newbot.
+    3. Choose a bot display name for this WEAVE runtime.
+    4. Choose a bot username ending in bot.
+    5. Copy the token BotFather shows; keep it private.
+    6. Return here and paste the token at the hidden prompt.
   WEAVE will hide token input and will not print it back.
 ```
 
 The guided command builds the pinned Hermes container image, writes an ignored
-local profile, creates or verifies `runs/weave-root`, creates the generated
-Hermes gateway workdir, asks for a dedicated Telegram bot token, hides token
-input, and writes only local Hermes environment state. It does not start the
-gateway, install autostart, contact Telegram, send messages, or place secrets
-in tracked files.
+local profile, creates or verifies `runs/runtime-home`, creates
+`runs/runtime-home/weave-state`, creates the generated Hermes gateway workdir,
+requires verified Hermes provider auth before normal chat, asks for a dedicated
+Telegram bot token, hides token input, and writes only local Hermes environment
+state. It does not start the gateway, install autostart, contact Telegram, send
+messages, or place secrets in tracked files.
+
+WEAVE does not own OAuth or API-key entry. Configure providers through Hermes,
+then record a tiny non-secret canary:
+
+```bash
+HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
+bin/weave provider verify
+```
+
+If you only want deterministic Telegram commands for setup/QA, make that
+explicit:
+
+```bash
+bin/weave onboard --slash-only
+```
 
 To preview the flow without entering a token:
 
@@ -91,6 +124,27 @@ bin/weave stop
 `weave start` launches a Docker container with the local WEAVE root, Hermes
 home, and repository mounted in. Docker's `unless-stopped` restart policy makes
 the gateway restartable without installing host startup services.
+
+Inspect the durable local state even when the gateway is not running:
+
+```bash
+bin/weave status
+bin/weave provider status
+```
+
+Move reviewable runtime state to another machine or folder without exporting
+gateway credentials:
+
+```bash
+bin/weave export-runtime --out runtime-export.tar.gz
+bin/weave import-runtime runtime-export.tar.gz --runtime-home runs/runtime-home
+bin/weave verify-runtime --runtime-home runs/runtime-home
+```
+
+After import, `verify-runtime` reports `secret_relink_required: true` until the
+Telegram gateway credentials are intentionally linked in the new environment.
+Provider auth readiness is also shown; normal chat stays blocked until Hermes
+provider auth is reverified or slash-only mode is explicitly selected.
 
 For a host-local fallback instead of the default container:
 
@@ -172,6 +226,7 @@ container runtime profile check: ok
 Hermes provisioner check: ok
 runtime first-slice check: ok
 telegram command smoke: ok
+runtime migration CLI check: ok
 smoke: ok
 ```
 

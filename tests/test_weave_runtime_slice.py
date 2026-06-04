@@ -37,6 +37,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue((root / "runtime" / "source-map.json").exists())
             self.assertEqual(result["autonomy"]["mode"], "yolo")
             self.assertEqual(result["agent_profile"]["prompt_pack"], "hermes-gestalt-runtime-pack")
+            self.assertEqual(result["runtime_home_schema"], runtime.RUNTIME_HOME_SCHEMA)
             self.assertEqual(result["source_map_summary"]["canonical_source_id"], "weave-root")
             self.assertTrue(result["autonomy"]["llm_must_request_owner_authorization_for_hard_gates"])
             self.assertEqual(runtime.load_registry(root)["apps"], [])
@@ -71,6 +72,9 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(source_map["schema"], runtime.SOURCE_MAP_SCHEMA)
             self.assertEqual(source_map["canonical_source_id"], "weave-root")
             source_ids = {source["id"] for source in source_map["sources"]}
+            self.assertIn("runtime-home", source_ids)
+            runtime_home = [source for source in source_map["sources"] if source["id"] == "runtime-home"]
+            self.assertEqual(runtime_home[0]["layout_schema"], runtime.RUNTIME_HOME_SCHEMA)
             self.assertIn("app-registry", source_ids)
             token_sources = [source for source in source_map["sources"] if source["id"] == "local-api-token"]
             self.assertEqual(token_sources[0]["kind"], "secret_ref")
@@ -223,7 +227,10 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(status["payload"]["source_map"]["canonical_source_id"], "weave-root")
             self.assertIn("WEAVE Status", status["text"])
             self.assertIn("Agent", status["text"])
+            self.assertIn("Provider Auth", status["text"])
+            self.assertIn("state: missing_model_config", status["text"])
             self.assertIn("product_apps: 1", status["text"])
+            self.assertEqual(status["payload"]["provider_auth"]["state"], "missing_model_config")
 
             sources = runtime.dispatch_telegram_command(root, "/sources")
             self.assertEqual(sources["schema"], runtime.TELEGRAM_COMMAND_SCHEMA)

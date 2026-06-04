@@ -148,6 +148,28 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertEqual(container["image"], "weave-hermes-runtime:test")
             self.assertIn("Docker restart policy", container["supervision"])
 
+    def test_setup_derives_runtime_home_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            runtime_home = root / "runtime-home"
+
+            result = setup_runtime.main(
+                [
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--runtime-container-image",
+                    "weave-hermes-runtime:test",
+                    "--skip-foundation-onboarding",
+                ]
+            )
+
+            self.assertEqual(result, 0)
+            profile = json.loads((runtime_home / "runtime-profile.json").read_text(encoding="utf-8"))
+            self.assertEqual(profile["runtime_home"]["path"], str(runtime_home.resolve()))
+            self.assertEqual(profile["runtime_home"]["weave_state_path"], str((runtime_home / "weave-state").resolve()))
+            self.assertEqual(profile["runtime_home"]["hermes_home_path"], str((runtime_home / "hermes-home").resolve()))
+            self.assertTrue((runtime_home / "weave-state" / "apps" / "registry.json").exists())
+
     def test_installs_weave_runtime_plugin_and_enables_it(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -242,6 +264,39 @@ class SetupRuntimeTests(unittest.TestCase):
         self.assertIn('"command": "sources"', payload)
         self.assertIn('"command": "weave_status"', payload)
         self.assertIn("12345", weave_runtime_plugin._REGISTERED_TELEGRAM_CHATS)
+
+    def test_weave_runtime_plugin_blocks_normal_chat_when_provider_unverified(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            hermes_home = root / "hermes-home"
+            weave_root = root / "weave-root"
+            hermes_home.mkdir()
+            setup_runtime.weave_runtime_slice.setup_weave_root(weave_root)
+            event = SimpleNamespace(
+                text="hey there",
+                source=SimpleNamespace(platform=SimpleNamespace(value="telegram"), chat_id="12345", user_id="12345"),
+            )
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "HERMES_HOME": str(hermes_home),
+                    "WEAVE_RUNTIME_REPO": str(REPO_ROOT),
+                    "WEAVE_RUNTIME_ROOT": str(weave_root),
+                },
+                clear=False,
+            ):
+                response = weave_runtime_plugin._pre_gateway_dispatch_hook(
+                    "pre_gateway_dispatch",
+                    {"event": event},
+                )
+
+            self.assertIsInstance(response, dict)
+            assert isinstance(response, dict)
+            self.assertEqual(response["decision"], "handled")
+            self.assertIn("Hermes chat is not ready yet", response["message"])
+            self.assertIn("provider_auth: missing_model_config", response["message"])
+            self.assertNotIn("TELEGRAM_BOT_TOKEN", response["message"])
 
 
 if __name__ == "__main__":

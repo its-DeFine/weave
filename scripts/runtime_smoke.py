@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -23,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPO_ROOT / "packages" / "weave-tool"
 VALIDATOR = PACKAGE_ROOT / "scripts" / "validate_company_package.py"
 SETUP_RUNTIME = REPO_ROOT / "scripts" / "setup_runtime.py"
+WEAVE_CLI = REPO_ROOT / "scripts" / "weave_cli.py"
 
 LIFECYCLE_STAGES = [
     "1. Intent",
@@ -94,6 +96,10 @@ def validate_runtime_setup() -> int:
     foundation = profile.get("foundation_onboarding", {})
     if foundation.get("setup_required") is not True or foundation.get("required_before_app_work") is not True:
         print(f"runtime setup check did not require foundation onboarding: {foundation}", file=sys.stderr)
+        return 1
+    runtime_home = profile.get("runtime_home", {})
+    if runtime_home.get("schema") != weave_runtime_slice.RUNTIME_HOME_SCHEMA:
+        print(f"runtime setup check did not expose runtime home: {runtime_home}", file=sys.stderr)
         return 1
 
     print("runtime setup check: ok")
@@ -329,6 +335,90 @@ def validate_telegram_commands() -> int:
     return 0
 
 
+def validate_runtime_migration_cli() -> int:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        runtime_home = root / "runtime-home"
+        imported_home = root / "imported-runtime-home"
+        archive = root / "runtime-export.tar.gz"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SETUP_RUNTIME),
+                "--runtime-home",
+                str(runtime_home),
+                "--runtime-container-image",
+                "weave-hermes-runtime:smoke",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(result.stderr or result.stdout, end="", file=sys.stderr)
+            return result.returncode
+
+        hermes_home = runtime_home / "hermes-home"
+        hermes_home.mkdir(parents=True, exist_ok=True)
+        (hermes_home / ".env").write_text(
+            "TELEGRAM_BOT_" + "TOKEN=123456789:abcdefghijklmnopqrstuvwxyzABCDEF\n",
+            encoding="utf-8",
+        )
+        (hermes_home / ".env").chmod(0o600)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(WEAVE_CLI),
+                "export-runtime",
+                "--runtime-home",
+                str(runtime_home),
+                "--out",
+                str(archive),
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(result.stderr or result.stdout, end="", file=sys.stderr)
+            return result.returncode
+        with tarfile.open(archive, "r:gz") as tar:
+            names = tar.getnames()
+            if "runtime-home/hermes-home/.env" in names:
+                print("runtime export included Hermes env", file=sys.stderr)
+                return 1
+            if any("/tokens/" in name for name in names):
+                print("runtime export included token directory material", file=sys.stderr)
+                return 1
+
+        result = subprocess.run(
+            [sys.executable, str(WEAVE_CLI), "import-runtime", str(archive), "--runtime-home", str(imported_home)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(result.stderr or result.stdout, end="", file=sys.stderr)
+            return result.returncode
+
+        result = subprocess.run(
+            [sys.executable, str(WEAVE_CLI), "verify-runtime", "--runtime-home", str(imported_home)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(result.stderr or result.stdout, end="", file=sys.stderr)
+            return result.returncode
+        if "secret_relink_required: true" not in result.stdout:
+            print(f"runtime verify did not flag secret relink: {result.stdout}", file=sys.stderr)
+            return 1
+
+    print("runtime migration CLI check: ok")
+    return 0
+
+
 def main() -> int:
     print_lifecycle()
     rc = validate_package()
@@ -342,6 +432,8 @@ def main() -> int:
         rc = validate_runtime_slice()
     if rc == 0:
         rc = validate_telegram_commands()
+    if rc == 0:
+        rc = validate_runtime_migration_cli()
     if rc == 0:
         print("smoke: ok")
     else:

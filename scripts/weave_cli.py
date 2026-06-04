@@ -7,9 +7,11 @@ import argparse
 import contextlib
 import getpass
 import io
+import json
 import os
 import shutil
 import sys
+import tarfile
 import tempfile
 import subprocess
 from pathlib import Path
@@ -21,17 +23,38 @@ if str(SCRIPT_ROOT) not in sys.path:
 
 import setup_gateway
 import setup_runtime
+import weave_provider_auth
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PROFILE_OUT = REPO_ROOT / "runs" / "runtime-profile.json"
-DEFAULT_WEAVE_ROOT = REPO_ROOT / "runs" / "weave-root"
-DEFAULT_HERMES_HOME = setup_gateway.default_hermes_home()
+DEFAULT_RUNTIME_HOME = REPO_ROOT / "runs" / "runtime-home"
+DEFAULT_WEAVE_STATE_DIR = "weave-state"
+DEFAULT_HERMES_HOME_DIR = "hermes-home"
+DEFAULT_PROFILE_NAME = "runtime-profile.json"
+DEFAULT_PROFILE_OUT = DEFAULT_RUNTIME_HOME / DEFAULT_PROFILE_NAME
+DEFAULT_WEAVE_ROOT = DEFAULT_RUNTIME_HOME / DEFAULT_WEAVE_STATE_DIR
+DEFAULT_HERMES_HOME = DEFAULT_RUNTIME_HOME / DEFAULT_HERMES_HOME_DIR
 DEFAULT_APP_ID = "weave"
 DEFAULT_APP_NAME = "WEAVE App"
 DEFAULT_CONTAINER_IMAGE = "weave-hermes-runtime:local"
 DEFAULT_CONTAINER_NAME = "weave-hermes-runtime"
 CONTAINER_DOCKERFILE = REPO_ROOT / "container" / "hermes" / "Dockerfile"
+EXPORT_SCHEMA = "weave-runtime-export/v0.1"
+SECRET_EXPORT_NAMES = {
+    ".env",
+    "local-api-token",
+    "telegram.secret",
+}
+SECRET_EXPORT_SUFFIXES = {
+    ".key",
+    ".pem",
+    ".p12",
+    ".pfx",
+    ".secret",
+}
+SECRET_EXPORT_DIRS = {
+    "tokens",
+}
 
 
 class CliError(Exception):
@@ -62,6 +85,25 @@ def success(output: TextIO, text: str) -> None:
 
 def warn(output: TextIO, text: str) -> None:
     print_line(output, f"  [!] {text}")
+
+
+def resolve_runtime_paths(args: argparse.Namespace) -> argparse.Namespace:
+    runtime_home = getattr(args, "runtime_home", None) or DEFAULT_RUNTIME_HOME
+    args.runtime_home = runtime_home.expanduser().resolve()
+    if hasattr(args, "weave_root"):
+        weave_root = args.weave_root or (args.runtime_home / DEFAULT_WEAVE_STATE_DIR)
+        args.weave_root = weave_root.expanduser().resolve()
+    if hasattr(args, "hermes_home"):
+        hermes_home = args.hermes_home or (args.runtime_home / DEFAULT_HERMES_HOME_DIR)
+        args.hermes_home = hermes_home.expanduser().resolve()
+    if hasattr(args, "profile_out"):
+        profile_out = args.profile_out or (args.runtime_home / DEFAULT_PROFILE_NAME)
+        args.profile_out = profile_out.expanduser().resolve()
+    if hasattr(args, "export_out") and args.export_out:
+        args.export_out = args.export_out.expanduser().resolve()
+    if hasattr(args, "archive") and args.archive:
+        args.archive = args.archive.expanduser().resolve()
+    return args
 
 
 def prompt_text(input_stream: TextIO, output: TextIO, prompt: str, default: str | None = None) -> str:
@@ -141,6 +183,22 @@ def container_start_command(args: argparse.Namespace) -> list[str]:
         raise CliError("gateway env is missing; run weave onboard before weave start")
     if not gateway_workdir.exists():
         raise CliError("gateway workdir is missing; run weave onboard before weave start")
+    volume_flags: list[str] = []
+    seen_mounts: set[str] = set()
+    mount_specs = [
+        (REPO_ROOT, REPO_ROOT, "ro"),
+        (args.runtime_home, args.runtime_home, ""),
+    ]
+    for path in (args.weave_root, args.hermes_home):
+        if not path.is_relative_to(args.runtime_home):
+            mount_specs.append((path, path, ""))
+    for source, target, mode in mount_specs:
+        key = str(source)
+        if key in seen_mounts:
+            continue
+        seen_mounts.add(key)
+        suffix = f":{mode}" if mode else ""
+        volume_flags.extend(["-v", f"{source}:{target}{suffix}"])
     return [
         docker,
         "run",
@@ -154,15 +212,12 @@ def container_start_command(args: argparse.Namespace) -> list[str]:
         "-e",
         f"HERMES_HOME={args.hermes_home}",
         "-e",
+        "WEAVE_RUNTIME_HOME=" + str(args.runtime_home),
+        "-e",
         "WEAVE_RUNTIME_REPO=" + str(REPO_ROOT),
         "-e",
         "WEAVE_RUNTIME_ROOT=" + str(args.weave_root),
-        "-v",
-        f"{REPO_ROOT}:{REPO_ROOT}:ro",
-        "-v",
-        f"{args.weave_root}:{args.weave_root}",
-        "-v",
-        f"{args.hermes_home}:{args.hermes_home}",
+        *volume_flags,
         "-w",
         str(gateway_workdir),
         args.container_image,
@@ -196,27 +251,80 @@ def stop_container_runtime(args: argparse.Namespace, output: TextIO) -> int:
 
 
 def status_container_runtime(args: argparse.Namespace, output: TextIO) -> int:
-    docker = docker_binary()
-    result = run_process(
-        [
-            docker,
-            "ps",
-            "-a",
-            "--filter",
-            f"name={args.container_name}",
-            "--format",
-            "{{.Names}}\t{{.Status}}\t{{.Image}}",
-        ]
-    )
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout or "").strip()
-        raise CliError(f"container status failed\n{detail}")
-    text = result.stdout.strip()
-    if not text:
-        warn(output, f"container not found: {args.container_name}")
+    print_line(output, "WEAVE Runtime Status")
+    print_line(output, "")
+    print_line(output, "Runtime Home")
+    print_line(output, f"- runtime_home: {args.runtime_home} ({path_state(args.runtime_home)})")
+    print_line(output, f"- weave_state: {args.weave_root} ({path_state(args.weave_root)})")
+    print_line(output, f"- hermes_home: {args.hermes_home} ({path_state(args.hermes_home)})")
+    print_line(output, f"- profile: {getattr(args, 'profile_out', DEFAULT_PROFILE_OUT)} ({path_state(getattr(args, 'profile_out', DEFAULT_PROFILE_OUT))})")
+    env_file = args.hermes_home / ".env"
+    print_line(output, f"- gateway_env: {env_status(env_file)}")
+    provider_status = weave_provider_auth.provider_auth_status(args.hermes_home)
+    print_line(output, "")
+    print_line(output, "Provider Auth")
+    print_line(output, f"- state: {provider_status['state']}")
+    print_line(output, f"- chat_ready: {str(provider_status['chat_ready']).lower()}")
+    print_line(output, f"- provider: {provider_status['provider']}")
+    print_line(output, f"- model: {provider_status['model']}")
+    print_line(output, f"- secret_value_printed: {str(provider_status['secret_value_printed']).lower()}")
+    print_line(output, "")
+    print_line(output, "Container")
+    docker = shutil.which("docker")
+    if not docker:
+        print_line(output, "- state: unknown; container engine unavailable")
     else:
-        print_line(output, text)
+        result = run_process(
+            [
+                docker,
+                "ps",
+                "-a",
+                "--filter",
+                f"name={args.container_name}",
+                "--format",
+                "{{.Names}}\t{{.Status}}\t{{.Image}}",
+            ]
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            raise CliError(f"container status failed\n{detail}")
+        text = result.stdout.strip()
+        if not text:
+            print_line(output, f"- state: not_found; name={args.container_name}")
+        else:
+            print_line(output, f"- {text}")
+    print_line(output, "")
+    print_line(output, "State")
+    if setup_runtime.weave_runtime_slice.root_ready(args.weave_root):
+        status = setup_runtime.weave_runtime_slice.runtime_status_command(args.weave_root)
+        payload = status["payload"]
+        active = payload.get("active_app", {})
+        print_line(output, "- root_ready: true")
+        print_line(output, f"- product_apps: {payload.get('app_count', 0)}")
+        print_line(output, f"- system_apps: {payload.get('system_app_count', 0)}")
+        print_line(output, f"- active_app: {active.get('app_id') or 'none'}")
+        print_line(output, f"- blocked_apps: {payload.get('blocked_app_count', 0)}")
+        print_line(output, f"- next: {payload.get('next_action', '')}")
+    else:
+        print_line(output, "- root_ready: false")
+        print_line(output, "- next: run weave onboard")
     return 0
+
+
+def path_state(path: Path) -> str:
+    if path.exists() and path.is_dir():
+        return "directory"
+    if path.exists() and path.is_file():
+        return "file"
+    return "missing"
+
+
+def env_status(path: Path) -> str:
+    if not path.exists():
+        return "missing; secret_relink_required"
+    mode = path.stat().st_mode & 0o777
+    private = "private" if mode == 0o600 else f"mode={oct(mode)}"
+    return f"present; {private}; secret_value_printed=false"
 
 
 def run_setup_runtime(args: list[str]) -> str:
@@ -232,6 +340,8 @@ def runtime_setup_args(args: argparse.Namespace, *, include_gateway: bool, bot_f
     setup_args = [
         "--runtime",
         "hermes-default",
+        "--runtime-home",
+        str(args.runtime_home),
         "--weave-root",
         str(args.weave_root),
         "--gateway-hermes-home",
@@ -273,8 +383,44 @@ def runtime_setup_args(args: argparse.Namespace, *, include_gateway: bool, bot_f
 
 def print_token_guidance(output: TextIO) -> None:
     print_line(output, "  Create a dedicated Telegram bot with BotFather.")
+    print_line(output, "  Telegram steps:")
+    print_line(output, "    1. Open Telegram and search for BotFather.")
+    print_line(output, "    2. Send /newbot.")
+    print_line(output, "    3. Choose a bot display name for this WEAVE runtime.")
+    print_line(output, "    4. Choose a bot username ending in bot.")
+    print_line(output, "    5. Copy the token BotFather shows; keep it private.")
+    print_line(output, "    6. Return here and paste the token at the hidden prompt.")
     print_line(output, "  Do not reuse a live or production bot token.")
     print_line(output, "  WEAVE will hide token input and will not print it back.")
+
+
+def print_provider_guidance(output: TextIO, hermes_home: Path) -> None:
+    print_line(output, "  Hermes chat needs a verified model provider before normal messages can work.")
+    print_line(output, "  Fast path, if you use Nous Portal:")
+    print_line(output, f"    HERMES_HOME={hermes_home} hermes setup --portal")
+    print_line(output, "  Alternative provider/model picker:")
+    print_line(output, f"    HERMES_HOME={hermes_home} hermes model")
+    print_line(output, "  Then verify with:")
+    print_line(output, "    weave provider verify")
+    print_line(output, "  If you only want deterministic Telegram commands for now, rerun:")
+    print_line(output, "    weave onboard --slash-only")
+
+
+def require_or_mark_provider(args: argparse.Namespace, output: TextIO) -> dict[str, object]:
+    if args.slash_only:
+        weave_provider_auth.mark_slash_only(args.hermes_home)
+        status = weave_provider_auth.provider_auth_status(args.hermes_home)
+        warn(output, "slash-only mode selected; normal Hermes chat will stay blocked until provider auth is verified")
+        return status
+    status = weave_provider_auth.provider_auth_status(args.hermes_home)
+    if status["chat_ready"]:
+        success(output, f"provider verified: {status['provider']} / {status['model']}")
+        return status
+    print_provider_guidance(output, args.hermes_home)
+    raise CliError(
+        "provider authentication is required before normal Hermes chat; "
+        "configure Hermes provider auth or rerun with --slash-only for deterministic commands only"
+    )
 
 
 def onboard(
@@ -287,7 +433,7 @@ def onboard(
     hidden_reader = hidden_reader or default_hidden_reader
     print_header(output)
 
-    print_step(output, 1, 5, "Runtime", "Create a local WEAVE root and Hermes gateway context.")
+    print_step(output, 1, 6, "Runtime", "Create a local WEAVE root and Hermes gateway context.")
     if args.dry_run:
         warn(output, "dry run: no Telegram token will be requested or written")
         if args.local:
@@ -297,8 +443,12 @@ def onboard(
             print_line(output, "  mode: container")
             print_line(output, f"  would verify Docker and build image: {args.container_image}")
         print_line(output, f"  would create WEAVE root: {args.weave_root}")
+        print_line(output, f"  would use runtime home: {args.runtime_home}")
         print_line(output, f"  would prepare Hermes home: {args.hermes_home}")
-        print_step(output, 2, 5, "Telegram", "Pair a dedicated bot for this WEAVE runtime.")
+        print_step(output, 2, 6, "Provider", "Authenticate Hermes with a model provider before normal chat.")
+        print_provider_guidance(output, args.hermes_home)
+        print_line(output, "  would require provider auth or explicit --slash-only")
+        print_step(output, 3, 6, "Telegram", "Pair a dedicated bot for this WEAVE runtime.")
         print_token_guidance(output)
         warn(output, "stopped before token entry")
         print_line(output)
@@ -318,10 +468,16 @@ def onboard(
             success(output, f"Hermes image ready: {args.container_image}")
 
     run_setup_runtime(runtime_setup_args(args, include_gateway=False))
+    success(output, f"runtime home ready: {args.runtime_home}")
     success(output, f"WEAVE root ready: {args.weave_root}")
     success(output, f"Hermes home ready: {args.hermes_home}")
 
-    print_step(output, 2, 5, "Telegram", "Pair a dedicated bot for this WEAVE runtime.")
+    print_step(output, 2, 6, "Provider", "Authenticate Hermes with a model provider before normal chat.")
+    provider_status = require_or_mark_provider(args, output)
+    if provider_status["state"] == "slash_only":
+        print_line(output, "  /status, /apps, and /help will work without LLM provider auth.")
+
+    print_step(output, 3, 6, "Telegram", "Pair a dedicated bot for this WEAVE runtime.")
     print_token_guidance(output)
 
     allowed_users = args.allowed_users
@@ -363,10 +519,10 @@ def onboard(
     success(output, "WEAVE deterministic command plugin installed")
     success(output, "Gateway context refreshed")
 
-    print_step(output, 3, 5, "Foundation", "Hermes must collect owner, agent, app, inventory, and contract context.")
+    print_step(output, 4, 6, "Foundation", "Hermes must collect owner, agent, app, inventory, and contract context.")
     success(output, "Foundation onboarding files created")
 
-    print_step(output, 4, 5, "Run", "Start Hermes from the generated gateway workdir.")
+    print_step(output, 5, 6, "Run", "Start Hermes from the generated gateway workdir.")
     if args.local:
         print_line(output, "  Next local check:")
         print_line(output, "    hermes status")
@@ -378,7 +534,7 @@ def onboard(
         print_line(output, "  Inspect it:")
         print_line(output, "    weave status")
 
-    print_step(output, 5, 5, "Telegram Commands", "Use deterministic status before app work.")
+    print_step(output, 6, 6, "Telegram Commands", "Use deterministic status before app work.")
     print_line(output, "  /start")
     print_line(output, "  /status")
     print_line(output, "  /apps")
@@ -388,14 +544,174 @@ def onboard(
     return 0
 
 
+def should_exclude_export(path: Path) -> bool:
+    parts = {part.lower() for part in path.parts}
+    name = path.name.lower()
+    if any(part in SECRET_EXPORT_DIRS for part in parts):
+        return True
+    if name in SECRET_EXPORT_NAMES:
+        return True
+    if name.startswith(".weave-telegram-token."):
+        return True
+    if path.suffix.lower() in SECRET_EXPORT_SUFFIXES:
+        return True
+    return False
+
+
+def add_json_to_tar(tar: tarfile.TarFile, arcname: str, payload: dict[str, object]) -> None:
+    encoded = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    info = tarfile.TarInfo(arcname)
+    info.size = len(encoded)
+    info.mode = 0o600
+    tar.addfile(info, io.BytesIO(encoded))
+
+
+def export_runtime(args: argparse.Namespace, output: TextIO) -> int:
+    if not args.runtime_home.exists():
+        raise CliError("runtime home is missing; run weave onboard before exporting")
+    args.export_out.parent.mkdir(parents=True, exist_ok=True)
+    excluded: list[str] = []
+    included = 0
+    with tarfile.open(args.export_out, "w:gz") as tar:
+        for path in sorted(args.runtime_home.rglob("*")):
+            if path.resolve() == args.export_out:
+                continue
+            rel = path.relative_to(args.runtime_home)
+            if should_exclude_export(rel):
+                if path.is_file():
+                    excluded.append(rel.as_posix())
+                continue
+            tar.add(path, arcname=(Path("runtime-home") / rel).as_posix(), recursive=False)
+            included += 1
+        add_json_to_tar(
+            tar,
+            "runtime-home/export-manifest.json",
+            {
+                "schema": EXPORT_SCHEMA,
+                "runtime_home_layout": setup_runtime.weave_runtime_slice.RUNTIME_HOME_SCHEMA,
+                "secrets_exported": False,
+                "secret_relink_required_after_import": True,
+                "excluded_secret_refs": excluded,
+                "state_root": DEFAULT_WEAVE_STATE_DIR,
+                "hermes_home": DEFAULT_HERMES_HOME_DIR,
+            },
+        )
+    success(output, f"runtime export written: {args.export_out}")
+    print_line(output, f"  included_entries: {included}")
+    print_line(output, f"  excluded_secret_refs: {len(excluded)}")
+    print_line(output, "  secrets_exported: false")
+    return 0
+
+
+def safe_tar_member_path(member_name: str) -> Path:
+    path = Path(member_name)
+    if path.is_absolute() or ".." in path.parts:
+        raise CliError(f"unsafe archive member: {member_name}")
+    if path.parts and path.parts[0] == "runtime-home":
+        path = Path(*path.parts[1:]) if len(path.parts) > 1 else Path()
+    return path
+
+
+def import_runtime(args: argparse.Namespace, output: TextIO) -> int:
+    if not args.archive.exists():
+        raise CliError("runtime archive does not exist")
+    if args.runtime_home.exists() and any(args.runtime_home.iterdir()) and not args.force:
+        raise CliError("runtime home is not empty; rerun with --force to overlay imported state")
+    args.runtime_home.mkdir(parents=True, exist_ok=True)
+    imported = 0
+    skipped = 0
+    with tarfile.open(args.archive, "r:gz") as tar:
+        for member in tar.getmembers():
+            rel = safe_tar_member_path(member.name)
+            if not rel.parts:
+                continue
+            target = args.runtime_home / rel
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+                imported += 1
+                continue
+            if not member.isfile():
+                skipped += 1
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source = tar.extractfile(member)
+            if source is None:
+                skipped += 1
+                continue
+            with source, target.open("wb") as handle:
+                shutil.copyfileobj(source, handle)
+            os.chmod(target, 0o600 if target.name.endswith((".json", ".jsonl", ".md", ".txt", ".yaml", ".yml")) else 0o600)
+            imported += 1
+    if args.weave_root.exists():
+        setup_runtime.weave_runtime_slice.setup_weave_root(args.weave_root)
+    success(output, f"runtime import completed: {args.runtime_home}")
+    print_line(output, f"  imported_entries: {imported}")
+    print_line(output, f"  skipped_non_regular_entries: {skipped}")
+    print_line(output, "  secrets_imported: false")
+    print_line(output, "  next: relink gateway credentials, then run weave verify-runtime")
+    return 0
+
+
+def verify_runtime(args: argparse.Namespace, output: TextIO) -> int:
+    profile_ready = args.profile_out.exists()
+    root_ready = setup_runtime.weave_runtime_slice.root_ready(args.weave_root)
+    hermes_home_ready = args.hermes_home.exists()
+    env_ready = (args.hermes_home / ".env").exists()
+    gateway_ready = (args.weave_root / "runtime" / "hermes-gateway").exists()
+    print_line(output, "WEAVE Runtime Verify")
+    print_line(output, f"- runtime_home: {path_state(args.runtime_home)}")
+    print_line(output, f"- weave_state: {path_state(args.weave_root)}")
+    print_line(output, f"- hermes_home: {path_state(args.hermes_home)}")
+    print_line(output, f"- profile: {'ready' if profile_ready else 'missing'}")
+    print_line(output, f"- root_ready: {str(root_ready).lower()}")
+    print_line(output, f"- gateway_context: {'ready' if gateway_ready else 'missing'}")
+    print_line(output, f"- gateway_env: {env_status(args.hermes_home / '.env')}")
+    provider_status = weave_provider_auth.provider_auth_status(args.hermes_home)
+    print_line(output, f"- provider_auth: {provider_status['state']}")
+    print_line(output, f"- provider_chat_ready: {str(provider_status['chat_ready']).lower()}")
+    print_line(output, f"- secret_relink_required: {str(not env_ready).lower()}")
+    if root_ready:
+        status = setup_runtime.weave_runtime_slice.runtime_status_command(args.weave_root)
+        payload = status["payload"]
+        print_line(output, f"- product_apps: {payload.get('app_count', 0)}")
+        print_line(output, f"- blocked_apps: {payload.get('blocked_app_count', 0)}")
+        print_line(output, f"- next: {payload.get('next_action', '')}")
+    required_ready = args.runtime_home.exists() and root_ready and profile_ready
+    print_line(output, f"- verification: {'passed' if required_ready else 'failed'}")
+    return 0 if required_ready else 1
+
+
+def provider_command(args: argparse.Namespace, output: TextIO) -> int:
+    if args.provider_command in {None, "status"}:
+        weave_provider_auth.print_status(weave_provider_auth.provider_auth_status(args.hermes_home), output)
+        return 0
+    if args.provider_command == "mark-slash-only":
+        weave_provider_auth.mark_slash_only(args.hermes_home)
+        weave_provider_auth.print_status(weave_provider_auth.provider_auth_status(args.hermes_home), output)
+        return 0
+    if args.provider_command == "verify":
+        try:
+            weave_provider_auth.run_canary(
+                args.hermes_home,
+                hermes_command=args.hermes_command,
+                timeout=args.timeout,
+            )
+        except weave_provider_auth.ProviderAuthError as exc:
+            raise CliError(f"provider auth failed: {exc}") from exc
+        weave_provider_auth.print_status(weave_provider_auth.provider_auth_status(args.hermes_home), output)
+        return 0
+    raise CliError(f"unknown provider command: {args.provider_command}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="weave", description="WEAVE command line")
     subparsers = parser.add_subparsers(dest="command")
 
     onboard_parser = subparsers.add_parser("onboard", help="guided Hermes + Telegram setup")
-    onboard_parser.add_argument("--weave-root", type=Path, default=DEFAULT_WEAVE_ROOT)
-    onboard_parser.add_argument("--hermes-home", type=Path, default=DEFAULT_HERMES_HOME)
-    onboard_parser.add_argument("--profile-out", type=Path, default=DEFAULT_PROFILE_OUT)
+    onboard_parser.add_argument("--runtime-home", type=Path, default=None)
+    onboard_parser.add_argument("--weave-root", type=Path, default=None)
+    onboard_parser.add_argument("--hermes-home", type=Path, default=None)
+    onboard_parser.add_argument("--profile-out", type=Path, default=None)
     onboard_parser.add_argument("--foundation-app-id", default=DEFAULT_APP_ID)
     onboard_parser.add_argument("--foundation-app-name", default=DEFAULT_APP_NAME)
     onboard_parser.add_argument("--runtime-binary", type=Path)
@@ -405,6 +721,11 @@ def build_parser() -> argparse.ArgumentParser:
     onboard_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
     onboard_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
     onboard_parser.add_argument("--skip-image-build", action="store_true", help="use an existing container image")
+    onboard_parser.add_argument(
+        "--slash-only",
+        action="store_true",
+        help="complete setup for deterministic Telegram commands while leaving normal Hermes chat blocked",
+    )
     onboard_parser.add_argument("--token-file", type=Path, help=argparse.SUPPRESS)
     onboard_parser.add_argument("--allowed-users", help=argparse.SUPPRESS)
     onboard_parser.add_argument("--group-allowed-users", help=argparse.SUPPRESS)
@@ -423,10 +744,47 @@ def build_parser() -> argparse.ArgumentParser:
         ("status", "show containerized Hermes gateway status"),
     ):
         runtime_parser = subparsers.add_parser(name, help=help_text)
-        runtime_parser.add_argument("--weave-root", type=Path, default=DEFAULT_WEAVE_ROOT)
-        runtime_parser.add_argument("--hermes-home", type=Path, default=DEFAULT_HERMES_HOME)
+        runtime_parser.add_argument("--runtime-home", type=Path, default=None)
+        runtime_parser.add_argument("--weave-root", type=Path, default=None)
+        runtime_parser.add_argument("--hermes-home", type=Path, default=None)
+        runtime_parser.add_argument("--profile-out", type=Path, default=None)
         runtime_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
         runtime_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
+
+    export_parser = subparsers.add_parser("export-runtime", help="export reviewable runtime state without secrets")
+    export_parser.add_argument("--runtime-home", type=Path, default=None)
+    export_parser.add_argument("--weave-root", type=Path, default=None)
+    export_parser.add_argument("--hermes-home", type=Path, default=None)
+    export_parser.add_argument("--profile-out", type=Path, default=None)
+    export_parser.add_argument("--out", dest="export_out", type=Path, required=True)
+
+    import_parser = subparsers.add_parser("import-runtime", help="import a WEAVE runtime state archive")
+    import_parser.add_argument("archive", type=Path)
+    import_parser.add_argument("--runtime-home", type=Path, default=None)
+    import_parser.add_argument("--weave-root", type=Path, default=None)
+    import_parser.add_argument("--hermes-home", type=Path, default=None)
+    import_parser.add_argument("--profile-out", type=Path, default=None)
+    import_parser.add_argument("--force", action="store_true")
+
+    verify_parser = subparsers.add_parser("verify-runtime", help="verify runtime-home state and migration blockers")
+    verify_parser.add_argument("--runtime-home", type=Path, default=None)
+    verify_parser.add_argument("--weave-root", type=Path, default=None)
+    verify_parser.add_argument("--hermes-home", type=Path, default=None)
+    verify_parser.add_argument("--profile-out", type=Path, default=None)
+    verify_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
+    verify_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
+
+    provider_parser = subparsers.add_parser("provider", help="inspect or verify Hermes provider auth")
+    provider_parser.add_argument("--runtime-home", type=Path, default=None)
+    provider_parser.add_argument("--weave-root", type=Path, default=None)
+    provider_parser.add_argument("--hermes-home", type=Path, default=None)
+    provider_parser.add_argument("--profile-out", type=Path, default=None)
+    provider_subparsers = provider_parser.add_subparsers(dest="provider_command")
+    provider_subparsers.add_parser("status", help="show non-secret provider readiness")
+    provider_subparsers.add_parser("mark-slash-only", help="record slash-only mode")
+    provider_verify = provider_subparsers.add_parser("verify", help="run Hermes chat canary")
+    provider_verify.add_argument("--hermes-command", default="hermes")
+    provider_verify.add_argument("--timeout", type=int, default=90)
     return parser
 
 
@@ -439,6 +797,8 @@ def main(
 ) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.command:
+        args = resolve_runtime_paths(args)
     try:
         if args.command == "onboard":
             return onboard(args, input_stream=input_stream, output=output, hidden_reader=hidden_reader)
@@ -448,6 +808,14 @@ def main(
             return stop_container_runtime(args, output)
         if args.command == "status":
             return status_container_runtime(args, output)
+        if args.command == "export-runtime":
+            return export_runtime(args, output)
+        if args.command == "import-runtime":
+            return import_runtime(args, output)
+        if args.command == "verify-runtime":
+            return verify_runtime(args, output)
+        if args.command == "provider":
+            return provider_command(args, output)
         parser.print_help(output)
         return 0
     except (CliError, setup_gateway.GatewaySetupError, setup_runtime.RuntimeSetupError) as exc:

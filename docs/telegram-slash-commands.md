@@ -3,9 +3,10 @@
 Status: public-safe command contract
 
 WEAVE uses Telegram for Hermes conversation and for deterministic runtime
-status. There is no dashboard/UI in this phase. Normal messages go to Hermes.
-Messages that begin with a WEAVE slash command are intercepted by the gateway
-and answered from the local WEAVE runtime state without model-generated text.
+status. There is no dashboard/UI in this phase. Normal messages go to Hermes
+only after provider auth is verified. Messages that begin with a WEAVE slash
+command are intercepted by the gateway and answered from the local WEAVE runtime
+state without model-generated text.
 
 Every WEAVE slash-command response uses this contract:
 
@@ -52,6 +53,12 @@ Agent
 - model=gpt-5.5; reasoning=xhigh; adapter=codex; prompt_pack=hermes-gestalt-runtime-pack
 - autonomy=yolo
 
+Provider Auth
+- state: verified
+- chat_ready: true
+- provider: nous
+- model: anthropic/claude-sonnet-4
+
 Apps
 - active_app: visual-novel
 - product_apps: 1
@@ -63,8 +70,10 @@ Attention
 - visual-novel: owner questions
 
 System
+- runtime_home: runs/runtime-home
+- state_root: runs/runtime-home/weave-state
 - root_ready: true
-- sources: 6
+- sources: 7
 - canonical_source: weave-root
 
 Next
@@ -139,7 +148,10 @@ It should call the WEAVE runtime command handler and return the resulting
 the answer.
 
 Non-command messages remain Hermes conversation. This keeps the communication
-channel simple: chat for intent and app work, slash commands for state.
+channel simple: chat for intent and app work, slash commands for state. If
+provider auth is missing or unverified, normal messages should return guided
+setup instructions rather than a vague provider error, while `/status`, `/apps`,
+and `/help` should continue to work.
 
 When information is missing, Hermes should not dead-end the conversation. It
 should enter an elicitation loop: explain what is missing, why it matters, ask

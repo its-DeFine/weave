@@ -93,6 +93,57 @@ def _dispatch(command_text: str) -> str:
     return str(text) if text else "WEAVE runtime command returned no output."
 
 
+def _event_text(event: Any) -> str:
+    if event is None:
+        return ""
+    if isinstance(event, dict):
+        return str(event.get("text") or event.get("message") or event.get("content") or "")
+    for name in ("text", "message", "content"):
+        value = getattr(event, name, "")
+        if isinstance(value, str) and value.strip():
+            return value
+    message = getattr(event, "message", None)
+    if message is not None:
+        return _event_text(message)
+    return ""
+
+
+def _provider_gate_message() -> str | None:
+    hermes_home = os.environ.get("HERMES_HOME", "").strip()
+    if not hermes_home:
+        return None
+    repo, _root = _runtime_paths()
+    if repo is not None:
+        scripts_dir = repo / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+    try:
+        provider_auth = importlib.import_module("weave_provider_auth")
+        status = provider_auth.provider_auth_status(Path(hermes_home))
+    except Exception as exc:
+        logger.debug("could not inspect WEAVE provider auth status: %s", exc)
+        return None
+    if status.get("chat_ready"):
+        return None
+    state = status.get("state", "unknown")
+    blocker = status.get("blocker") or "Hermes provider auth is not verified."
+    return "\n".join(
+        [
+            "Hermes chat is not ready yet.",
+            "",
+            f"- provider_auth: {state}",
+            f"- blocker: {blocker}",
+            "",
+            "Deterministic WEAVE commands still work:",
+            "- /status",
+            "- /apps",
+            "- /help",
+            "",
+            "To enable normal chat, run provider setup in the Hermes environment and then `weave provider verify`.",
+        ]
+    )
+
+
 def _csv_ids(name: str) -> set[str]:
     return {item.strip() for item in os.environ.get(name, "").split(",") if item.strip()}
 
@@ -167,8 +218,16 @@ def _status_hook(_event_type: str, _context: dict[str, Any]) -> dict[str, str]:
     return {"decision": "handled", "message": _dispatch("/status")}
 
 
-def _pre_gateway_dispatch_hook(_event_type: str, context: dict[str, Any]) -> None:
-    _register_telegram_menu_for_event(context.get("event"))
+def _pre_gateway_dispatch_hook(_event_type: str, context: dict[str, Any]) -> dict[str, str] | None:
+    event = context.get("event")
+    _register_telegram_menu_for_event(event)
+    text = _event_text(event).strip()
+    if not text or text.startswith("/"):
+        return None
+    message = _provider_gate_message()
+    if not message:
+        return None
+    return {"decision": "handled", "message": message}
 
 
 def register(ctx) -> None:
