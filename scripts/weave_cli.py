@@ -23,7 +23,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 
 import setup_gateway
 import setup_runtime
-import weave_provider_auth
+import weave_hermes_setup
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -260,14 +260,14 @@ def status_container_runtime(args: argparse.Namespace, output: TextIO) -> int:
     print_line(output, f"- profile: {getattr(args, 'profile_out', DEFAULT_PROFILE_OUT)} ({path_state(getattr(args, 'profile_out', DEFAULT_PROFILE_OUT))})")
     env_file = args.hermes_home / ".env"
     print_line(output, f"- gateway_env: {env_status(env_file)}")
-    provider_status = weave_provider_auth.provider_auth_status(args.hermes_home)
+    hermes_setup = weave_hermes_setup.hermes_setup_status(args.hermes_home)
     print_line(output, "")
-    print_line(output, "Provider Auth")
-    print_line(output, f"- state: {provider_status['state']}")
-    print_line(output, f"- chat_ready: {str(provider_status['chat_ready']).lower()}")
-    print_line(output, f"- provider: {provider_status['provider']}")
-    print_line(output, f"- model: {provider_status['model']}")
-    print_line(output, f"- secret_value_printed: {str(provider_status['secret_value_printed']).lower()}")
+    print_line(output, "Hermes Setup")
+    print_line(output, f"- state: {hermes_setup['state']}")
+    print_line(output, f"- normal_chat_assumed_ready: {str(hermes_setup['normal_chat_assumed_ready']).lower()}")
+    print_line(output, f"- route_verification_owner: {hermes_setup['route_verification_owner']}")
+    print_line(output, f"- hermes_binary_found: {str(hermes_setup['binary']['found']).lower()}")
+    print_line(output, f"- secret_value_printed: {str(hermes_setup['secret_value_printed']).lower()}")
     print_line(output, "")
     print_line(output, "Container")
     docker = shutil.which("docker")
@@ -394,32 +394,38 @@ def print_token_guidance(output: TextIO) -> None:
     print_line(output, "  WEAVE will hide token input and will not print it back.")
 
 
-def print_provider_guidance(output: TextIO, hermes_home: Path) -> None:
-    print_line(output, "  Hermes chat needs a verified model provider before normal messages can work.")
-    print_line(output, "  Fast path, if you use Nous Portal:")
+def print_hermes_setup_guidance(output: TextIO, hermes_home: Path) -> None:
+    print_line(output, "  Hermes must be installed and set up before WEAVE normal-chat onboarding.")
+    print_line(output, "  First complete normal Hermes setup:")
     print_line(output, f"    HERMES_HOME={hermes_home} hermes setup --portal")
-    print_line(output, "  Alternative provider/model picker:")
     print_line(output, f"    HERMES_HOME={hermes_home} hermes model")
-    print_line(output, "  Then verify with:")
-    print_line(output, "    weave provider verify")
-    print_line(output, "  If you only want deterministic Telegram commands for now, rerun:")
+    print_line(output, "  Confirm Hermes itself can chat, then rerun:")
+    print_line(output, "    weave onboard --hermes-ready")
+    print_line(output, "  Or record readiness directly:")
+    print_line(output, "    weave hermes confirm-ready")
+    print_line(output, "  For deterministic Telegram commands only, rerun:")
     print_line(output, "    weave onboard --slash-only")
 
 
-def require_or_mark_provider(args: argparse.Namespace, output: TextIO) -> dict[str, object]:
+def require_or_mark_hermes(args: argparse.Namespace, output: TextIO) -> dict[str, object]:
     if args.slash_only:
-        weave_provider_auth.mark_slash_only(args.hermes_home)
-        status = weave_provider_auth.provider_auth_status(args.hermes_home)
-        warn(output, "slash-only mode selected; normal Hermes chat will stay blocked until provider auth is verified")
+        weave_hermes_setup.mark_slash_only(args.hermes_home)
+        status = weave_hermes_setup.hermes_setup_status(args.hermes_home)
+        warn(output, "slash-only mode selected; normal Hermes chat will stay blocked until Hermes setup is confirmed")
         return status
-    status = weave_provider_auth.provider_auth_status(args.hermes_home)
-    if status["chat_ready"]:
-        success(output, f"provider verified: {status['provider']} / {status['model']}")
+    if args.hermes_ready:
+        weave_hermes_setup.confirm_ready(args.hermes_home)
+        status = weave_hermes_setup.hermes_setup_status(args.hermes_home)
+        success(output, "Hermes setup confirmed by operator")
         return status
-    print_provider_guidance(output, args.hermes_home)
+    status = weave_hermes_setup.hermes_setup_status(args.hermes_home)
+    if status["normal_chat_assumed_ready"]:
+        success(output, "Hermes setup already confirmed")
+        return status
+    print_hermes_setup_guidance(output, args.hermes_home)
     raise CliError(
-        "provider authentication is required before normal Hermes chat; "
-        "configure Hermes provider auth or rerun with --slash-only for deterministic commands only"
+        "normal Hermes setup must be completed or explicitly confirmed before WEAVE normal-chat onboarding; "
+        "rerun with --hermes-ready after Hermes works, or --slash-only for deterministic commands only"
     )
 
 
@@ -433,8 +439,11 @@ def onboard(
     hidden_reader = hidden_reader or default_hidden_reader
     print_header(output)
 
-    print_step(output, 1, 6, "Runtime", "Create a local WEAVE root and Hermes gateway context.")
+    print_step(output, 1, 6, "Hermes Setup", "Confirm normal Hermes setup before WEAVE normal chat.")
     if args.dry_run:
+        print_hermes_setup_guidance(output, args.hermes_home)
+        print_line(output, "  would require normal Hermes setup confirmation or explicit --slash-only")
+        print_step(output, 2, 6, "Runtime", "Create a local WEAVE root and Hermes gateway context.")
         warn(output, "dry run: no Telegram token will be requested or written")
         if args.local:
             print_line(output, "  mode: local host install")
@@ -445,9 +454,6 @@ def onboard(
         print_line(output, f"  would create WEAVE root: {args.weave_root}")
         print_line(output, f"  would use runtime home: {args.runtime_home}")
         print_line(output, f"  would prepare Hermes home: {args.hermes_home}")
-        print_step(output, 2, 6, "Provider", "Authenticate Hermes with a model provider before normal chat.")
-        print_provider_guidance(output, args.hermes_home)
-        print_line(output, "  would require provider auth or explicit --slash-only")
         print_step(output, 3, 6, "Telegram", "Pair a dedicated bot for this WEAVE runtime.")
         print_token_guidance(output)
         warn(output, "stopped before token entry")
@@ -456,6 +462,11 @@ def onboard(
         print_line(output, "  weave onboard")
         return 0
 
+    hermes_setup = require_or_mark_hermes(args, output)
+    if hermes_setup["state"] == "slash_only":
+        print_line(output, "  /status, /apps, and /help will work without normal Hermes chat.")
+
+    print_step(output, 2, 6, "Runtime", "Create a local WEAVE root and Hermes gateway context.")
     if args.local:
         success(output, "local mode selected")
     else:
@@ -471,11 +482,6 @@ def onboard(
     success(output, f"runtime home ready: {args.runtime_home}")
     success(output, f"WEAVE root ready: {args.weave_root}")
     success(output, f"Hermes home ready: {args.hermes_home}")
-
-    print_step(output, 2, 6, "Provider", "Authenticate Hermes with a model provider before normal chat.")
-    provider_status = require_or_mark_provider(args, output)
-    if provider_status["state"] == "slash_only":
-        print_line(output, "  /status, /apps, and /help will work without LLM provider auth.")
 
     print_step(output, 3, 6, "Telegram", "Pair a dedicated bot for this WEAVE runtime.")
     print_token_guidance(output)
@@ -666,9 +672,9 @@ def verify_runtime(args: argparse.Namespace, output: TextIO) -> int:
     print_line(output, f"- root_ready: {str(root_ready).lower()}")
     print_line(output, f"- gateway_context: {'ready' if gateway_ready else 'missing'}")
     print_line(output, f"- gateway_env: {env_status(args.hermes_home / '.env')}")
-    provider_status = weave_provider_auth.provider_auth_status(args.hermes_home)
-    print_line(output, f"- provider_auth: {provider_status['state']}")
-    print_line(output, f"- provider_chat_ready: {str(provider_status['chat_ready']).lower()}")
+    hermes_setup = weave_hermes_setup.hermes_setup_status(args.hermes_home)
+    print_line(output, f"- hermes_setup: {hermes_setup['state']}")
+    print_line(output, f"- hermes_normal_chat_assumed_ready: {str(hermes_setup['normal_chat_assumed_ready']).lower()}")
     print_line(output, f"- secret_relink_required: {str(not env_ready).lower()}")
     if root_ready:
         status = setup_runtime.weave_runtime_slice.runtime_status_command(args.weave_root)
@@ -681,26 +687,28 @@ def verify_runtime(args: argparse.Namespace, output: TextIO) -> int:
     return 0 if required_ready else 1
 
 
-def provider_command(args: argparse.Namespace, output: TextIO) -> int:
-    if args.provider_command in {None, "status"}:
-        weave_provider_auth.print_status(weave_provider_auth.provider_auth_status(args.hermes_home), output)
+def hermes_command(args: argparse.Namespace, output: TextIO) -> int:
+    if args.hermes_command_name in {None, "status"}:
+        weave_hermes_setup.print_status(
+            weave_hermes_setup.hermes_setup_status(args.hermes_home, hermes_command=args.hermes_command),
+            output,
+        )
         return 0
-    if args.provider_command == "mark-slash-only":
-        weave_provider_auth.mark_slash_only(args.hermes_home)
-        weave_provider_auth.print_status(weave_provider_auth.provider_auth_status(args.hermes_home), output)
+    if args.hermes_command_name == "confirm-ready":
+        weave_hermes_setup.confirm_ready(args.hermes_home)
+        weave_hermes_setup.print_status(
+            weave_hermes_setup.hermes_setup_status(args.hermes_home, hermes_command=args.hermes_command),
+            output,
+        )
         return 0
-    if args.provider_command == "verify":
-        try:
-            weave_provider_auth.run_canary(
-                args.hermes_home,
-                hermes_command=args.hermes_command,
-                timeout=args.timeout,
-            )
-        except weave_provider_auth.ProviderAuthError as exc:
-            raise CliError(f"provider auth failed: {exc}") from exc
-        weave_provider_auth.print_status(weave_provider_auth.provider_auth_status(args.hermes_home), output)
+    if args.hermes_command_name == "mark-slash-only":
+        weave_hermes_setup.mark_slash_only(args.hermes_home)
+        weave_hermes_setup.print_status(
+            weave_hermes_setup.hermes_setup_status(args.hermes_home, hermes_command=args.hermes_command),
+            output,
+        )
         return 0
-    raise CliError(f"unknown provider command: {args.provider_command}")
+    raise CliError(f"unknown Hermes command: {args.hermes_command_name}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -725,6 +733,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--slash-only",
         action="store_true",
         help="complete setup for deterministic Telegram commands while leaving normal Hermes chat blocked",
+    )
+    onboard_parser.add_argument(
+        "--hermes-ready",
+        action="store_true",
+        help="confirm normal Hermes setup already works",
     )
     onboard_parser.add_argument("--token-file", type=Path, help=argparse.SUPPRESS)
     onboard_parser.add_argument("--allowed-users", help=argparse.SUPPRESS)
@@ -774,17 +787,16 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
     verify_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
 
-    provider_parser = subparsers.add_parser("provider", help="inspect or verify Hermes provider auth")
-    provider_parser.add_argument("--runtime-home", type=Path, default=None)
-    provider_parser.add_argument("--weave-root", type=Path, default=None)
-    provider_parser.add_argument("--hermes-home", type=Path, default=None)
-    provider_parser.add_argument("--profile-out", type=Path, default=None)
-    provider_subparsers = provider_parser.add_subparsers(dest="provider_command")
-    provider_subparsers.add_parser("status", help="show non-secret provider readiness")
-    provider_subparsers.add_parser("mark-slash-only", help="record slash-only mode")
-    provider_verify = provider_subparsers.add_parser("verify", help="run Hermes chat canary")
-    provider_verify.add_argument("--hermes-command", default="hermes")
-    provider_verify.add_argument("--timeout", type=int, default=90)
+    hermes_parser = subparsers.add_parser("hermes", help="inspect or record normal Hermes setup readiness")
+    hermes_parser.add_argument("--runtime-home", type=Path, default=None)
+    hermes_parser.add_argument("--weave-root", type=Path, default=None)
+    hermes_parser.add_argument("--hermes-home", type=Path, default=None)
+    hermes_parser.add_argument("--profile-out", type=Path, default=None)
+    hermes_parser.add_argument("--hermes-command", default="hermes")
+    hermes_subparsers = hermes_parser.add_subparsers(dest="hermes_command_name")
+    hermes_subparsers.add_parser("status", help="show non-secret Hermes setup readiness")
+    hermes_subparsers.add_parser("confirm-ready", help="record that normal Hermes setup already works")
+    hermes_subparsers.add_parser("mark-slash-only", help="record slash-only mode")
     return parser
 
 
@@ -814,8 +826,8 @@ def main(
             return import_runtime(args, output)
         if args.command == "verify-runtime":
             return verify_runtime(args, output)
-        if args.command == "provider":
-            return provider_command(args, output)
+        if args.command == "hermes":
+            return hermes_command(args, output)
         parser.print_help(output)
         return 0
     except (CliError, setup_gateway.GatewaySetupError, setup_runtime.RuntimeSetupError) as exc:

@@ -45,19 +45,19 @@ class WeaveCliTests(unittest.TestCase):
             text = output.getvalue()
             self.assertEqual(rc, 0)
             self.assertIn("WEAVE Onboarding", text)
-            self.assertIn("Step 1/6  Runtime", text)
+            self.assertIn("Step 1/6  Hermes Setup", text)
+            self.assertIn("would require normal Hermes setup confirmation or explicit --slash-only", text)
+            self.assertIn("Step 2/6  Runtime", text)
             self.assertIn("mode: container", text)
             self.assertIn("would verify Docker and build image", text)
             self.assertIn(f"would use runtime home: {runtime_home.resolve()}", text)
-            self.assertIn("Step 2/6  Provider", text)
-            self.assertIn("would require provider auth or explicit --slash-only", text)
             self.assertIn("Step 3/6  Telegram", text)
             self.assertIn("Create a dedicated Telegram bot with BotFather", text)
             self.assertIn("stopped before token entry", text)
             self.assertFalse((runtime_home / "runtime-profile.json").exists())
             self.assertFalse((runtime_home / "hermes-home" / ".env").exists())
 
-    def test_onboard_requires_provider_auth_unless_slash_only(self) -> None:
+    def test_onboard_requires_hermes_setup_confirmation_unless_slash_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime_home = Path(tmpdir) / "runtime-home"
             output = io.StringIO()
@@ -79,8 +79,8 @@ class WeaveCliTests(unittest.TestCase):
 
             text = output.getvalue()
             self.assertEqual(rc, 1)
-            self.assertIn("Step 2/6  Provider", text)
-            self.assertIn("provider authentication is required before normal Hermes chat", text)
+            self.assertIn("Step 1/6  Hermes Setup", text)
+            self.assertIn("normal Hermes setup must be completed", text)
             self.assertFalse((runtime_home / "hermes-home" / ".env").exists())
 
     def test_onboard_interactive_configures_gateway_without_printing_token(self) -> None:
@@ -119,8 +119,8 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(profile["runtime_home"]["weave_state_path"], str((runtime_home / "weave-state").resolve()))
             self.assertTrue(profile["gateway"]["token_loaded"])
             self.assertTrue(profile["gateway"]["runtime_config_written"])
-            self.assertEqual(profile["provider_auth"]["state"], "slash_only")
-            self.assertFalse(profile["provider_auth"]["chat_ready"])
+            self.assertEqual(profile["hermes_setup"]["state"], "slash_only")
+            self.assertFalse(profile["hermes_setup"]["normal_chat_assumed_ready"])
             self.assertFalse(list((runtime_home / "weave-state" / "runtime" / "tokens").glob(".weave-telegram-token.*")))
 
     def test_container_start_command_mounts_repo_runtime_and_hermes_home(self) -> None:
@@ -215,39 +215,27 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(rc, 0, verify_output.getvalue())
             self.assertIn("secret_relink_required: true", verify_output.getvalue())
 
-    def test_provider_verify_records_non_secret_canary_status(self) -> None:
+    def test_hermes_confirm_ready_records_non_secret_setup_status(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             runtime_home = root / "runtime-home"
-            hermes_home = runtime_home / "hermes-home"
-            hermes_home.mkdir(parents=True)
-            (hermes_home / "config.yaml").write_text(
-                "model:\n  provider: openai\n  default: gpt-test\n  api_mode: api_key\n",
-                encoding="utf-8",
-            )
-            (hermes_home / ".env").write_text("OPENAI_API_KEY" + "=fixture-openai-key\n", encoding="utf-8")
-            fake_hermes = root / "fake-hermes"
-            fake_hermes.write_text("#!/bin/sh\nprintf 'WEAVE_PROVIDER_OK\\n'\n", encoding="utf-8")
-            fake_hermes.chmod(0o700)
 
             output = io.StringIO()
             rc = weave_cli.main(
                 [
-                    "provider",
+                    "hermes",
                     "--runtime-home",
                     str(runtime_home),
-                    "verify",
-                    "--hermes-command",
-                    str(fake_hermes),
+                    "confirm-ready",
                 ],
                 output=output,
             )
 
             text = output.getvalue()
             self.assertEqual(rc, 0, text)
-            self.assertIn("state: verified", text)
+            self.assertIn("state: operator_confirmed_ready", text)
+            self.assertIn("route_verification_owner: hermes", text)
             self.assertIn("secret_value_printed: false", text)
-            self.assertNotIn("fixture-openai-key", text)
 
 
 if __name__ == "__main__":

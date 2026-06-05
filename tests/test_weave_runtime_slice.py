@@ -227,10 +227,10 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(status["payload"]["source_map"]["canonical_source_id"], "weave-root")
             self.assertIn("WEAVE Status", status["text"])
             self.assertIn("Agent", status["text"])
-            self.assertIn("Provider Auth", status["text"])
-            self.assertIn("state: missing_model_config", status["text"])
+            self.assertIn("Hermes Setup", status["text"])
+            self.assertIn("state: needs_hermes_setup", status["text"])
             self.assertIn("product_apps: 1", status["text"])
-            self.assertEqual(status["payload"]["provider_auth"]["state"], "missing_model_config")
+            self.assertEqual(status["payload"]["hermes_setup"]["state"], "needs_hermes_setup")
 
             sources = runtime.dispatch_telegram_command(root, "/sources")
             self.assertEqual(sources["schema"], runtime.TELEGRAM_COMMAND_SCHEMA)

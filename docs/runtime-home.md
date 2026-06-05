@@ -28,7 +28,7 @@ runs/runtime-home/
   hermes-home/
     config.yaml
     .env                  # local secret-bearing file, never exported by default
-    weave-provider-auth.json # non-secret chat readiness/canary status
+    weave-hermes-setup.json # non-secret Hermes setup readiness status
     plugins/weave-runtime/
 ```
 
@@ -53,12 +53,12 @@ The current first slice has no dashboard UI.
 Runtime surfaces:
 
 - `bin/weave onboard`: guided setup. Builds or selects the Hermes runtime,
-  creates the runtime home, writes foundation onboarding context, checks Hermes
-  provider readiness, and configures Telegram gateway credentials when the owner
-  supplies them.
-- `bin/weave provider status`: reports non-secret provider/model/chat readiness.
-- `bin/weave provider verify`: runs a tiny Hermes chat canary and records only
-  pass/fail readiness metadata.
+  creates the runtime home, writes foundation onboarding context, records
+  whether normal Hermes setup has been confirmed, and configures Telegram
+  gateway credentials when the owner supplies them.
+- `bin/weave hermes status`: reports non-secret Hermes setup readiness.
+- `bin/weave hermes confirm-ready`: records that Hermes itself has already been
+  installed, authenticated, and verified for normal chat by the operator.
 - `bin/weave start`: starts the containerized Hermes gateway from the generated
   gateway workdir.
 - `bin/weave stop`: stops the gateway container.
@@ -78,7 +78,7 @@ Hermes cannot safely delegate to itself.
 Use Telegram commands for operator state:
 
 - `/status`: the WEAVE wall, including model/profile, active app, app counts,
-  provider-auth state, blockers, runtime home, source count, ledger count, and
+  Hermes setup state, blockers, runtime home, source count, ledger count, and
   next action.
 - `/apps`: compact product app portfolio.
 - `/status <app_id>` or `/app <app_id>`: one app wall with lifecycle row,
@@ -112,8 +112,8 @@ default:
 After import, `weave verify-runtime` reports whether credential relinking is
 required. This is deliberate: app context, ledgers, lifecycle artifacts, source
 maps, and profiles can move; raw gateway credentials must be relinked in the
-new environment. Provider readiness must also be reverified unless the runtime
-is explicitly put into slash-only mode.
+new environment. Hermes setup readiness must also be reconfirmed unless the
+runtime is explicitly put into slash-only mode.
 
 ## Review Rules
 
@@ -125,7 +125,7 @@ Human review should be able to answer:
 - What changed recently in each app?
 - What is missing before Hermes can continue?
 - Which model, reasoning effort, adapter, prompt pack, and skills were active?
-- Is normal Hermes chat provider auth verified, slash-only, or blocked?
+- Is normal Hermes setup confirmed, slash-only, or blocked?
 - Which files are canonical state versus runtime process state?
 - Is the gateway running, missing, or only configured?
 - Are credentials linked, or is relinking required?

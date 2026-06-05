@@ -287,7 +287,7 @@ class SetupRuntimeTests(unittest.TestCase):
         self.assertIn('"command": "weave_status"', payload)
         self.assertIn("12345", weave_runtime_plugin._REGISTERED_TELEGRAM_CHATS)
 
-    def test_weave_runtime_plugin_blocks_normal_chat_when_provider_unverified(self) -> None:
+    def test_weave_runtime_plugin_blocks_normal_chat_when_hermes_setup_unconfirmed(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             hermes_home = root / "hermes-home"
@@ -316,8 +316,8 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertIsInstance(response, dict)
             assert isinstance(response, dict)
             self.assertEqual(response["decision"], "handled")
-            self.assertIn("Hermes chat is not ready yet", response["message"])
-            self.assertIn("provider_auth: missing_model_config", response["message"])
+            self.assertIn("Hermes setup has not been confirmed", response["message"])
+            self.assertIn("hermes_setup: needs_hermes_setup", response["message"])
             self.assertNotIn("TELEGRAM_BOT_TOKEN", response["message"])
 
 

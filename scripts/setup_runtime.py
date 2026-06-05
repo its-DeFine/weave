@@ -29,7 +29,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 import weave_runtime_slice
 import provision_hermes
 import setup_gateway
-import weave_provider_auth
+import weave_hermes_setup
 
 try:
     import yaml
@@ -526,15 +526,16 @@ def runtime_profile(
             ],
             "deterministic_slash_commands": sorted(weave_runtime_slice.TELEGRAM_COMMANDS),
         },
-        "provider_auth": {
-            "schema": weave_provider_auth.SCHEMA,
-            "required_for_normal_chat": runtime == "hermes-default",
-            "status_command": "weave provider status",
-            "verify_command": "weave provider verify",
+        "hermes_setup": {
+            "schema": weave_hermes_setup.SCHEMA,
+            "required_before_normal_chat": runtime == "hermes-default",
+            "status_command": "weave hermes status",
+            "confirm_command": "weave hermes confirm-ready",
             "slash_only_command": "weave onboard --slash-only",
             "hermes_home": str(hermes_home),
-            "state": weave_provider_auth.provider_auth_status(hermes_home)["state"],
-            "chat_ready": weave_provider_auth.provider_auth_status(hermes_home)["chat_ready"],
+            "route_verification_owner": "hermes",
+            "state": weave_hermes_setup.hermes_setup_status(hermes_home)["state"],
+            "normal_chat_assumed_ready": weave_hermes_setup.hermes_setup_status(hermes_home)["normal_chat_assumed_ready"],
             "secret_value_printed": False,
         },
         "weave_root": {

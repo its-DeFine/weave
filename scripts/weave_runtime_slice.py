@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import weave_provider_auth
+import weave_hermes_setup
 
 
 ROOT_SCHEMA = "weave-root/v0.1"
@@ -1671,7 +1671,7 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
     blocked_ids = sorted({app["app_id"] for app in foundation_blocked} | set(app_blocked_ids))
     autonomy = load_autonomy_policy(root)
     agent_profile = ensure_agent_profile(root)
-    provider_status = weave_provider_auth.provider_auth_status(runtime_home / "hermes-home")
+    hermes_setup = weave_hermes_setup.hermes_setup_status(runtime_home / "hermes-home")
     active_app = load_active_app(root)
     source_map = load_source_map(root)
     source_summary = summarize_source_map(source_map)
@@ -1688,11 +1688,10 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
         f"- {format_agent_line(agent_profile)}",
         f"- autonomy={autonomy['mode']}",
         "",
-        "Provider Auth",
-        f"- state: {provider_status['state']}",
-        f"- chat_ready: {str(provider_status['chat_ready']).lower()}",
-        f"- provider: {provider_status['provider']}",
-        f"- model: {provider_status['model']}",
+        "Hermes Setup",
+        f"- state: {hermes_setup['state']}",
+        f"- normal_chat_assumed_ready: {str(hermes_setup['normal_chat_assumed_ready']).lower()}",
+        f"- route_verification_owner: {hermes_setup['route_verification_owner']}",
         "",
         "Apps",
         f"- active_app: {active_app_label(active_app)}",
@@ -1739,7 +1738,7 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             "app_blocked_apps": app_blocked_ids,
             "active_app": active_app,
             "agent_profile": agent_profile,
-            "provider_auth": provider_status,
+            "hermes_setup": hermes_setup,
             "autonomy": autonomy,
             "source_map": source_summary,
             "attention": attention,

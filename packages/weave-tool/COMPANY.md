@@ -18,7 +18,7 @@ goals:
   - Preserve a clean future swap path to Livepeer-native pipelines.
 requirements:
   secrets:
-    - hermes_provider_auth
+    - hermes_runtime_credentials
     - livepeer_gateway_credentials
 metadata:
   lifecycle: weave-eight-stage-plus-growth-loop

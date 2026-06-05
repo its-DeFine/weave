@@ -48,7 +48,8 @@ lifecycle dependency rules.
 bin/weave onboard
 ```
 
-Expected shape:
+If normal Hermes setup has not been confirmed yet, the command stops before it
+builds or writes WEAVE runtime components:
 
 ```text
 +--------------------------------------------------+
@@ -56,21 +57,37 @@ Expected shape:
 | Hermes + Telegram runtime setup                  |
 +--------------------------------------------------+
 
-Step 1/6  Runtime
+Step 1/6  Hermes Setup
+  Hermes must be installed and set up before WEAVE normal-chat onboarding.
+  First complete normal Hermes setup:
+    HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
+    HERMES_HOME=runs/runtime-home/hermes-home hermes model
+  Confirm Hermes itself can chat, then rerun:
+    weave onboard --hermes-ready
+  Or record readiness directly:
+    weave hermes confirm-ready
+  For deterministic Telegram commands only, rerun:
+    weave onboard --slash-only
+```
+
+After Hermes itself can chat, resume WEAVE setup:
+
+```bash
+bin/weave onboard --hermes-ready
+```
+
+Expected shape after Hermes setup is confirmed:
+
+```text
+Step 1/6  Hermes Setup
+  [ok] Hermes setup confirmed by operator
+
+Step 2/6  Runtime
   [ok] Docker available
   building image: weave-hermes-runtime:local
   [ok] Hermes image ready: weave-hermes-runtime:local
   [ok] runtime home ready: runs/runtime-home
   [ok] WEAVE root ready: runs/runtime-home/weave-state
-
-Step 2/6  Provider
-  Hermes chat needs a verified model provider before normal messages can work.
-  Fast path, if you use Nous Portal:
-    HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
-  Alternative provider/model picker:
-    HERMES_HOME=runs/runtime-home/hermes-home hermes model
-  Then verify with:
-    weave provider verify
 
 Step 3/6  Telegram
   Create a dedicated Telegram bot with BotFather.
@@ -84,20 +101,22 @@ Step 3/6  Telegram
   WEAVE will hide token input and will not print it back.
 ```
 
-The guided command builds the pinned Hermes container image, writes an ignored
-local profile, creates or verifies `runs/runtime-home`, creates
-`runs/runtime-home/weave-state`, creates the generated Hermes gateway workdir,
-requires verified Hermes provider auth before normal chat, asks for a dedicated
-Telegram bot token, hides token input, and writes only local Hermes environment
-state. It does not start the gateway, install autostart, contact Telegram, send
-messages, or place secrets in tracked files.
+After normal Hermes setup is confirmed, the guided command builds the pinned
+Hermes container image, writes an ignored local profile, creates or verifies
+`runs/runtime-home`, creates `runs/runtime-home/weave-state`, creates the
+generated Hermes gateway workdir, asks for a dedicated Telegram bot token,
+hides token input, and writes only local Hermes environment state. It does not
+start the gateway, install autostart, contact Telegram, send messages, or place
+secrets in tracked files.
 
-WEAVE does not own OAuth or API-key entry. Configure providers through Hermes,
-then record a tiny non-secret canary:
+WEAVE does not own OAuth, API-key entry, model selection, or provider-route
+verification. Configure and verify providers through Hermes, then record that
+Hermes is ready:
 
 ```bash
 HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
-bin/weave provider verify
+HERMES_HOME=runs/runtime-home/hermes-home hermes model
+bin/weave hermes confirm-ready
 ```
 
 If you only want deterministic Telegram commands for setup/QA, make that
@@ -129,7 +148,7 @@ Inspect the durable local state even when the gateway is not running:
 
 ```bash
 bin/weave status
-bin/weave provider status
+bin/weave hermes status
 ```
 
 Move reviewable runtime state to another machine or folder without exporting
@@ -143,8 +162,8 @@ bin/weave verify-runtime --runtime-home runs/runtime-home
 
 After import, `verify-runtime` reports `secret_relink_required: true` until the
 Telegram gateway credentials are intentionally linked in the new environment.
-Provider auth readiness is also shown; normal chat stays blocked until Hermes
-provider auth is reverified or slash-only mode is explicitly selected.
+Hermes setup readiness is also shown; normal chat stays blocked until normal
+Hermes setup is confirmed or slash-only mode is explicitly selected.
 
 For a host-local fallback instead of the default container:
 

@@ -6,8 +6,8 @@ Audience: builders configuring WEAVE locally
 WEAVE defaults to Hermes for the runtime agent and keeps Local Fallback as an
 explicit fallback. The public repository can set up the WEAVE-side runtime
 profile, build a pinned Hermes container, provision the real upstream Nous
-Hermes Agent into ignored local state for host-local fallback, check
-non-secret provider-auth readiness, and configure the owner-approved Telegram
+Hermes Agent into ignored local state for host-local fallback, record
+non-secret Hermes setup readiness, and configure the owner-approved Telegram
 gateway environment from a token file when explicitly given gateway flags. It
 does not install services, mutate shell startup files, start a gateway daemon
 during setup, or place secrets in tracked state.
@@ -25,11 +25,11 @@ For the human setup path, run:
 bin/weave onboard
 ```
 
-This presents a guided ASCII flow, builds the pinned Hermes container image,
-creates the local WEAVE root, requires verified Hermes provider auth or an
-explicit slash-only choice, explains the dedicated Telegram bot requirement,
-hides token input, and calls the same public-safe setup backend without
-printing secrets.
+This presents a guided ASCII flow that first requires normal Hermes setup
+confirmation or an explicit slash-only choice. After that gate passes, it builds
+the pinned Hermes container image, creates the local WEAVE root, explains the
+dedicated Telegram bot requirement, hides token input, and calls the same
+public-safe setup backend without printing secrets.
 
 For CI or non-interactive operator setup, run the backend directly:
 
@@ -54,7 +54,7 @@ The command:
   `agent.system_prompt` so gateway sessions load the foundation onboarding
   context even when Hermes starts from another directory
 - records Local Fallback as the fallback runtime
-- records provider-auth state as verified, blocked, or slash-only without
+- records Hermes setup state as confirmed, blocked, or slash-only without
   printing credentials
 - records that Telegram gateway setup is required
 
@@ -140,30 +140,35 @@ The setup profile only records local proof. It does not start Hermes, run
 `hermes setup`, pair Telegram or any other gateway, write provider credentials,
 or enable autostart.
 
-## Provider Auth Gate
+## Hermes Setup Gate
 
-Hermes owns provider authentication. WEAVE only inspects whether Hermes is
-ready for normal chat and records a non-secret canary result. This mirrors the
-Hermes desktop/CLI setup model: configure providers with Hermes, then let WEAVE
-verify that chat is ready.
+Hermes owns provider authentication, model selection, and provider-route
+verification. WEAVE does not collect provider credentials, run provider test
+prompts, or inspect provider outputs. WEAVE only records whether the operator has
+confirmed that normal Hermes setup already works, or whether the runtime is
+intentionally slash-only for deterministic commands.
 
-Fast path:
+Run normal Hermes setup first:
 
 ```bash
 HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
-bin/weave provider verify
 ```
 
-Alternative provider/model picker:
+Select or verify the model with Hermes:
 
 ```bash
 HERMES_HOME=runs/runtime-home/hermes-home hermes model
-bin/weave provider verify
 ```
 
-`bin/weave provider status` reports provider, model, readiness state, and
-credential source category. It does not print API keys, OAuth payloads, or
-provider outputs.
+After Hermes itself can chat, record that readiness for WEAVE:
+
+```bash
+bin/weave hermes confirm-ready
+```
+
+`bin/weave hermes status` reports non-secret setup state, route verification
+ownership, whether normal chat is assumed ready, and whether a Hermes binary
+was found. It does not print API keys, OAuth payloads, or provider outputs.
 
 If the operator intentionally wants only deterministic Telegram slash commands
 for setup or QA, use:

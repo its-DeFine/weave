@@ -69,20 +69,21 @@ Run guided onboarding:
 bin/weave onboard
 ```
 
-The guided command builds a pinned Hermes container, creates the ignored
-`runs/runtime-home` layout, prepares the Hermes gateway context, checks Hermes
-provider readiness before normal chat, explains the dedicated Telegram bot
-requirement, hides token input, and configures the deterministic command plugin
-without printing secrets. It does not start the gateway, install autostart, or
-perform external sends.
+The guided command first checks whether normal Hermes setup has already been
+confirmed. After that gate passes, it builds a pinned Hermes container, creates
+the ignored `runs/runtime-home` layout, prepares the Hermes gateway context,
+explains the dedicated Telegram bot requirement, hides token input, and
+configures the deterministic command plugin without printing secrets. It does
+not start the gateway, install autostart, or perform external sends.
 
-Normal Hermes chat requires a verified provider. WEAVE follows the upstream
-Hermes setup model: configure the provider with Hermes, then record a WEAVE
-canary proof.
+Normal Hermes chat is owned by Hermes. Configure providers and verify chat
+through the normal Hermes setup flow first, then tell WEAVE that Hermes is
+ready:
 
 ```bash
 HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
-bin/weave provider verify
+HERMES_HOME=runs/runtime-home/hermes-home hermes model
+bin/weave onboard --hermes-ready
 ```
 
 To complete setup for deterministic slash commands only, use:
@@ -185,9 +186,9 @@ claim that a VM service, hosted runtime, paid model route, or production
 deployment is installed.
 
 Telegram is the operator surface for this release. Normal Telegram messages go
-to Hermes only after provider auth is verified. WEAVE slash commands are
-intercepted by the gateway and answered from deterministic local runtime state
-with `deterministic: true` and `llm_used: false`.
+to Hermes only after normal Hermes setup has been confirmed. WEAVE slash
+commands are intercepted by the gateway and answered from deterministic local
+runtime state with `deterministic: true` and `llm_used: false`.
 
 Available commands:
 
@@ -217,8 +218,8 @@ image from `container/hermes/Dockerfile` at pinned upstream Hermes commit
 `5921d667855880b0aa2083a50f001748aed52f3e`, then records the image in
 `runs/runtime-home/runtime-profile.json`. Use `scripts/setup_runtime.py` for
 automation, CI, and non-interactive runtime profiles. Add
-`--local --install-hermes` to clone
-the real upstream Nous Hermes Agent into an isolated venv under
+`--local --install-hermes` to clone the real upstream Nous Hermes Agent into an
+isolated venv under
 `runs/hermes-agent/`, install the CLI package there, and attach that proof to
 the runtime profile. These install paths use outbound network access, but they
 do not install services, read secrets outside the explicit Telegram token flow,
@@ -227,10 +228,10 @@ hosted runtime exists.
 
 For Telegram, guided onboarding asks for a dedicated bot token and numeric
 Telegram user id. Token input is hidden and copied only into local Hermes
-environment state. Provider credentials are configured through Hermes itself,
-then verified with `bin/weave provider verify`; WEAVE records only non-secret
-readiness state. It does not start the gateway, install autostart, or place
-secrets in tracked files and public artifacts. The narrower
+environment state. Provider credentials and route verification stay inside
+Hermes; WEAVE records only non-secret setup readiness state with
+`bin/weave hermes status`. It does not start the gateway, install autostart, or
+place secrets in tracked files and public artifacts. The narrower
 `scripts/setup_gateway.py` helper is available when Hermes is already
 installed and only gateway environment configuration is needed.
 

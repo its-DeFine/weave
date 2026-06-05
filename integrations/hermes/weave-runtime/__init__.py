@@ -108,7 +108,7 @@ def _event_text(event: Any) -> str:
     return ""
 
 
-def _provider_gate_message() -> str | None:
+def _hermes_setup_gate_message() -> str | None:
     hermes_home = os.environ.get("HERMES_HOME", "").strip()
     if not hermes_home:
         return None
@@ -118,20 +118,21 @@ def _provider_gate_message() -> str | None:
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
     try:
-        provider_auth = importlib.import_module("weave_provider_auth")
-        status = provider_auth.provider_auth_status(Path(hermes_home))
+        hermes_setup = importlib.import_module("weave_hermes_setup")
+        status = hermes_setup.hermes_setup_status(Path(hermes_home))
     except Exception as exc:
-        logger.debug("could not inspect WEAVE provider auth status: %s", exc)
+        logger.debug("could not inspect WEAVE Hermes setup status: %s", exc)
         return None
-    if status.get("chat_ready"):
+    if status.get("normal_chat_assumed_ready"):
         return None
     state = status.get("state", "unknown")
-    blocker = status.get("blocker") or "Hermes provider auth is not verified."
+    blocker = status.get("blocker") or "Hermes setup has not been confirmed."
     return "\n".join(
         [
-            "Hermes chat is not ready yet.",
+            "Hermes setup has not been confirmed for WEAVE normal chat yet.",
             "",
-            f"- provider_auth: {state}",
+            f"- hermes_setup: {state}",
+            f"- route_verification_owner: {status.get('route_verification_owner', 'hermes')}",
             f"- blocker: {blocker}",
             "",
             "Deterministic WEAVE commands still work:",
@@ -139,7 +140,7 @@ def _provider_gate_message() -> str | None:
             "- /apps",
             "- /help",
             "",
-            "To enable normal chat, run provider setup in the Hermes environment and then `weave provider verify`.",
+            "Complete normal Hermes setup, confirm Hermes itself can chat, then run `weave hermes confirm-ready`.",
         ]
     )
 
@@ -224,7 +225,7 @@ def _pre_gateway_dispatch_hook(_event_type: str, context: dict[str, Any]) -> dic
     text = _event_text(event).strip()
     if not text or text.startswith("/"):
         return None
-    message = _provider_gate_message()
+    message = _hermes_setup_gate_message()
     if not message:
         return None
     return {"decision": "handled", "message": message}
