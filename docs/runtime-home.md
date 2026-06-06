@@ -84,6 +84,9 @@ Use Telegram commands for operator state:
 - `/status <app_id>` or `/app <app_id>`: one app wall with lifecycle row,
   current requirements, missing inputs, decisions, recent work, blockers, and
   next action.
+- `/transcript [app_id]`: recent app conversation turns, including the owner
+  message, Hermes reply, rationale summary, artifact refs, event refs,
+  lifecycle transition, and next action.
 - `/sources`: source-of-truth map for active, missing, stale, or historical
   runtime state.
 
@@ -123,6 +126,8 @@ Human review should be able to answer:
 - Which app is active in the Telegram UX?
 - What lifecycle stage is each app in?
 - What changed recently in each app?
+- What did the owner send, what did Hermes reply, what artifacts/events were
+  produced, and what lifecycle transition resulted?
 - What is missing before Hermes can continue?
 - Which model, reasoning effort, adapter, prompt pack, and skills were active?
 - Is normal Hermes setup confirmed, slash-only, or blocked?
@@ -131,6 +136,20 @@ Human review should be able to answer:
 - Are credentials linked, or is relinking required?
 
 If a status surface cannot answer those questions, it is incomplete.
+
+Conversation review is state-first. App exchanges are stored in
+`apps/<app_id>/ledger/conversation-turns.jsonl` as
+`weave-conversation-turn/v0.1` rows. These rows preserve the raw owner/operator
+message and Hermes reply, but record only an owner-reviewable rationale summary
+instead of hidden model chain-of-thought. Artifacts and state transitions should
+be referenced from the turn so a reviewer can move from chat, to file, to
+ledger event, to lifecycle state without reconstructing the run from memory.
+
+Transcript capture is mandatory for lifecycle movement. A lifecycle stage
+cannot be approved or advanced unless the current stage has a transcript row.
+When stage artifacts exist, that row must link to a stage artifact, ledger
+event, or state transition. This prevents local artifact creation or chat-only
+claims from bypassing the app conversation record.
 
 ## QA Path
 

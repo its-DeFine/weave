@@ -25,6 +25,7 @@ PACKAGE_ROOT = REPO_ROOT / "packages" / "weave-tool"
 VALIDATOR = PACKAGE_ROOT / "scripts" / "validate_company_package.py"
 SETUP_RUNTIME = REPO_ROOT / "scripts" / "setup_runtime.py"
 WEAVE_CLI = REPO_ROOT / "scripts" / "weave_cli.py"
+CONTEXT_INDEX_RUNTIME_SMOKE = REPO_ROOT / "scripts" / "context_index_runtime_smoke.py"
 
 LIFECYCLE_STAGES = [
     "1. Intent",
@@ -35,11 +36,8 @@ LIFECYCLE_STAGES = [
     "6. QA",
     "7. KPI Setup",
     "8. Marketing",
-]
-
-GROWTH_LOOP = [
-    "A. Iteration",
-    "B. Analysis",
+    "9. Iteration",
+    "10. Analysis",
 ]
 
 
@@ -47,9 +45,6 @@ def print_lifecycle() -> None:
     print("WEAVE lifecycle stages:")
     for stage in LIFECYCLE_STAGES:
         print(f"  {stage}")
-    print("Parallel growth loop:")
-    for phase in GROWTH_LOOP:
-        print(f"  {phase}")
     print()
 
 
@@ -146,6 +141,52 @@ def validate_container_runtime_profile() -> int:
 
 def run_checked(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=cwd, capture_output=True, text=True, check=True)
+
+
+def fill_runtime_doc(path: Path, title: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"# {title}\n\nStatus: complete\n\nRuntime smoke evidence is recorded.\n",
+        encoding="utf-8",
+    )
+
+
+def complete_foundation(root: Path, app_id: str) -> None:
+    fill_runtime_doc(root / "artifacts" / "general" / "soul.md", "Hermes Soul")
+    fill_runtime_doc(root / "artifacts" / "general" / "owner-profile.md", "Owner Profile")
+    fill_runtime_doc(root / "apps" / app_id / "context" / "app-context.md", "App Context")
+    fill_runtime_doc(root / "apps" / app_id / "inventory" / "app-inventory.md", "App Inventory")
+    fill_runtime_doc(root / "apps" / app_id / "contract" / "gestaltian-contract.md", "Gestaltian Contract")
+
+
+def write_stage_artifact(root: Path, app_id: str, stage_id: str) -> Path:
+    stage = weave_runtime_slice.stage_by_id(stage_id)
+    path = root / "apps" / app_id / "lifecycle" / stage.directory / "artifacts" / f"{stage_id}.md"
+    fill_runtime_doc(path, stage_id.title())
+    return path
+
+
+def record_stage_turn(root: Path, app_id: str, stage_id: str, artifact_path: Path | None = None) -> None:
+    refs = [{"path": weave_runtime_slice.relative(artifact_path, root), "action": "created"}] if artifact_path else []
+    turn = weave_runtime_slice.new_conversation_turn(
+        app_id,
+        stage_id,
+        f"Owner discussed {stage_id} stage.",
+        f"Hermes recorded {stage_id} stage evidence for review.",
+        agent_rationale={
+            "summary": f"{stage_id} evidence is ready for owner review.",
+            "chain_of_thought_captured": False,
+        },
+        artifact_refs=refs,
+        state_transition={
+            "from_stage": stage_id,
+            "from_state": "collecting",
+            "to_stage": stage_id,
+            "to_state": "ready_for_review",
+        },
+        next_action=f"Owner reviews {stage_id} and may approve the stage.",
+    )
+    weave_runtime_slice.append_conversation_turn(root, app_id, turn)
 
 
 def create_fake_hermes_repo(root: Path) -> tuple[Path, str]:
@@ -265,6 +306,33 @@ def validate_runtime_slice() -> int:
         if len(weave_runtime_slice.read_events(root, "alpha-app")) < 3:
             print("runtime slice ledger did not append events", file=sys.stderr)
             return 1
+        turn = weave_runtime_slice.new_conversation_turn(
+            "alpha-app",
+            "intent",
+            "Create the first app intent packet.",
+            "I recorded the intent exchange and linked it to validation evidence.",
+            agent_rationale={
+                "summary": "The runtime can preserve the raw exchange without exposing hidden chain-of-thought.",
+                "chain_of_thought_captured": False,
+            },
+            event_refs=[{"event_id": event["event_id"], "type": event["type"]}],
+            state_transition={
+                "from_stage": "intent",
+                "from_state": "collecting",
+                "to_stage": "intent",
+                "to_state": "collecting",
+            },
+            next_action="Continue collecting required intent evidence.",
+        )
+        weave_runtime_slice.append_conversation_turn(root, "alpha-app", turn)
+        status_code, transcript = weave_runtime_slice.dispatch_rest(root, "GET", "/apps/alpha-app/conversation")
+        if status_code != 200 or transcript.get("turn_count") != 1:
+            print(f"runtime slice conversation transcript mismatch: {transcript}", file=sys.stderr)
+            return 1
+        status_code, form = weave_runtime_slice.dispatch_rest(root, "GET", "/apps/alpha-app/conversation/form")
+        if status_code != 200 or form.get("form", {}).get("schema") != weave_runtime_slice.CONVERSATION_CAPTURE_FORM_SCHEMA:
+            print(f"runtime slice conversation form mismatch: {form}", file=sys.stderr)
+            return 1
         try:
             weave_runtime_slice.append_event(root, "alpha-app", {"schema": "bad"})
         except weave_runtime_slice.RuntimeSliceError:
@@ -318,6 +386,10 @@ def validate_telegram_commands() -> int:
         if sources.get("payload", {}).get("source_map", {}).get("schema") != weave_runtime_slice.SOURCE_MAP_SCHEMA:
             print(f"telegram /sources did not expose source map: {sources}", file=sys.stderr)
             return 1
+        source_ids = {source["id"] for source in sources["payload"]["source_map"]["sources"]}
+        if "capability-context-index" not in source_ids:
+            print(f"telegram /sources did not expose capability context index: {sources}", file=sys.stderr)
+            return 1
         apps = weave_runtime_slice.dispatch_telegram_command(root, "/apps")
         if "Alpha App (alpha-app)" not in apps.get("text", ""):
             print(f"telegram /apps did not include registered app: {apps}", file=sys.stderr)
@@ -326,9 +398,52 @@ def validate_telegram_commands() -> int:
         if "/status" not in help_response.get("payload", {}).get("commands", {}):
             print(f"telegram /help did not expose command catalog: {help_response}", file=sys.stderr)
             return 1
+        if "/transcript" not in help_response.get("payload", {}).get("commands", {}):
+            print(f"telegram /help did not expose transcript command: {help_response}", file=sys.stderr)
+            return 1
         passthrough = weave_runtime_slice.dispatch_telegram_command(root, "normal Hermes chat")
         if passthrough.get("handled") is not False or passthrough.get("llm_used") is not False:
             print(f"telegram non-command passthrough mismatch: {passthrough}", file=sys.stderr)
+            return 1
+
+        premature_approval = weave_runtime_slice.dispatch_telegram_command(root, "/approve_stage visual-novel")
+        if premature_approval.get("handled") is not False or "foundation context" not in premature_approval.get("text", ""):
+            print(f"telegram /approve_stage should block before foundation completion: {premature_approval}", file=sys.stderr)
+            return 1
+        complete_foundation(root, "visual-novel")
+        status_after_foundation = weave_runtime_slice.dispatch_telegram_command(root, "/status")
+        if status_after_foundation.get("payload", {}).get("stage_gate_blocked_apps") != ["visual-novel"]:
+            print(f"telegram /status did not expose stage gate attention: {status_after_foundation}", file=sys.stderr)
+            return 1
+        missing_stage_proof = weave_runtime_slice.dispatch_telegram_command(root, "/approve_stage visual-novel")
+        if "intent artifact" not in missing_stage_proof.get("text", ""):
+            print(f"telegram /approve_stage should require intent proof: {missing_stage_proof}", file=sys.stderr)
+            return 1
+        artifact_path = write_stage_artifact(root, "visual-novel", "intent")
+        missing_transcript = weave_runtime_slice.dispatch_telegram_command(root, "/approve_stage visual-novel")
+        if "transcript capture" not in missing_transcript.get("text", ""):
+            print(f"telegram /approve_stage should require transcript capture: {missing_transcript}", file=sys.stderr)
+            return 1
+        record_stage_turn(root, "visual-novel", "intent", artifact_path)
+        premature_advance = weave_runtime_slice.dispatch_telegram_command(root, "/advance visual-novel")
+        if premature_advance.get("error") != "current_stage_not_approved":
+            print(f"telegram /advance should block before owner approval: {premature_advance}", file=sys.stderr)
+            return 1
+        lifecycle = weave_runtime_slice.dispatch_telegram_command(root, "/lifecycle visual-novel")
+        if lifecycle.get("payload", {}).get("stage_gate", {}).get("passed") is not True:
+            print(f"telegram /lifecycle did not expose a passing stage gate: {lifecycle}", file=sys.stderr)
+            return 1
+        approved = weave_runtime_slice.dispatch_telegram_command(root, "/approve_stage visual-novel")
+        if approved.get("payload", {}).get("approved") is not True:
+            print(f"telegram /approve_stage did not approve ready stage: {approved}", file=sys.stderr)
+            return 1
+        advanced = weave_runtime_slice.dispatch_telegram_command(root, "/advance visual-novel")
+        if advanced.get("payload", {}).get("stage") != "research":
+            print(f"telegram /advance did not move to research: {advanced}", file=sys.stderr)
+            return 1
+        status_code, rest_lifecycle = weave_runtime_slice.dispatch_rest(root, "GET", "/apps/visual-novel/lifecycle")
+        if status_code != 200 or rest_lifecycle.get("stage_status", {}).get("stage") != "research":
+            print(f"REST lifecycle endpoint did not mirror Telegram advance: {rest_lifecycle}", file=sys.stderr)
             return 1
 
     print("telegram command smoke: ok")
@@ -361,7 +476,7 @@ def validate_runtime_migration_cli() -> int:
         hermes_home = runtime_home / "hermes-home"
         hermes_home.mkdir(parents=True, exist_ok=True)
         (hermes_home / ".env").write_text(
-            "TELEGRAM_BOT_" + "TOKEN=123456789:abcdefghijklmnopqrstuvwxyzABCDEF\n",
+            "TELEGRAM_BOT_" + "TOKEN=" + "123456789:" + "abcdefghijklmnopqrstuvwxyzABCDEF\n",
             encoding="utf-8",
         )
         (hermes_home / ".env").chmod(0o600)
@@ -419,6 +534,20 @@ def validate_runtime_migration_cli() -> int:
     return 0
 
 
+def validate_context_index_runtime_smoke() -> int:
+    result = subprocess.run(
+        [sys.executable, str(CONTEXT_INDEX_RUNTIME_SMOKE)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.stdout:
+        print(result.stdout, end="")
+    if result.returncode != 0:
+        print(result.stderr, end="", file=sys.stderr)
+    return result.returncode
+
+
 def main() -> int:
     print_lifecycle()
     rc = validate_package()
@@ -434,6 +563,8 @@ def main() -> int:
         rc = validate_telegram_commands()
     if rc == 0:
         rc = validate_runtime_migration_cli()
+    if rc == 0:
+        rc = validate_context_index_runtime_smoke()
     if rc == 0:
         print("smoke: ok")
     else:

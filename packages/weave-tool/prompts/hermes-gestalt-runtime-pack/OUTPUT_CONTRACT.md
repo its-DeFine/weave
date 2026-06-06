@@ -40,6 +40,28 @@ Required sections:
 8. Completion Status
 9. Recommended Contract Updates
 
+## Mandatory WEAVE Transcript Capture
+
+For WEAVE-managed app work, a Hermes reply is not complete until a
+`weave-conversation-turn/v0.1` record has been filled or the reply clearly
+states why transcript sync is blocked.
+
+The owner-facing reply should remain readable. The structured transcript record
+must capture:
+
+- owner/operator message
+- Hermes visible reply
+- owner-reviewable rationale summary
+- gate questions checked
+- missing information
+- decision basis
+- artifact refs
+- event refs
+- lifecycle or stage-state transition
+- next owner-visible action
+
+Never record hidden model chain-of-thought. Never record raw secrets.
+
 ## Contract Update Mode Output
 
 Required sections:

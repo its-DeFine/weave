@@ -29,6 +29,8 @@ RUNTIME_HOME_SCHEMA = "weave-runtime-home/v0.1"
 APP_SCHEMA = "weave-app/v0.1"
 REGISTRY_SCHEMA = "weave-app-registry/v0.1"
 EVENT_SCHEMA = "weave-event/v0.1"
+CONVERSATION_TURN_SCHEMA = "weave-conversation-turn/v0.1"
+CONVERSATION_CAPTURE_FORM_SCHEMA = "weave-conversation-capture-form/v0.1"
 FOUNDATION_SCHEMA = "weave-foundation-gate/v0.1"
 REST_SCHEMA = "weave-rest-dispatch/v0.1"
 GATEWAY_CONTEXT_SCHEMA = "weave-gateway-context/v0.1"
@@ -37,6 +39,10 @@ AUTONOMY_SCHEMA = "weave-autonomy-policy/v0.1"
 SOURCE_MAP_SCHEMA = "weave-runtime-source-map/v0.1"
 AGENT_PROFILE_SCHEMA = "weave-agent-profile/v0.1"
 ACTIVE_APP_SCHEMA = "weave-active-app/v0.1"
+CONTEXT_INDEX_SCHEMA = "weave/context-index/v0.1"
+DEFAULT_CONTEXT_INDEX_REPO = "its-DeFine/weave-context"
+DEFAULT_CONTEXT_INDEX_URL = "https://raw.githubusercontent.com/its-DeFine/weave-context/main/context-index.json"
+DEFAULT_CONTEXT_INDEX_SAMPLE = "docs/context-sources/livepeer-context-index.sample.json"
 
 TEMPLATE_MARKER = "template-needs-owner-input"
 DEFAULT_AUTONOMY_MODE = "yolo"
@@ -58,6 +64,9 @@ EVENT_TYPES = {
     "contract.diff_recorded",
     "approval.requested",
     "approval.resolved",
+    "lifecycle.stage_approved",
+    "lifecycle.stage_advanced",
+    "lifecycle.stage_blocked",
     "procedure.violation",
     "procedure.feedback_sent",
     "validation.completed",
@@ -109,10 +118,14 @@ TELEGRAM_COMMANDS = {
     "/app": "Show one app wall. Usage: /app <app_id>",
     "/create_app": "Create and select a product app workspace. Usage: /create_app <name>",
     "/switch_app": "Select the active Telegram app. Usage: /switch_app <app_id>",
+    "/lifecycle": "Show lifecycle gate state. Usage: /lifecycle [app_id]",
     "/stage": "Show lifecycle stage state. Usage: /stage [app_id]",
     "/requirements": "Show current-stage requirements. Usage: /requirements [app_id]",
+    "/approve_stage": "Approve the current lifecycle stage after gates pass. Usage: /approve_stage [app_id] [stage] [--defer-credentials]",
+    "/advance": "Advance an app to the next lifecycle stage after owner approval. Usage: /advance [app_id]",
     "/blockers": "Show apps that need owner or Hermes action.",
     "/changes": "Show latest recorded changes. Usage: /changes [app_id]",
+    "/transcript": "Show recent app conversation turns. Usage: /transcript [app_id]",
     "/next": "Show the next deterministic owner-visible action.",
 }
 
@@ -187,6 +200,30 @@ def stage_by_id(stage_id: str) -> Stage:
         if stage.id == stage_id:
             return stage
     raise RuntimeSliceError(f"unsupported lifecycle stage: {stage_id}")
+
+
+def stage_ids() -> list[str]:
+    return [stage.id for stage in STAGES]
+
+
+def normalize_stage_id(value: str | None, *, default: str = "intent") -> str:
+    stage_id = str(value or default).strip().lower().replace("_", "-")
+    aliases = {
+        "kpi-setup": "kpi",
+        "qa-ready": "qa",
+    }
+    stage_id = aliases.get(stage_id, stage_id)
+    stage_by_id(stage_id)
+    return stage_id
+
+
+def next_stage_id(stage_id: str) -> str | None:
+    clean = normalize_stage_id(stage_id)
+    ids = stage_ids()
+    index = ids.index(clean)
+    if index + 1 >= len(ids):
+        return None
+    return ids[index + 1]
 
 
 def utc_now() -> str:
@@ -423,6 +460,24 @@ def default_source_map(root: Path) -> dict[str, Any]:
             "mutable": True,
             "sensitive": False,
             "path_status": path_status(active_app_path(root)),
+        },
+        {
+            "id": "capability-context-index",
+            "label": "Capability context index",
+            "kind": "context-index",
+            "role": "public capability source registry for APIs, gateways, pipelines, and orchestrator-run capabilities",
+            "status": "configured",
+            "path": DEFAULT_CONTEXT_INDEX_SAMPLE,
+            "schema_ref": CONTEXT_INDEX_SCHEMA,
+            "recommended_repository": DEFAULT_CONTEXT_INDEX_REPO,
+            "default_url": DEFAULT_CONTEXT_INDEX_URL,
+            "mutable": False,
+            "sensitive": False,
+            "application_paths": [
+                "existing_api",
+                "gateway_capability",
+                "new_orchestrator_capability",
+            ],
         },
         {
             "id": "local-api-token",
@@ -772,6 +827,207 @@ def write_app(root: Path, app: dict[str, Any]) -> None:
     )
 
 
+SECRET_PATTERNS = [
+    re.compile(r"\b[0-9]{6,20}:[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\b(?:sk|pk|rk|ghp|gho|github_pat)_[A-Za-z0-9_=-]{16,}\b"),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"https?://[^\s]*(?:token|auth|code|secret|credential)[^\s]*=", re.IGNORECASE),
+]
+
+
+def contains_secret_like_value(value: Any) -> bool:
+    if isinstance(value, str):
+        return any(pattern.search(value) for pattern in SECRET_PATTERNS)
+    if isinstance(value, dict):
+        return any(contains_secret_like_value(item) for item in value.values())
+    if isinstance(value, list):
+        return any(contains_secret_like_value(item) for item in value)
+    return False
+
+
+def conversation_turn_path(root: Path, app_id: str) -> Path:
+    return app_root(root, app_id) / "ledger" / "conversation-turns.jsonl"
+
+
+def normalize_message(value: Any, *, default_role: str) -> dict[str, Any]:
+    if isinstance(value, dict):
+        text = str(value.get("text") or value.get("message") or "")
+        role = str(value.get("role") or default_role)
+        message = dict(value)
+        message["role"] = role
+        message["text"] = text
+        return message
+    return {"role": default_role, "text": str(value or "")}
+
+
+def normalize_refs(values: Any) -> list[dict[str, Any]]:
+    if not isinstance(values, list):
+        return []
+    refs: list[dict[str, Any]] = []
+    for value in values:
+        if isinstance(value, dict):
+            refs.append(value)
+        elif str(value).strip():
+            refs.append({"path": str(value)})
+    return refs
+
+
+def normalize_agent_rationale(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        rationale = dict(value)
+    else:
+        rationale = {"summary": str(value or "")}
+    rationale.setdefault("summary", "")
+    rationale.setdefault("gate_questions", [])
+    rationale.setdefault("missing_information", [])
+    rationale.setdefault("decision_basis", [])
+    rationale.setdefault("chain_of_thought_captured", False)
+    rationale.setdefault("review_note", "Owner-reviewable rationale summary; not hidden model chain-of-thought.")
+    return rationale
+
+
+def new_conversation_turn(
+    app_id: str,
+    stage: str,
+    operator_message: Any,
+    agent_reply: Any,
+    *,
+    channel: str = "telegram",
+    created_by: str = "hermes",
+    agent_rationale: Any = "",
+    gate_checks: dict[str, Any] | None = None,
+    artifact_refs: list[dict[str, Any]] | None = None,
+    event_refs: list[dict[str, Any]] | None = None,
+    state_transition: dict[str, Any] | None = None,
+    next_action: str = "",
+) -> dict[str, Any]:
+    return {
+        "schema": CONVERSATION_TURN_SCHEMA,
+        "turn_id": secrets.token_hex(12),
+        "app_id": slugify(app_id),
+        "created_at": utc_now(),
+        "created_by": created_by,
+        "stage": normalize_stage_id(stage),
+        "channel": channel,
+        "operator_message": normalize_message(operator_message, default_role="owner"),
+        "agent_reply": normalize_message(agent_reply, default_role="hermes"),
+        "agent_rationale": normalize_agent_rationale(agent_rationale),
+        "gate_checks": gate_checks or {},
+        "artifact_refs": normalize_refs(artifact_refs),
+        "event_refs": normalize_refs(event_refs),
+        "state_transition": state_transition or {},
+        "next_action": next_action,
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+
+
+def validate_conversation_turn(turn: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "turn_id",
+        "app_id",
+        "created_at",
+        "created_by",
+        "stage",
+        "channel",
+        "operator_message",
+        "agent_reply",
+        "agent_rationale",
+        "gate_checks",
+        "artifact_refs",
+        "event_refs",
+        "state_transition",
+        "next_action",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(turn))
+    if missing:
+        raise RuntimeSliceError(f"conversation turn missing required fields: {', '.join(missing)}")
+    if turn["schema"] != CONVERSATION_TURN_SCHEMA:
+        raise RuntimeSliceError(f"conversation turn schema must be {CONVERSATION_TURN_SCHEMA}")
+    if turn["created_by"] not in CREATORS and turn["created_by"] not in {"execution-agent"}:
+        raise RuntimeSliceError(f"unsupported conversation turn creator: {turn['created_by']}")
+    if turn["public_safe"] is not True:
+        raise RuntimeSliceError("conversation turn must be public_safe=true")
+    if turn["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("conversation turn must set secret_payload_allowed=false")
+    if not isinstance(turn["operator_message"], dict) or not str(turn["operator_message"].get("text", "")).strip():
+        raise RuntimeSliceError("conversation turn operator_message.text is required")
+    if not isinstance(turn["agent_reply"], dict) or not str(turn["agent_reply"].get("text", "")).strip():
+        raise RuntimeSliceError("conversation turn agent_reply.text is required")
+    if not isinstance(turn["agent_rationale"], dict):
+        raise RuntimeSliceError("conversation turn agent_rationale must be an object")
+    if turn["agent_rationale"].get("chain_of_thought_captured") is not False:
+        raise RuntimeSliceError("conversation turn must not claim to capture hidden chain-of-thought")
+    if not isinstance(turn["artifact_refs"], list) or not isinstance(turn["event_refs"], list):
+        raise RuntimeSliceError("conversation turn refs must be lists")
+    if contains_secret_like_value(turn):
+        raise RuntimeSliceError("conversation turn contains a secret-shaped value")
+    normalize_stage_id(str(turn["stage"]))
+
+
+def append_conversation_turn(root: Path, app_id: str, turn: dict[str, Any]) -> dict[str, Any]:
+    load_app(root, app_id)
+    if turn.get("app_id") != slugify(app_id):
+        raise RuntimeSliceError("conversation turn app_id does not match target app")
+    validate_conversation_turn(turn)
+    path = conversation_turn_path(root, app_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(turn, sort_keys=True) + "\n")
+    return turn
+
+
+def read_conversation_turns(root: Path, app_id: str) -> list[dict[str, Any]]:
+    path = conversation_turn_path(root, app_id)
+    if not path.exists():
+        return []
+    turns: list[dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            turn = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise RuntimeSliceError(f"invalid conversation JSON at line {line_number}: {exc}") from exc
+        validate_conversation_turn(turn)
+        turns.append(turn)
+    return turns
+
+
+def conversation_turn_from_body(root: Path, app_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    if body.get("schema") == CONVERSATION_TURN_SCHEMA:
+        return dict(body)
+    app = load_app(root, app_id)
+    stage = str(body.get("stage") or app.get("current_stage") or "intent")
+    form = conversation_capture_form(root, app_id, stage)
+    deterministic = form["deterministic_fields"]
+    gate_checks = body.get("gate_checks") if isinstance(body.get("gate_checks"), dict) else {
+        "foundation_gate_passed": deterministic["foundation_gate_passed"],
+        "stage_gate_passed": deterministic["stage_gate_passed"],
+        "stage_gate_missing": deterministic["stage_gate_missing"],
+        "transcript_capture_passed_before_append": deterministic["transcript_capture"]["passed"],
+    }
+    artifact_refs = body.get("artifact_refs") if isinstance(body.get("artifact_refs"), list) else deterministic["artifact_refs"]
+    event_refs = body.get("event_refs") if isinstance(body.get("event_refs"), list) else deterministic["event_refs"]
+    return new_conversation_turn(
+        app_id,
+        stage,
+        body.get("operator_message", body.get("owner_message", body.get("user_message", ""))),
+        body.get("agent_reply", body.get("hermes_reply", "")),
+        channel=str(body.get("channel") or "telegram"),
+        created_by=str(body.get("created_by") or "hermes"),
+        agent_rationale=body.get("agent_rationale", body.get("rationale", "")),
+        gate_checks=gate_checks,
+        artifact_refs=artifact_refs,
+        event_refs=event_refs,
+        state_transition=body.get("state_transition") if isinstance(body.get("state_transition"), dict) else {},
+        next_action=str(body.get("next_action") or ""),
+    )
+
+
 def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
     setup_weave_root(root)
     clean_id = slugify(app_id)
@@ -826,6 +1082,7 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
         root,
     )
     write_new(base / "ledger" / "events.jsonl", "", created, root)
+    write_new(base / "ledger" / "conversation-turns.jsonl", "", created, root)
 
     now = utc_now()
     metadata = {
@@ -848,15 +1105,20 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
             "context/decisions.md",
         ],
         "ledger_path": "ledger/events.jsonl",
+        "conversation_turns_path": "ledger/conversation-turns.jsonl",
         "decision_log_path": "context/decisions.md",
         "required_inputs": [],
         "owner_questions": [],
         "tasks": [],
         "credential_requirements": [],
+        "approved_stages": [],
+        "stage_approvals": {},
+        "stage_deferrals": [],
         "capabilities": [
             "local-filesystem",
             "git-tracked-workspace",
             "append-only-ledger",
+            "conversation-turn-ledger",
             "rest-dispatch-skeleton",
             "telegram-deterministic-slash-commands",
         ],
@@ -1139,6 +1401,34 @@ When the owner answers, update the canonical markdown documents under the WEAVE
 root. Record meaningful changes in the app ledger. Refresh or re-read the
 foundation gate before moving on.
 
+## Mandatory Transcript Capture
+
+Every meaningful app-work reply must be paired with a
+`weave-conversation-turn/v0.1` record in
+`apps/{clean_id}/ledger/conversation-turns.jsonl`.
+
+The owner-facing Telegram reply should remain clear and human-readable. The
+structured transcript record is the machine-reviewable form. It must include:
+
+- what the owner/operator sent
+- what Hermes replied
+- an owner-reviewable rationale summary, gate questions, missing information,
+  and decision basis
+- artifact refs and event refs created or used by the reply
+- any lifecycle/state transition proposed or initiated by the reply
+- the next owner-visible action
+
+Do not record hidden model chain-of-thought. Do not record raw secrets. The
+runtime fills or verifies deterministic fields such as app id, current stage,
+timestamps, known artifacts, gate status, and lifecycle transition validity.
+Use `GET /apps/{clean_id}/conversation/form` when available so the runtime can
+present deterministic fields and the Hermes-only fields separately.
+
+Lifecycle approval and advance are blocked when the current lifecycle stage
+lacks transcript capture evidence. If `/status <app_id>` reports
+`transcript capture` as missing, fill the structured turn record before asking
+for stage approval.
+
 When the foundation gate passes, continue with the Hermes Gestalt Runtime Pack:
 
 Raw whole-first vision -> Gestalt Kernel -> Gestaltian Contract -> Premortem
@@ -1150,8 +1440,9 @@ Result -> Contract Update Log.
 Normal conversation stays with Hermes through Telegram. There is no dashboard
 or UI in this phase. Deterministic slash commands such as `/status`,
 `/status <app_id>`, `/apps`, `/app`, `/create_app`, `/switch_app`, `/stage`,
-`/requirements`, `/blockers`, `/changes`, and `/next` are handled by the WEAVE
-runtime command layer and must not be answered with model-generated text.
+`/requirements`, `/blockers`, `/changes`, `/transcript`, and `/next` are
+handled by the WEAVE runtime command layer and must not be answered with
+model-generated text.
 
 Use product lifecycle language in owner-facing communication:
 intent -> research -> selection -> plan -> engineering -> qa -> kpi ->
@@ -1298,11 +1589,19 @@ def derive_stage(root: Path, app_id: str) -> dict[str, Any]:
             derived = stage.id
             source_path = relative(matched_root, root)
     app = load_app(root, app_id)
-    if app.get("current_stage") != derived or app.get("stage_source") != "derived":
-        app["current_stage"] = derived
-        app["stage_source"] = "derived"
+    app_stage = normalize_stage_id(str(app.get("current_stage") or derived), default=derived)
+    app_source = str(app.get("stage_source") or "derived")
+    if stage_index(app_stage) > stage_index(derived):
+        final_stage = app_stage
+        final_source = app_source if app_source != "derived" else "registered"
+    else:
+        final_stage = derived
+        final_source = "derived"
+    if app.get("current_stage") != final_stage or app.get("stage_source") != final_source:
+        app["current_stage"] = final_stage
+        app["stage_source"] = final_source
         write_app(root, app)
-    return {"stage": derived, "stage_source": "derived", "source_path": source_path}
+    return {"stage": final_stage, "stage_source": final_source, "source_path": source_path}
 
 
 def artifact_checksum(path: Path) -> str:
@@ -1434,6 +1733,386 @@ def artifact_counts_by_stage(artifacts: list[dict[str, str]]) -> dict[str, int]:
     return counts
 
 
+STAGE_PROOF_LABELS = {
+    "intent": "intent artifact",
+    "research": "research evidence artifact",
+    "selection": "selection decision artifact",
+    "plan": "implementation plan artifact",
+    "engineering": "implementation evidence artifact",
+    "qa": "QA proof artifact",
+    "kpi": "KPI measurement proof artifact",
+    "marketing": "marketing plan or approval artifact",
+    "iteration": "feedback or iteration evidence artifact",
+    "analysis": "outcome and monetization analysis artifact",
+}
+
+
+PROOF_CRITICAL_STAGES = {"kpi", "marketing", "analysis"}
+
+
+def artifacts_for_stage(root: Path, app_id: str, stage_id: str) -> list[dict[str, str]]:
+    clean_stage = normalize_stage_id(stage_id)
+    return [artifact for artifact in list_artifacts(root, app_id) if artifact["stage"] == clean_stage]
+
+
+def credential_blockers_for_stage(app: dict[str, Any], stage_id: str) -> list[str]:
+    if normalize_stage_id(stage_id) not in {"kpi", "marketing", "analysis"}:
+        return []
+    blockers: list[str] = []
+    for item in app.get("credential_requirements", []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("required") is False:
+            continue
+        if item.get("status") in {"available", "deferred"}:
+            continue
+        blockers.append(str(item.get("label") or item.get("id") or "credential capability"))
+    return blockers
+
+
+def conversation_turn_linked_to_stage(turn: dict[str, Any], stage_id: str, stage_artifacts: list[dict[str, str]]) -> bool:
+    stage = stage_by_id(stage_id)
+    artifact_paths = {artifact["path"] for artifact in stage_artifacts}
+    for ref in turn.get("artifact_refs", []):
+        path = str(ref.get("path") or ref.get("canonical_path") or "")
+        if path in artifact_paths or f"/lifecycle/{stage.directory}/" in f"/{path}":
+            return True
+    for ref in turn.get("event_refs", []):
+        if str(ref.get("event_id") or ref.get("type") or "").strip():
+            return True
+    transition = turn.get("state_transition", {})
+    if isinstance(transition, dict) and transition:
+        stages = {
+            str(transition.get("from_stage") or ""),
+            str(transition.get("to_stage") or ""),
+            str(transition.get("stage") or ""),
+        }
+        if stage_id in stages:
+            return True
+    return False
+
+
+def transcript_capture_status(root: Path, app_id: str, stage_id: str) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id)
+    stage_artifacts = artifacts_for_stage(root, app_id, stage)
+    turns = [turn for turn in read_conversation_turns(root, app_id) if normalize_stage_id(str(turn.get("stage") or stage)) == stage]
+    linked_turns = [
+        turn
+        for turn in turns
+        if conversation_turn_linked_to_stage(turn, stage, stage_artifacts)
+    ]
+    missing: list[str] = []
+    if not turns:
+        missing.append("current-stage conversation turn")
+    elif stage_artifacts and not linked_turns:
+        missing.append("conversation turn linked to stage artifact, event, or transition")
+    latest = (linked_turns or turns)[-1] if turns else None
+    return {
+        "schema": "weave-transcript-capture-gate/v0.1",
+        "app_id": slugify(app_id),
+        "stage": stage,
+        "required": True,
+        "passed": not missing,
+        "missing": missing,
+        "turn_count": len(turns),
+        "linked_turn_count": len(linked_turns),
+        "latest_turn_id": latest.get("turn_id") if latest else "",
+        "latest_turn_at": latest.get("created_at") if latest else "",
+        "policy": "Hermes app-work replies must append a current-stage conversation turn before lifecycle approval or advance.",
+    }
+
+
+def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    app = load_app(root, app_id)
+    gate = foundation_gate(root, app_id)
+    missing: list[str] = []
+    warnings: list[str] = []
+    if not gate["passed"]:
+        missing.append("foundation context")
+    previous_ids = stage_ids()[: stage_index(stage)]
+    approved = set(str(item) for item in app.get("approved_stages", []))
+    missing_previous = [item for item in previous_ids if item not in approved]
+    if missing_previous:
+        missing.append("previous stage approval: " + ", ".join(missing_previous))
+    stage_artifacts = artifacts_for_stage(root, app_id, stage)
+    if not stage_artifacts:
+        missing.append(STAGE_PROOF_LABELS.get(stage, "stage artifact"))
+    transcript_capture = transcript_capture_status(root, app_id, stage)
+    if gate["passed"] and not transcript_capture["passed"]:
+        missing.append("transcript capture: " + ", ".join(transcript_capture["missing"]))
+    required_inputs = short_list(app.get("required_inputs", []), 10)
+    owner_questions = short_list(app.get("owner_questions", []), 10)
+    if required_inputs:
+        missing.append("required inputs: " + ", ".join(required_inputs))
+    if owner_questions:
+        missing.append("owner questions: " + ", ".join(owner_questions))
+    blockers = short_list(app.get("blockers", []), 10)
+    if blockers:
+        missing.append("blockers: " + ", ".join(blockers))
+    capability_blockers = credential_blockers_for_stage(app, stage)
+    if capability_blockers:
+        missing.append("credential capability: " + ", ".join(capability_blockers))
+    if stage in PROOF_CRITICAL_STAGES and stage_artifacts:
+        warnings.append(f"{stage} approval depends on reviewer confidence that recorded artifact proves the claim.")
+    return {
+        "schema": "weave-stage-gate/v0.1",
+        "app_id": slugify(app_id),
+        "stage": stage,
+        "passed": not missing,
+        "missing": missing,
+        "warnings": warnings,
+        "foundation_gate": gate,
+        "approved_previous_stages": sorted(approved.intersection(previous_ids), key=stage_index),
+        "missing_previous_stages": missing_previous,
+        "artifact_refs": stage_artifacts,
+        "transcript_capture": transcript_capture,
+        "credential_blockers": capability_blockers,
+        "proof_label": STAGE_PROOF_LABELS.get(stage, "stage artifact"),
+    }
+
+
+def conversation_capture_form(root: Path, app_id: str, stage_id: str | None = None) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    app = load_app(root, app_id)
+    artifacts = artifacts_for_stage(root, app_id, stage)
+    events = [event for event in read_events(root, app_id) if event.get("stage") == stage]
+    gate = stage_gate_status(root, app_id, stage)
+    return {
+        "schema": CONVERSATION_CAPTURE_FORM_SCHEMA,
+        "app_id": app["app_id"],
+        "app_name": app["name"],
+        "stage": stage,
+        "endpoint": f"/apps/{app['app_id']}/conversation",
+        "method": "POST",
+        "deterministic_fields": {
+            "conversation_schema": CONVERSATION_TURN_SCHEMA,
+            "channel": "telegram",
+            "created_by": "hermes",
+            "current_stage": stage,
+            "stage_state": app.get("stage_state", "collecting"),
+            "foundation_gate_passed": gate["foundation_gate"]["passed"],
+            "stage_gate_passed": gate["passed"],
+            "stage_gate_missing": gate["missing"],
+            "transcript_capture": gate["transcript_capture"],
+            "artifact_refs": artifacts,
+            "event_refs": [
+                {"event_id": event["event_id"], "type": event["type"], "summary": event["summary"]}
+                for event in events[-5:]
+            ],
+        },
+        "hermes_required_fields": [
+            "operator_message.text",
+            "agent_reply.text",
+            "agent_rationale.summary",
+            "agent_rationale.gate_questions",
+            "agent_rationale.missing_information",
+            "agent_rationale.decision_basis",
+            "state_transition",
+            "next_action",
+        ],
+        "runtime_verifies": [
+            "app_id matches route",
+            "stage is valid",
+            "public_safe is true",
+            "secret_payload_allowed is false",
+            "hidden chain-of-thought is not captured",
+            "secret-shaped values are rejected",
+            "stage approval and advance require current-stage transcript capture",
+        ],
+        "chain_of_thought_policy": "Record owner-reviewable rationale summaries only; hidden model chain-of-thought is not captured.",
+    }
+
+
+def update_registry_entry(root: Path, app: dict[str, Any]) -> None:
+    registry = load_registry(root)
+    for entry in registry["apps"]:
+        if entry.get("app_id") == app["app_id"]:
+            entry["stage"] = app.get("current_stage", "intent")
+            entry["stage_source"] = app.get("stage_source", "derived")
+            entry["stage_state"] = app.get("stage_state", "collecting")
+            entry["last_changed_at"] = utc_now()
+            entry["contract_version"] = app.get("contract_version", "")
+            break
+    write_registry(root, registry)
+
+
+def defer_stage_credentials(root: Path, app_id: str, stage_id: str, reason: str) -> dict[str, Any]:
+    app = load_app(root, app_id)
+    now = utc_now()
+    changed: list[dict[str, Any]] = []
+    for item in app.get("credential_requirements", []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("required") is False or item.get("status") in {"available", "deferred"}:
+            continue
+        item["status"] = "deferred"
+        item["deferred_at"] = now
+        item["defer_reason"] = reason or "Owner deferred credential capability for this lifecycle rehearsal."
+        changed.append(item)
+    if changed:
+        deferral = {
+            "stage": normalize_stage_id(stage_id),
+            "deferred_at": now,
+            "reason": reason or "Owner deferred credential capability for this lifecycle rehearsal.",
+            "credential_requirements": changed,
+        }
+        app.setdefault("stage_deferrals", []).append(deferral)
+        write_app(root, app)
+        append_event(
+            root,
+            app_id,
+            new_event(
+                "approval.resolved",
+                app_id,
+                normalize_stage_id(stage_id),
+                f"Credential capability deferred for {normalize_stage_id(stage_id)}.",
+                created_by="owner",
+                payload={"status": "deferred", "deferral": deferral},
+            ),
+        )
+    return {"changed": changed}
+
+
+def approve_stage(
+    root: Path,
+    app_id: str,
+    stage_id: str | None = None,
+    *,
+    note: str = "",
+    defer_capability: bool = False,
+    defer_reason: str = "",
+) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    if defer_capability:
+        defer_stage_credentials(root, app_id, stage, defer_reason or note)
+    gate = stage_gate_status(root, app_id, stage)
+    if not gate["passed"]:
+        append_event(
+            root,
+            app_id,
+            new_event(
+                "lifecycle.stage_blocked",
+                app_id,
+                stage,
+                f"Stage approval blocked for {stage}.",
+                payload={"gate": gate},
+            ),
+        )
+        return {"schema": REST_SCHEMA, "approved": False, "app_id": slugify(app_id), "stage": stage, "gate": gate}
+    app = load_app(root, app_id)
+    approved = set(str(item) for item in app.get("approved_stages", []))
+    approved.add(stage)
+    now = utc_now()
+    app["approved_stages"] = sorted(approved, key=stage_index)
+    approvals = app.get("stage_approvals", {})
+    if not isinstance(approvals, dict):
+        approvals = {}
+    approvals[stage] = {
+        "approved_at": now,
+        "approved_by": "owner",
+        "note": note,
+        "gate": gate,
+        "conversation_turn_id": gate["transcript_capture"].get("latest_turn_id", ""),
+    }
+    app["stage_approvals"] = approvals
+    if normalize_stage_id(app.get("current_stage"), default=stage) == stage:
+        app["stage_state"] = "approved"
+    write_app(root, app)
+    update_registry_entry(root, app)
+    event = new_event(
+        "lifecycle.stage_approved",
+        app_id,
+        stage,
+        f"Owner approved {stage} stage.",
+        created_by="owner",
+        payload={
+            "stage": stage,
+            "note": note,
+            "gate": gate,
+            "conversation_turn_id": gate["transcript_capture"].get("latest_turn_id", ""),
+        },
+    )
+    append_event(root, app_id, event)
+    append_event(
+        root,
+        app_id,
+        new_event(
+            "approval.resolved",
+            app_id,
+            stage,
+            f"Approval resolved for {stage} stage.",
+            created_by="owner",
+            payload={"status": "approved", "approval_event_id": event["event_id"], "note": note},
+        ),
+    )
+    return {"schema": REST_SCHEMA, "approved": True, "app_id": slugify(app_id), "stage": stage, "gate": gate, "event": event}
+
+
+def advance_stage(root: Path, app_id: str, *, note: str = "") -> dict[str, Any]:
+    state = app_state(root, app_id)
+    app = state["app"]
+    current = state["stage_status"]["stage"]
+    gate = stage_gate_status(root, app_id, current)
+    if not gate["passed"]:
+        return {
+            "schema": REST_SCHEMA,
+            "advanced": False,
+            "app_id": slugify(app_id),
+            "stage": current,
+            "next_stage": next_stage_id(current),
+            "error": "current_stage_gate_not_passing",
+            "gate": gate,
+        }
+    if current not in set(str(item) for item in app.get("approved_stages", [])):
+        return {
+            "schema": REST_SCHEMA,
+            "advanced": False,
+            "app_id": slugify(app_id),
+            "stage": current,
+            "next_stage": next_stage_id(current),
+            "error": "current_stage_not_approved",
+            "gate": gate,
+        }
+    next_id = next_stage_id(current)
+    if next_id is None:
+        return {
+            "schema": REST_SCHEMA,
+            "advanced": False,
+            "app_id": slugify(app_id),
+            "stage": current,
+            "next_stage": None,
+            "error": "no_next_stage",
+        }
+    app["current_stage"] = next_id
+    app["stage_source"] = "approved_advance"
+    app["stage_state"] = "collecting"
+    write_app(root, app)
+    update_registry_entry(root, app)
+    event = new_event(
+        "lifecycle.stage_advanced",
+        app_id,
+        next_id,
+        f"Advanced from {current} to {next_id}.",
+        payload={
+            "from_stage": current,
+            "to_stage": next_id,
+            "note": note,
+            "conversation_turn_id": gate["transcript_capture"].get("latest_turn_id", ""),
+        },
+    )
+    append_event(root, app_id, event)
+    return {
+        "schema": REST_SCHEMA,
+        "advanced": True,
+        "app_id": slugify(app_id),
+        "from_stage": current,
+        "stage": next_id,
+        "next_stage": next_stage_id(next_id),
+        "event": event,
+    }
+
+
 def app_stage_state(root: Path, app_id: str, state: dict[str, Any] | None = None) -> dict[str, Any]:
     state = state or app_state(root, app_id)
     app = state["app"]
@@ -1441,14 +2120,11 @@ def app_stage_state(root: Path, app_id: str, state: dict[str, Any] | None = None
     stage = state["stage"]["stage"]
     raw_stage_state = str(app.get("stage_state") or "collecting")
     stage_state = raw_stage_state if raw_stage_state in STAGE_STATES else "collecting"
+    stage_gate = stage_gate_status(root, app_id, stage)
     missing_inputs = short_list(app.get("required_inputs", []), 10)
     owner_questions = short_list(app.get("owner_questions", []), 10)
-    required_capabilities = app.get("credential_requirements", [])
-    credential_blockers = [
-        str(item.get("label") or item.get("id") or item)
-        for item in required_capabilities
-        if isinstance(item, dict) and item.get("required") is not False and item.get("status") not in {"available", "deferred"}
-    ]
+    capability_blockers = credential_blockers_for_stage(app, stage)
+    approved = set(str(item) for item in app.get("approved_stages", []))
     if not gate["passed"]:
         stage_state = "collecting"
         missing_inputs = short_list(gate["missing"] + gate["incomplete"], 10)
@@ -1456,13 +2132,18 @@ def app_stage_state(root: Path, app_id: str, state: dict[str, Any] | None = None
     elif app.get("blockers"):
         stage_state = "blocked"
         next_action = f"Resolve blocker: {app['blockers'][0]}"
-    elif credential_blockers and stage in {"kpi", "marketing"}:
+    elif capability_blockers and stage in {"kpi", "marketing", "analysis"}:
         stage_state = "blocked"
-        next_action = f"Provide or defer credential capability: {credential_blockers[0]}"
-    elif stage_state == "ready_for_review":
-        next_action = "Owner review is needed before the lifecycle stage can be marked approved."
-    elif stage_state == "approved":
+        next_action = f"Provide or defer credential capability: {capability_blockers[0]}"
+    elif not stage_gate["passed"]:
+        stage_state = "blocked" if stage_gate["missing_previous_stages"] else "collecting"
+        next_action = f"Complete current-stage gate: {stage_gate['missing'][0]}"
+    elif stage in approved or stage_state == "approved":
+        stage_state = "approved"
         next_action = "Hermes may continue to the next admitted lifecycle stage."
+    elif stage_state == "ready_for_review" or stage_gate["passed"]:
+        stage_state = "ready_for_review"
+        next_action = "Owner review is needed; /approve_stage can mark this lifecycle stage approved."
     else:
         next_action = "Hermes should continue eliciting missing context or drafting the current stage packet."
     requirements = STAGE_REQUIREMENTS.get(stage, [])
@@ -1472,7 +2153,11 @@ def app_stage_state(root: Path, app_id: str, state: dict[str, Any] | None = None
         "requirements": requirements,
         "missing_inputs": missing_inputs,
         "owner_questions": owner_questions,
-        "credential_blockers": credential_blockers,
+        "credential_blockers": capability_blockers,
+        "transcript_capture": stage_gate["transcript_capture"],
+        "stage_gate_passed": stage_gate["passed"],
+        "stage_gate_missing": stage_gate["missing"],
+        "stage_gate_warnings": stage_gate["warnings"],
         "tasks": short_list(app.get("tasks", []), 10),
         "next_action": next_action,
     }
@@ -1502,6 +2187,50 @@ def lifecycle_rows(state: dict[str, Any], stage_status: dict[str, Any]) -> list[
 def recent_event_summaries(root: Path, app_id: str, limit: int = 5) -> list[str]:
     events = read_events(root, app_id)
     return [f"{event['type']}: {event['summary']} [{event['stage']}]" for event in events[-limit:]]
+
+
+def compact_text(value: Any, limit: int = 120) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 3)].rstrip() + "..."
+
+
+def transition_summary(transition: dict[str, Any]) -> str:
+    if not isinstance(transition, dict) or not transition:
+        return "no state transition recorded"
+    from_stage = transition.get("from_stage") or transition.get("from")
+    to_stage = transition.get("to_stage") or transition.get("to")
+    from_state = transition.get("from_state")
+    to_state = transition.get("to_state")
+    if from_stage or to_stage:
+        left = str(from_stage or "?")
+        right = str(to_stage or "?")
+        if from_state:
+            left += f"/{from_state}"
+        if to_state:
+            right += f"/{to_state}"
+        return f"{left} -> {right}"
+    return compact_text(transition.get("summary") or transition.get("reason") or transition, 120)
+
+
+def conversation_turn_summary(turn: dict[str, Any]) -> str:
+    operator_text = compact_text(turn.get("operator_message", {}).get("text"), 80)
+    reply_text = compact_text(turn.get("agent_reply", {}).get("text"), 80)
+    rationale = compact_text(turn.get("agent_rationale", {}).get("summary"), 80)
+    artifact_count = len(turn.get("artifact_refs", []))
+    event_count = len(turn.get("event_refs", []))
+    refs = f"; artifacts={artifact_count}; events={event_count}"
+    return (
+        f"{turn.get('created_at', '')}: {turn.get('stage', 'intent')} | "
+        f"owner: {operator_text} | hermes: {reply_text} | "
+        f"rationale: {rationale} | transition: {transition_summary(turn.get('state_transition', {}))}{refs}"
+    )
+
+
+def recent_conversation_summaries(root: Path, app_id: str, limit: int = 3) -> list[str]:
+    turns = read_conversation_turns(root, app_id)
+    return [conversation_turn_summary(turn) for turn in turns[-limit:]]
 
 
 def decision_summaries(state: dict[str, Any], limit: int = 5) -> list[str]:
@@ -1536,6 +2265,7 @@ def contract_diff(root: Path, app_id: str) -> dict[str, Any]:
 def app_state(root: Path, app_id: str) -> dict[str, Any]:
     stage = derive_stage(root, app_id)
     app = load_app(root, app_id)
+    conversation_turns = read_conversation_turns(root, app_id)
     state = {
         "schema": "weave-app-state/v0.1",
         "app": app,
@@ -1543,10 +2273,17 @@ def app_state(root: Path, app_id: str) -> dict[str, Any]:
         "foundation_gate": foundation_gate(root, app_id),
         "latest_changes": latest_changes(root, app_id),
         "artifacts": list_artifacts(root, app_id),
+        "conversation": {
+            "schema": CONVERSATION_TURN_SCHEMA,
+            "path": f"apps/{slugify(app_id)}/ledger/conversation-turns.jsonl",
+            "turn_count": len(conversation_turns),
+            "recent_turns": conversation_turns[-5:],
+        },
         "contract_diff": contract_diff(root, app_id),
     }
     stage_status = app_stage_state(root, app_id, state)
     state["stage_status"] = stage_status
+    state["stage_gate"] = stage_gate_status(root, app_id, stage_status["stage"])
     state["lifecycle"] = lifecycle_rows(state, stage_status)
     return state
 
@@ -1568,6 +2305,8 @@ def list_apps(root: Path, *, include_system: bool = False) -> list[dict[str, Any
                 "stage": state["stage"]["stage"],
                 "stage_source": state["stage"]["stage_source"],
                 "stage_state": state["stage_status"]["stage_state"],
+                "stage_gate_passed": state["stage_status"]["stage_gate_passed"],
+                "stage_gate_missing_count": len(state["stage_status"]["stage_gate_missing"]),
                 "foundation_passed": state["foundation_gate"]["passed"],
                 "blocker_count": len(app.get("blockers", [])),
                 "next_action": state["stage_status"]["next_action"],
@@ -1637,14 +2376,25 @@ def foundation_status_label(gate: dict[str, Any]) -> str:
 def app_status_line(app: dict[str, Any]) -> str:
     gate = "passed" if app["foundation_passed"] else "blocking"
     blockers = f"; blockers={app['blocker_count']}" if app.get("blocker_count") else ""
-    return f"- {app['name']} ({app['app_id']}): {app['stage']} / {app['stage_state']}; foundation={gate}{blockers}"
+    stage_gate = ""
+    if app.get("foundation_passed") and not app.get("stage_gate_passed", True):
+        stage_gate = f"; stage_gate_missing={app.get('stage_gate_missing_count', 0)}"
+    return f"- {app['name']} ({app['app_id']}): {app['stage']} / {app['stage_state']}; foundation={gate}{blockers}{stage_gate}"
 
 
-def next_from_apps(apps: list[dict[str, Any]], foundation_blocked: list[dict[str, Any]], app_blocked_ids: list[str]) -> str:
+def next_from_apps(
+    apps: list[dict[str, Any]],
+    foundation_blocked: list[dict[str, Any]],
+    app_blocked_ids: list[str],
+    stage_gate_blocked: list[dict[str, Any]],
+) -> str:
     if foundation_blocked:
         return f"Hermes should collect foundation answers for {foundation_blocked[0]['app_id']}."
     if app_blocked_ids:
         return f"Resolve blocker for {app_blocked_ids[0]}."
+    if stage_gate_blocked:
+        first = stage_gate_blocked[0]
+        return f"Complete lifecycle gate for {first['app_id']}: {first['missing'][0]}."
     if apps:
         return "No deterministic blocker is recorded; Hermes can continue from the active stage."
     return "Create or select a product app workspace."
@@ -1661,6 +2411,7 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
     system_apps = [app for app in all_apps if app["app_type"] == "system"]
     foundation_blocked = [app for app in apps if not app["foundation_passed"]]
     app_blocked_ids: list[str] = []
+    stage_gate_blocked: list[dict[str, Any]] = []
     for app in apps:
         try:
             state = app_state(root, app["app_id"])
@@ -1668,17 +2419,35 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             continue
         if state["app"].get("blockers"):
             app_blocked_ids.append(app["app_id"])
-    blocked_ids = sorted({app["app_id"] for app in foundation_blocked} | set(app_blocked_ids))
+        stage_status = state["stage_status"]
+        if (
+            state["foundation_gate"]["passed"]
+            and not state["app"].get("blockers")
+            and not stage_status["stage_gate_passed"]
+        ):
+            stage_gate_blocked.append(
+                {
+                    "app_id": app["app_id"],
+                    "stage": stage_status["stage"],
+                    "missing": stage_status["stage_gate_missing"],
+                }
+            )
+    blocked_ids = sorted(
+        {app["app_id"] for app in foundation_blocked}
+        | set(app_blocked_ids)
+        | {item["app_id"] for item in stage_gate_blocked}
+    )
     autonomy = load_autonomy_policy(root)
     agent_profile = ensure_agent_profile(root)
     hermes_setup = weave_hermes_setup.hermes_setup_status(runtime_home / "hermes-home")
     active_app = load_active_app(root)
     source_map = load_source_map(root)
     source_summary = summarize_source_map(source_map)
-    next_action = next_from_apps(apps, foundation_blocked, app_blocked_ids)
+    next_action = next_from_apps(apps, foundation_blocked, app_blocked_ids, stage_gate_blocked)
     attention: list[str] = []
     attention.extend(f"{app['app_id']}: foundation onboarding" for app in foundation_blocked)
     attention.extend(f"{app_id}: app blocker" for app_id in app_blocked_ids)
+    attention.extend(f"{item['app_id']}: lifecycle gate ({item['stage']})" for item in stage_gate_blocked)
     if not attention:
         attention.append("none")
     lines = [
@@ -1700,6 +2469,7 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
         f"- blocked_apps: {len(blocked_ids)}",
         f"- foundation_blocked_apps: {len(foundation_blocked)}",
         f"- app_blocked_apps: {len(app_blocked_ids)}",
+        f"- stage_gate_blocked_apps: {len(stage_gate_blocked)}",
     ]
     if apps:
         lines.extend(app_status_line(app) for app in apps)
@@ -1736,6 +2506,7 @@ def runtime_status_command(root: Path) -> dict[str, Any]:
             "blocked_apps": blocked_ids,
             "foundation_blocked_apps": [app["app_id"] for app in foundation_blocked],
             "app_blocked_apps": app_blocked_ids,
+            "stage_gate_blocked_apps": [item["app_id"] for item in stage_gate_blocked],
             "active_app": active_app,
             "agent_profile": agent_profile,
             "hermes_setup": hermes_setup,
@@ -1821,12 +2592,17 @@ def render_app_wall(root: Path, app_id: str) -> tuple[str, dict[str, Any]]:
     profile = ensure_agent_profile(root)
     decisions = decision_summaries(state)
     recent = recent_event_summaries(root, app_id)
+    conversation = recent_conversation_summaries(root, app_id, 2)
     blockers = [str(blocker) for blocker in app.get("blockers", [])]
     if not gate["passed"]:
         blockers.append(f"foundation {foundation_status_label(gate)}")
+    elif not stage_status["stage_gate_passed"]:
+        blockers.extend(f"stage gate: {item}" for item in stage_status["stage_gate_missing"])
     if stage_status["credential_blockers"]:
         blockers.extend(f"credential: {item}" for item in stage_status["credential_blockers"])
     needs = stage_status["missing_inputs"] + stage_status["owner_questions"]
+    if gate["passed"] and not stage_status["stage_gate_passed"]:
+        needs.extend(stage_status["stage_gate_missing"])
     lines = [
         f"WEAVE App Status: {app['name']} ({app['app_id']})",
         "",
@@ -1849,6 +2625,20 @@ def render_app_wall(root: Path, app_id: str) -> tuple[str, dict[str, Any]]:
     lines.extend(f"- {item}" for item in (stage_status["tasks"] or ["none recorded"]))
     lines.extend(["", "Decisions"])
     lines.extend(f"- {item}" for item in (decisions or ["none recorded"]))
+    lines.extend(["", "Conversation Trace"])
+    lines.extend(f"- {item}" for item in (conversation or ["none recorded"]))
+    transcript_gate = stage_status["transcript_capture"]
+    lines.extend(
+        [
+            "",
+            "Transcript Capture",
+            f"- required: {str(transcript_gate['required']).lower()}",
+            f"- passed: {str(transcript_gate['passed']).lower()}",
+            f"- latest_turn: {transcript_gate['latest_turn_id'] or 'none'}",
+        ]
+    )
+    if transcript_gate["missing"]:
+        lines.extend(f"- missing: {item}" for item in transcript_gate["missing"])
     lines.extend(["", "Recent Work"])
     lines.extend(f"- {item}" for item in (recent or ["none recorded"]))
     lines.extend(["", "Blockers"])
@@ -1869,11 +2659,14 @@ def render_app_wall(root: Path, app_id: str) -> tuple[str, dict[str, Any]]:
         "app_type": "system" if is_system_app(app) else "product",
         "stage": state["stage"],
         "stage_status": stage_status,
+        "stage_gate": state["stage_gate"],
         "lifecycle": state["lifecycle"],
         "foundation_gate": gate,
         "contract_version": app.get("contract_version", ""),
         "artifact_count": len(state["artifacts"]),
         "latest_changes": state["latest_changes"],
+        "conversation": state["conversation"],
+        "conversation_trace": conversation,
         "decisions": decisions,
         "recent_work": recent,
         "blockers": blockers,
@@ -1963,6 +2756,131 @@ def switch_app_command(root: Path, args: list[str]) -> dict[str, Any]:
     )
 
 
+def lifecycle_command(root: Path, args: list[str]) -> dict[str, Any]:
+    try:
+        app_id, source = resolve_app_id(root, args)
+        state = app_state(root, app_id)
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/lifecycle",
+            handled=False,
+            error="app_not_found_or_unselected",
+            text=str(exc),
+            payload={"usage": "/lifecycle [app_id]"},
+        )
+    lines = [
+        f"WEAVE Lifecycle: {state['app']['name']} ({app_id})",
+        f"- current_stage: {state['stage_status']['stage']}",
+        f"- state: {state['stage_status']['stage_state']}",
+        "Stages:",
+        *[lifecycle_line(row) for row in state["lifecycle"]],
+        "Gate:",
+        *[f"- missing: {item}" for item in (stage_gate_status(root, app_id, state["stage_status"]["stage"])["missing"] or ["none"])],
+        f"Next: {state['stage_status']['next_action']}",
+    ]
+    return telegram_command_response(
+        command="/lifecycle",
+        text="\n".join(lines),
+        payload={
+            "app_id": app_id,
+            "app_resolution_source": source,
+            "lifecycle": state["lifecycle"],
+            "stage_status": state["stage_status"],
+            "stage_gate": state["stage_gate"],
+        },
+    )
+
+
+def parse_stage_action_args(root: Path, args: list[str]) -> tuple[str, str | None, bool, str]:
+    defer_capability = "--defer-credentials" in args
+    note = ""
+    clean_args: list[str] = []
+    skip_next = False
+    for index, arg in enumerate(args):
+        if skip_next:
+            skip_next = False
+            continue
+        if arg == "--defer-credentials":
+            continue
+        if arg in {"--note", "--reason"} and index + 1 < len(args):
+            note = args[index + 1]
+            skip_next = True
+            continue
+        clean_args.append(arg)
+    known_stages = set(stage_ids())
+    if clean_args and clean_args[0] in known_stages:
+        app_id, _source = resolve_app_id(root, [])
+        return app_id, clean_args[0], defer_capability, note
+    app_id, _source = resolve_app_id(root, clean_args[:1])
+    stage_id = clean_args[1] if len(clean_args) > 1 else None
+    return app_id, stage_id, defer_capability, note
+
+
+def approve_stage_command(root: Path, args: list[str]) -> dict[str, Any]:
+    try:
+        app_id, stage_id, defer_capability, note = parse_stage_action_args(root, args)
+        result = approve_stage(root, app_id, stage_id, note=note, defer_capability=defer_capability, defer_reason=note)
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/approve_stage",
+            handled=False,
+            error="stage_approval_failed",
+            text=str(exc),
+            payload={"usage": "/approve_stage [app_id] [stage] [--defer-credentials]"},
+        )
+    if not result["approved"]:
+        lines = [
+            f"Stage approval blocked: {app_id} / {result['stage']}",
+            "Missing:",
+            *[f"- {item}" for item in result["gate"]["missing"]],
+            "Next: Hermes must record the missing evidence or ask the owner for a deferral where allowed.",
+        ]
+        return telegram_command_response(command="/approve_stage", handled=False, error="stage_gate_blocking", text="\n".join(lines), payload=result)
+    text = "\n".join(
+        [
+            f"Approved stage: {app_id} / {result['stage']}",
+            "Recorded: owner approval and stage gate evidence.",
+            "Next: /advance can move to the next lifecycle stage.",
+        ]
+    )
+    return telegram_command_response(command="/approve_stage", text=text, payload=result)
+
+
+def advance_command(root: Path, args: list[str]) -> dict[str, Any]:
+    try:
+        app_id, _source = resolve_app_id(root, args[:1])
+        result = advance_stage(root, app_id, note=" ".join(args[1:]).strip())
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/advance",
+            handled=False,
+            error="stage_advance_failed",
+            text=str(exc),
+            payload={"usage": "/advance [app_id]"},
+        )
+    if not result["advanced"]:
+        if result.get("error") == "no_next_stage":
+            text = f"No next lifecycle stage exists for {app_id}; current stage is {result['stage']}."
+        else:
+            text = "\n".join(
+                [
+                    f"Stage advance blocked: {app_id} / {result['stage']}",
+                    "Reason: current stage is not owner-approved.",
+                    "Next: use /approve_stage after the stage gate passes.",
+                ]
+            )
+        return telegram_command_response(command="/advance", handled=False, error=result.get("error", "stage_advance_blocked"), text=text, payload=result)
+    text = "\n".join(
+        [
+            f"Advanced app: {app_id}",
+            f"- from: {result['from_stage']}",
+            f"- to: {result['stage']}",
+            "Next: Hermes should collect or produce evidence for the new stage.",
+        ]
+    )
+    return telegram_command_response(command="/advance", text=text, payload=result)
+
+
 def stage_command(root: Path, args: list[str]) -> dict[str, Any]:
     try:
         app_id, source = resolve_app_id(root, args)
@@ -2031,7 +2949,9 @@ def blockers_command(root: Path) -> dict[str, Any]:
         state = app_state(root, app["app_id"])
         gate = state["foundation_gate"]
         app_blockers = state["app"].get("blockers", [])
-        if gate["passed"] and not app_blockers:
+        stage_status = state["stage_status"]
+        stage_gate_missing = stage_status["stage_gate_missing"] if gate["passed"] else []
+        if gate["passed"] and not app_blockers and not stage_gate_missing:
             continue
         entry = {
             "app_id": app["app_id"],
@@ -2039,12 +2959,14 @@ def blockers_command(root: Path) -> dict[str, Any]:
             "stage": app["stage"],
             "foundation_gate": gate,
             "blockers": app_blockers,
+            "stage_gate_missing": stage_gate_missing,
         }
         blockers.append(entry)
         reasons = []
         if not gate["passed"]:
             reasons.append(f"foundation {foundation_status_label(gate)}")
         reasons.extend(str(blocker) for blocker in app_blockers)
+        reasons.extend(f"stage gate {item}" for item in stage_gate_missing)
         lines.append(f"{app['name']} ({app['app_id']}): " + "; ".join(reasons))
     text = "No WEAVE blockers are recorded." if not lines else "WEAVE blockers:\n" + "\n".join(lines)
     return telegram_command_response(command="/blockers", text=text, payload={"blockers": blockers})
@@ -2092,6 +3014,55 @@ def changes_command(root: Path, args: list[str]) -> dict[str, Any]:
     return telegram_command_response(command="/changes", text=text, payload={"apps": summaries})
 
 
+def transcript_command(root: Path, args: list[str]) -> dict[str, Any]:
+    try:
+        app_id, source = resolve_app_id(root, args)
+        app = load_app(root, app_id)
+        turns = read_conversation_turns(root, app_id)
+    except RuntimeSliceError as exc:
+        return telegram_command_response(
+            command="/transcript",
+            handled=False,
+            error="app_not_found_or_unselected",
+            text=str(exc),
+            payload={"usage": "/transcript [app_id]"},
+        )
+    recent_turns = turns[-5:]
+    lines = [
+        f"WEAVE Transcript: {app['name']} ({app_id})",
+        f"- turns: {len(turns)}",
+        f"- source: {relative(conversation_turn_path(root, app_id), root)}",
+        "",
+        "Recent Turns",
+    ]
+    if not recent_turns:
+        lines.append("- none recorded")
+    for index, turn in enumerate(recent_turns, max(1, len(turns) - len(recent_turns) + 1)):
+        lines.extend(
+            [
+                f"{index}. {turn.get('created_at', '')} [{turn.get('stage', 'intent')}]",
+                f"   owner: {compact_text(turn.get('operator_message', {}).get('text'), 180)}",
+                f"   hermes: {compact_text(turn.get('agent_reply', {}).get('text'), 180)}",
+                f"   rationale: {compact_text(turn.get('agent_rationale', {}).get('summary'), 180)}",
+                f"   transition: {transition_summary(turn.get('state_transition', {}))}",
+                f"   artifacts: {len(turn.get('artifact_refs', []))}; events: {len(turn.get('event_refs', []))}",
+                f"   next: {compact_text(turn.get('next_action'), 180) or 'none recorded'}",
+            ]
+        )
+    return telegram_command_response(
+        command="/transcript",
+        text="\n".join(lines),
+        payload={
+            "app_id": app_id,
+            "app_resolution_source": source,
+            "turn_count": len(turns),
+            "conversation_turns_path": relative(conversation_turn_path(root, app_id), root),
+            "recent_turns": recent_turns,
+            "chain_of_thought_policy": "owner-reviewable rationale summaries only; hidden model chain-of-thought is not captured",
+        },
+    )
+
+
 def next_command(root: Path) -> dict[str, Any]:
     apps = safe_list_apps(root)
     for app in apps:
@@ -2112,6 +3083,21 @@ def next_command(root: Path) -> dict[str, Any]:
                 command="/next",
                 text=f"Next: resolve blocker for {app['name']} ({app['app_id']}): {blockers[0]}",
                 payload={"app_id": app["app_id"], "next_action": blockers[0]},
+            )
+        stage_status = state["stage_status"]
+        if not stage_status["stage_gate_passed"]:
+            return telegram_command_response(
+                command="/next",
+                text=(
+                    f"Next: complete lifecycle gate for {app['name']} ({app['app_id']}) "
+                    f"at {stage_status['stage']}: {stage_status['stage_gate_missing'][0]}"
+                ),
+                payload={
+                    "app_id": app["app_id"],
+                    "stage": stage_status["stage"],
+                    "next_action": stage_status["stage_gate_missing"][0],
+                    "stage_gate_missing": stage_status["stage_gate_missing"],
+                },
             )
     if apps:
         return telegram_command_response(
@@ -2157,14 +3143,22 @@ def dispatch_telegram_command(root: Path, text: str) -> dict[str, Any]:
         return create_app_command(root, args)
     if command == "/switch_app":
         return switch_app_command(root, args)
+    if command == "/lifecycle":
+        return lifecycle_command(root, args)
     if command == "/stage":
         return stage_command(root, args)
     if command == "/requirements":
         return requirements_command(root, args)
+    if command == "/approve_stage":
+        return approve_stage_command(root, args)
+    if command == "/advance":
+        return advance_command(root, args)
     if command == "/blockers":
         return blockers_command(root)
     if command == "/changes":
         return changes_command(root, args)
+    if command == "/transcript":
+        return transcript_command(root, args)
     if command == "/next":
         return next_command(root)
     return telegram_command_response(
@@ -2207,6 +3201,10 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
         return 200, {"schema": REST_SCHEMA, "apps": list_apps(root)}
     if method == "GET" and parts == ["telegram", "commands"]:
         return 200, {"schema": REST_SCHEMA, "commands": TELEGRAM_COMMANDS, "deterministic": True, "llm_used": False}
+    if method == "POST" and parts == ["telegram", "dispatch"]:
+        response = dispatch_telegram_command(root, str(body.get("text", "")))
+        status = 200 if response.get("handled") else 400
+        return status, {"schema": REST_SCHEMA, "telegram_command": response}
     if method == "GET" and parts == ["runtime", "autonomy"]:
         return 200, {"schema": REST_SCHEMA, "autonomy": load_autonomy_policy(root)}
     if method == "GET" and parts == ["runtime", "sources"]:
@@ -2218,8 +3216,47 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
         app_id = parts[1]
         if method == "GET" and parts[2:] == ["state"]:
             return 200, app_state(root, app_id)
+        if method == "GET" and parts[2:] == ["lifecycle"]:
+            state = app_state(root, app_id)
+            return 200, {
+                "schema": REST_SCHEMA,
+                "app_id": app_id,
+                "lifecycle": state["lifecycle"],
+                "stage_status": state["stage_status"],
+                "stage_gate": state["stage_gate"],
+            }
         if method == "GET" and parts[2:] == ["events"]:
             return 200, {"schema": REST_SCHEMA, "events": read_events(root, app_id)}
+        if method == "GET" and parts[2:] in (["conversation", "form"], ["conversation-form"], ["transcript", "form"]):
+            stage = str(body.get("stage") or "") if isinstance(body, dict) else ""
+            return 200, {"schema": REST_SCHEMA, "form": conversation_capture_form(root, app_id, stage or None)}
+        if method == "GET" and parts[2:] in (["conversation"], ["conversation-turns"], ["transcript"]):
+            turns = read_conversation_turns(root, app_id)
+            return 200, {
+                "schema": REST_SCHEMA,
+                "conversation_schema": CONVERSATION_TURN_SCHEMA,
+                "app_id": slugify(app_id),
+                "turn_count": len(turns),
+                "conversation_turns_path": relative(conversation_turn_path(root, app_id), root),
+                "turns": turns,
+                "chain_of_thought_policy": "owner-reviewable rationale summaries only; hidden model chain-of-thought is not captured",
+            }
+        if method == "POST" and parts[2:] in (["conversation"], ["conversation-turns"], ["transcript"]):
+            turn = conversation_turn_from_body(root, app_id, body)
+            return 201, {"schema": REST_SCHEMA, "conversation_turn": append_conversation_turn(root, app_id, turn)}
+        if method == "POST" and parts[2:] == ["approve-stage"]:
+            result = approve_stage(
+                root,
+                app_id,
+                body.get("stage"),
+                note=str(body.get("note", "")),
+                defer_capability=bool(body.get("defer_credentials", False)),
+                defer_reason=str(body.get("defer_reason", body.get("note", ""))),
+            )
+            return (200 if result["approved"] else 409), result
+        if method == "POST" and parts[2:] == ["advance"]:
+            result = advance_stage(root, app_id, note=str(body.get("note", "")))
+            return (200 if result["advanced"] else 409), result
         if method == "POST" and parts[2:] == ["events"]:
             return 201, {"schema": REST_SCHEMA, "event": append_event(root, app_id, body)}
         if method == "GET" and parts[2:] == ["artifacts"]:

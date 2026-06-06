@@ -48,6 +48,8 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertIn("agent profile:", prompt)
             self.assertIn("active app profile:", prompt)
             self.assertIn("intent -> research -> selection", prompt)
+            self.assertIn("Transcript capture is mandatory", prompt)
+            self.assertIn("weave-conversation-turn/v0.1", prompt)
             for command in setup_runtime.weave_runtime_slice.TELEGRAM_COMMANDS:
                 self.assertIn(f"`{command}`", prompt)
 
@@ -76,6 +78,7 @@ class SetupRuntimeTests(unittest.TestCase):
             config = setup_runtime._load_yaml_config(hermes_home / "config.yaml")
             self.assertIn("/create_app", config["agent"]["system_prompt"])
             self.assertIn("There is no dashboard or UI", config["agent"]["system_prompt"])
+            self.assertIn("Transcript capture is mandatory", config["agent"]["system_prompt"])
             self.assertEqual(config["weave_runtime"]["root"], str(weave_root.resolve()))
             self.assertNotIn("telegram_bot_token", json.dumps(config).lower())
 
@@ -220,6 +223,7 @@ class SetupRuntimeTests(unittest.TestCase):
             root = Path(tmpdir)
             weave_root = root / "weave-root"
             setup_runtime.weave_runtime_slice.setup_weave_root(weave_root)
+            setup_runtime.weave_runtime_slice.create_app(weave_root, "demo", "Demo")
 
             with mock.patch.dict(
                 os.environ,
@@ -233,6 +237,18 @@ class SetupRuntimeTests(unittest.TestCase):
 
             self.assertIn("WEAVE Status", result)
             self.assertIn("root_ready: true", result)
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "WEAVE_RUNTIME_REPO": str(REPO_ROOT),
+                    "WEAVE_RUNTIME_ROOT": str(weave_root),
+                },
+                clear=False,
+            ):
+                transcript = weave_runtime_plugin._dispatch("/transcript demo")
+
+            self.assertIn("WEAVE Transcript", transcript)
+            self.assertIn("turns: 0", transcript)
 
     def test_status_hook_handles_builtin_status(self) -> None:
         with mock.patch.object(weave_runtime_plugin, "_dispatch", return_value="ok"):
@@ -263,7 +279,7 @@ class SetupRuntimeTests(unittest.TestCase):
         with mock.patch.dict(
             os.environ,
             {
-                "TELEGRAM_BOT_TOKEN": "123456789:abcdefghijklmnopqrstuvwxyzABCDEF",
+                "TELEGRAM_BOT_TOKEN": "123456789:" + "abcdefghijklmnopqrstuvwxyzABCDEF",
                 "TELEGRAM_ALLOWED_USERS": "12345",
             },
             clear=False,
@@ -284,6 +300,7 @@ class SetupRuntimeTests(unittest.TestCase):
         self.assertIn('"type": "chat"', payload)
         self.assertIn('"chat_id": 12345', payload)
         self.assertIn('"command": "sources"', payload)
+        self.assertIn('"command": "transcript"', payload)
         self.assertIn('"command": "weave_status"', payload)
         self.assertIn("12345", weave_runtime_plugin._REGISTERED_TELEGRAM_CHATS)
 

@@ -1,0 +1,10 @@
+{
+  "name": "fableframe-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "qa": "python3 ../../scripts/month1_product_app_qa.py --app-dir ."
+  }
+}

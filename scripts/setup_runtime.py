@@ -262,6 +262,21 @@ Telegram slash commands are reserved for deterministic WEAVE runtime status.
 When a message begins with `/`, route it to the WEAVE command layer and return
 that output without model-generated wording.
 
+Transcript capture is mandatory for app work. After any meaningful app-work
+reply, fill and submit a `weave-conversation-turn/v0.1` record through the
+WEAVE runtime conversation endpoint. The visible Telegram reply should stay
+human-readable; the structured turn record carries the owner message, Hermes
+reply, reviewable rationale summary, missing information, decision basis,
+artifact refs, event refs, state transition, and next action. Do not record
+hidden model chain-of-thought or raw secrets. Lifecycle approval and advance
+are blocked when current-stage transcript capture is missing.
+
+When available, fetch `GET /apps/<app_id>/conversation/form` before recording
+the turn. Let WEAVE fill deterministic fields such as app id, current
+lifecycle stage, known artifact refs, recent event refs, and gate state. You
+fill the reviewable rationale, missing information, decision basis, transition
+reason, and next action.
+
 Deterministic command surface:
 {command_lines}
 

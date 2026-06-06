@@ -36,10 +36,14 @@ the runtime command handler before Hermes sees it.
 | `/app <app_id>` | Show one app wall. |
 | `/create_app <name>` | Create and select a product app workspace after Hermes/user confirmation. |
 | `/switch_app <app_id>` | Select the active product app for the Telegram UX. |
+| `/lifecycle [app_id]` | Show lifecycle rows, current-stage gate state, missing evidence, and next action. Defaults to the active app. |
 | `/stage [app_id]` | Show the current lifecycle stage and lifecycle row state. Defaults to the active app. |
 | `/requirements [app_id]` | Show current-stage requirements, missing inputs, questions, and credential blockers. Defaults to the active app. |
+| `/approve_stage [app_id] [stage] [--defer-credentials]` | Record owner approval for a lifecycle stage after foundation, prior-stage, artifact, blocker, and credential gates pass. |
+| `/advance [app_id]` | Advance to the next lifecycle stage after the current stage is owner-approved. |
 | `/blockers` | Show apps that need owner or Hermes action. |
 | `/changes [app_id]` | Show latest recorded changes for one app or all apps. |
+| `/transcript [app_id]` | Show recent raw app conversation turns: owner message, Hermes reply, rationale summary, artifact refs, event refs, lifecycle transition, and next action. Defaults to the active app. |
 | `/next` | Show the next deterministic owner-visible action. |
 
 ## Accessing App Status
@@ -63,6 +67,7 @@ Apps
 - product_apps: 1
 - system_apps_hidden: 1
 - blocked_apps: 1
+- stage_gate_blocked_apps: 1
 - Visual Novel (visual-novel): plan / collecting; foundation=passed
 
 Attention
@@ -115,9 +120,85 @@ Next
 Use `/blockers` and `/next` when you want the lowest-cognitive-load answer to
 "what needs attention now?"
 
+Use `/transcript [app_id]` when you need to audit what actually happened in the
+chat flow:
+
+```text
+WEAVE Transcript: Demo App (demo-app)
+- turns: 2
+- source: apps/demo-app/ledger/conversation-turns.jsonl
+
+Recent Turns
+1. 2026-06-06T12:00:00Z [intent]
+   owner: Make a short visual novel about a crow learning to ask for water.
+   hermes: I captured the intent and created the first intent artifact for review.
+   rationale: Foundation documents were complete and the intent artifact now exists.
+   transition: intent/collecting -> intent/ready_for_review
+   artifacts: 1; events: 1
+   next: Owner reviews the intent artifact, then may approve the intent stage.
+```
+
+Each row is stored as `weave-conversation-turn/v0.1` in
+`apps/<app_id>/ledger/conversation-turns.jsonl`. The row records:
+
+- `operator_message`: what the owner or operator sent.
+- `agent_reply`: what Hermes replied.
+- `agent_rationale`: an owner-reviewable rationale summary, gate questions,
+  missing information, and decision basis. It does not capture hidden model
+  chain-of-thought.
+- `gate_checks`: deterministic checks Hermes considered before moving.
+- `artifact_refs`: files created or updated as a result of the reply.
+- `event_refs`: append-only ledger events connected to the turn.
+- `state_transition`: lifecycle or stage-state change proposed or initiated
+  from the turn.
+- `next_action`: the immediate owner-visible next action.
+
+Transcript capture is mandatory for app work. A Hermes app-work reply is not
+complete until the structured turn has been appended, or Hermes explicitly
+reports that transcript sync is blocked. Lifecycle approval and advance use the
+current-stage transcript capture gate, so a stage with artifacts can still be
+blocked if no current-stage conversation turn links the owner message, Hermes
+reply, artifact/event evidence, and proposed state transition.
+
 Use `/stage` and `/requirements` when Hermes says it is missing information and
 you want the deterministic reason why lifecycle progress is blocked or still
 collecting.
+
+Use `/lifecycle`, `/approve_stage`, and `/advance` when reviewing stage
+movement:
+
+```text
+WEAVE Lifecycle: Visual Novel (visual-novel)
+- current_stage: intent
+- state: ready_for_review
+Stages:
+- intent: ready_for_review; artifacts=1
+- research: not_started
+Gate:
+- missing: none
+Next: Owner review is needed; /approve_stage can mark this lifecycle stage approved.
+```
+
+Approval and advance are intentionally separate:
+
+```text
+/approve_stage visual-novel
+Approved stage: visual-novel / intent
+Recorded: owner approval and stage gate evidence.
+Next: /advance can move to the next lifecycle stage.
+
+/advance visual-novel
+Advanced app: visual-novel
+- from: intent
+- to: research
+Next: Hermes should collect or produce evidence for the new stage.
+```
+
+If a stage is missing evidence, prior approval, required input, owner answers,
+or required credential capability, `/approve_stage` returns a deterministic
+blocked response. For KPI, Marketing, and Analysis, the owner can explicitly use
+`--defer-credentials` to record that the stage is continuing with a reviewed
+credential deferral.
 
 Use `/autonomy` to see whether the gateway is in `yolo` mode and which gates
 still require owner authorization through the Telegram LLM conversation.
@@ -157,6 +238,36 @@ should enter an elicitation loop: explain what is missing, why it matters, ask
 focused questions, and keep the owner moving. WEAVE may still show the stage as
 `collecting` or `blocked` until required information is recorded and the owner
 approves stage completion.
+
+When Hermes performs app work after a normal message, it should submit the
+structured transcript form to `POST /apps/<app_id>/conversation`. Runtime or
+gateway code should fill deterministic fields where possible, including app id,
+current lifecycle stage, timestamps, known artifacts, ledger event refs, and
+gate status. Hermes fills the reviewable rationale, missing information,
+decision basis, transition reason, and next action. If the gateway cannot
+auto-capture an after-reply hook, Hermes must call the conversation endpoint
+directly before claiming the turn is complete.
+
+Hermes can fetch the deterministic form from
+`GET /apps/<app_id>/conversation/form`. The form tells Hermes which fields are
+runtime-filled or runtime-verified, and which fields Hermes must complete.
+
+## REST Parity
+
+The runtime exposes REST-equivalent control paths for deterministic clients:
+
+| REST path | Equivalent |
+|---|---|
+| `POST /telegram/dispatch` with `{ "text": "/status" }` | Telegram command dispatch without using the model. |
+| `GET /apps/<app_id>/lifecycle` | `/lifecycle <app_id>` payload. |
+| `GET /apps/<app_id>/conversation` | Full app conversation-turn ledger. |
+| `GET /apps/<app_id>/conversation/form` | Deterministic transcript-capture form for Hermes to complete. |
+| `POST /apps/<app_id>/conversation` | Append a public-safe conversation turn after Hermes replies. |
+| `POST /apps/<app_id>/approve-stage` | `/approve_stage <app_id>`. |
+| `POST /apps/<app_id>/advance` | `/advance <app_id>`. |
+
+The local runtime smoke and lifecycle rehearsal verify that Telegram-command
+dispatch and direct REST lifecycle paths agree on stage state.
 
 ## Lifecycle Vocabulary
 

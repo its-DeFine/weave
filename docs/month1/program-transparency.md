@@ -21,6 +21,7 @@ The public surface should explain:
 
 As the runtime becomes active, the public reporting surface should make it possible to inspect:
 - what applications were researched and selected
+- what capability context was used during research and selection
 - what was built
 - what passed QA
 - what marketing or distribution work happened
@@ -35,6 +36,8 @@ The current Month 1 evidence package should distinguish:
 
 - local/private runtime evidence that is already inspectable
 - public reporting pages and docs that are ready for review
+- public capability context sources and any sources that must be rechecked before
+  use
 - hosted KPI/dashboard links that have been deployed and verified
 - Askuno custom-domain status; the current live app URL is `https://askuno.app`
 - owner-gated production, payment, and publication decisions

@@ -3,6 +3,25 @@
   "application": "askuno-runtime-proof",
   "runtimeMode": "telegram-command-first",
   "futureAdapterTarget": "livepeer-app-lifecycle",
+  "defaultContextIndex": {
+    "schema": "weave/context-index/v0.1",
+    "recommendedRepository": "its-DeFine/weave-context",
+    "sampleIndex": "docs/context-sources/livepeer-context-index.sample.json",
+    "sourceTypes": [
+      "api",
+      "gateway",
+      "pipeline",
+      "documentation",
+      "kpi",
+      "outreach",
+      "orchestrator-capability"
+    ],
+    "applicationPaths": [
+      "existing_api",
+      "gateway_capability",
+      "new_orchestrator_capability"
+    ]
+  },
   "primitives": [
     {
       "id": "intent-contract",

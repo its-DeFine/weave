@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f7f4ee" />
+    <title>FableFrame Studio</title>
+    <meta
+      name="description"
+      content="A compact visual-novel proof app for WEAVE Month 1 lifecycle QA."
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <strong>FableFrame Studio</strong>
+          <span>Visual-novel pitch builder</span>
+        </div>
+        <div class="status-row" aria-label="Build status">
+          <span class="status-pill">Lifecycle: <strong id="stageState">qa-ready</strong></span>
+          <span class="status-pill">Artifacts: <strong id="artifactState">4 scenes</strong></span>
+          <span class="status-pill">Checkout: <strong id="monetizationStatus">Draft</strong></span>
+        </div>
+      </header>
+
+      <section class="panel" aria-labelledby="brief-heading">
+        <h2 id="brief-heading">Brief</h2>
+        <label class="field">
+          <span>Title</span>
+          <input id="title" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Audience</span>
+          <input id="audience" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Premise</span>
+          <textarea id="premise"></textarea>
+        </label>
+        <div class="split">
+          <label class="field">
+            <span>Tone</span>
+            <select id="tone">
+              <option value="hopeful">Hopeful</option>
+              <option value="tense">Tense</option>
+              <option value="curious">Curious</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Style</span>
+            <select id="style">
+              <option value="storybook">Storybook</option>
+              <option value="noir">Noir</option>
+              <option value="arcade">Arcade</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span>Scenes: <strong id="sceneCountValue">4</strong></span>
+          <input id="sceneCount" type="range" min="3" max="6" value="4" />
+        </label>
+        <label class="field">
+          <span>Price test, cents</span>
+          <input id="priceCents" type="number" min="100" max="9900" step="100" />
+        </label>
+        <div class="actions">
+          <button id="generate" type="button" class="primary">Generate story</button>
+          <button id="exportJson" type="button">Export JSON</button>
+          <button id="copyPitch" type="button">Copy pitch</button>
+        </div>
+      </section>
+
+      <section class="stage" aria-labelledby="stage-heading">
+        <div class="stage-head">
+          <h2 id="stage-heading">Scene Board</h2>
+          <div id="sceneTabs" class="scene-tabs" aria-label="Scenes"></div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="canvas" width="960" height="560" aria-label="Generated scene preview"></canvas>
+        </div>
+        <div class="scene-copy">
+          <h3 id="sceneTitle">Scene 1</h3>
+          <p id="sceneNarration"></p>
+          <ol id="choiceList" class="choice-list"></ol>
+        </div>
+      </section>
+
+      <aside class="inspector" aria-labelledby="proof-heading">
+        <h2 id="proof-heading">Proof</h2>
+        <p id="pitch" class="pitch"></p>
+        <div class="metrics">
+          <div class="metric">
+            <span>Completion</span>
+            <strong id="kpiCompletion">0%</strong>
+          </div>
+          <div class="metric">
+            <span>Share intent</span>
+            <strong id="kpiShare">0%</strong>
+          </div>
+          <div class="metric">
+            <span>Conversion intent</span>
+            <strong id="kpiConversion">0%</strong>
+          </div>
+        </div>
+        <div class="money">
+          <div class="money-row">
+            <span>Price</span>
+            <strong id="priceLabel">$9.00</strong>
+          </div>
+          <div class="money-row">
+            <span>Checkout state</span>
+            <strong id="checkoutState">checkout_not_configured</strong>
+          </div>
+          <button id="checkout" type="button" disabled>Open checkout</button>
+        </div>
+        <div class="feedback-box">
+          <label class="field">
+            <span>Feedback</span>
+            <textarea id="feedbackNote">the first scene needs a clearer reason to pay</textarea>
+          </label>
+          <button id="iterate" type="button" class="secondary">Apply feedback</button>
+        </div>
+      </aside>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>

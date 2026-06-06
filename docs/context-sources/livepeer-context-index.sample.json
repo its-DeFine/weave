@@ -1,0 +1,73 @@
+{
+  "schema": "weave/context-index/v0.1",
+  "version": "2026-06-06",
+  "updated_at": "2026-06-06T00:00:00Z",
+  "publisher": "WEAVE",
+  "sources": [
+    {
+      "id": "livepeer-docs-index",
+      "name": "Livepeer documentation index",
+      "type": "documentation",
+      "url": "https://docs.livepeer.org/llms.txt",
+      "primary": true,
+      "stage_use": ["research", "selection", "plan", "engineering", "qa", "marketing", "iteration"],
+      "application_paths": ["existing_api", "gateway_capability", "new_orchestrator_capability"],
+      "freshness": "verify_before_use",
+      "last_verified_at": "2026-06-06",
+      "summary": "Public documentation index used to discover current Livepeer docs before deeper source inspection.",
+      "review_notes": ["Use as a discovery index, not as final proof for volatile claims."]
+    },
+    {
+      "id": "livepeer-ai-api",
+      "name": "Livepeer AI API",
+      "type": "api",
+      "url": "https://docs.livepeer.org/v2/gateways/references/api-reference/AI-API/ai",
+      "primary": true,
+      "stage_use": ["research", "selection", "plan", "engineering", "qa"],
+      "application_paths": ["existing_api"],
+      "freshness": "verify_before_use",
+      "last_verified_at": "2026-06-06",
+      "summary": "Managed and self-hosted API surface for AI generation and transformation operations.",
+      "capabilities": [
+        "text_to_image",
+        "image_to_image",
+        "image_to_video",
+        "upscale",
+        "audio_to_text",
+        "segment_anything",
+        "llm",
+        "image_to_text",
+        "live_video_to_video",
+        "text_to_speech"
+      ],
+      "credential_gate": "owner_required_for_live_calls",
+      "review_notes": ["Do not claim an endpoint is usable until a current primary source and a live QA call support it."]
+    },
+    {
+      "id": "livepeer-ai-gateway",
+      "name": "Livepeer AI Gateway and gateway capabilities",
+      "type": "gateway",
+      "url": "https://docs.livepeer.org/v2/orchestrators/guides/ai-and-job-workloads/ai-inference-operations",
+      "primary": true,
+      "stage_use": ["research", "selection", "plan", "engineering", "qa", "kpi"],
+      "application_paths": ["gateway_capability"],
+      "freshness": "verify_before_use",
+      "last_verified_at": "2026-06-06",
+      "summary": "Gateway path for routing AI jobs to advertised orchestrator capabilities.",
+      "review_notes": ["Separate gateway responsibility from orchestrator responsibility in app plans."]
+    },
+    {
+      "id": "livepeer-open-ai-stack",
+      "name": "Livepeer open AI infrastructure stack",
+      "type": "orchestrator-capability",
+      "url": "https://docs.livepeer.org/v2/about/concepts/livepeer-stack",
+      "primary": true,
+      "stage_use": ["research", "selection", "plan", "engineering", "qa"],
+      "application_paths": ["new_orchestrator_capability"],
+      "freshness": "verify_before_use",
+      "last_verified_at": "2026-06-06",
+      "summary": "Conceptual source for how AI workers, runners, gateway routing, ComfyStream, and BYOC-style capability paths fit together.",
+      "review_notes": ["Use this to frame new capability work, then verify implementation requirements from more specific docs."]
+    }
+  ]
+}

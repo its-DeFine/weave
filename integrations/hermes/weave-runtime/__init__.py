@@ -24,6 +24,7 @@ COMMANDS = {
     "blockers": "/blockers",
     "changes": "/changes",
     "next": "/next",
+    "transcript": "/transcript",
     "autonomy": "/autonomy",
     "weave-status": "/status",
 }
@@ -33,6 +34,7 @@ TELEGRAM_MENU_COMMANDS = [
     ("sources", "Show WEAVE runtime source map."),
     ("apps", "List WEAVE apps and stages."),
     ("next", "Show next WEAVE action."),
+    ("transcript", "Show WEAVE app conversation transcript."),
     ("blockers", "Show WEAVE blockers."),
     ("changes", "Show latest WEAVE changes."),
     ("autonomy", "Show WEAVE autonomy mode."),
@@ -240,6 +242,9 @@ def register(ctx) -> None:
             args_hint = "<app_id>"
         elif command_name == "changes":
             description = "Show latest WEAVE app changes."
+            args_hint = "[app_id]"
+        elif command_name == "transcript":
+            description = "Show WEAVE app conversation transcript."
             args_hint = "[app_id]"
         elif command_name == "weave-status":
             description = "Show deterministic WEAVE runtime status."
