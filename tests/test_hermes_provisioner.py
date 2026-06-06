@@ -4,11 +4,13 @@ import contextlib
 import importlib.util
 import io
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -106,9 +108,14 @@ class HermesProvisionerTests(unittest.TestCase):
             fake_repo, commit = create_fake_hermes_repo(root)
             runtime_profile = root / "runtime-profile.json"
             hermes_profile = root / "hermes-profile.json"
+            isolated_path = root / "isolated-path"
+            isolated_path.mkdir()
+            git = shutil.which("git")
+            self.assertIsNotNone(git)
+            (isolated_path / "git").symlink_to(git)
             stdout = io.StringIO()
 
-            with contextlib.redirect_stdout(stdout):
+            with mock.patch.dict("os.environ", {"PATH": str(isolated_path)}), contextlib.redirect_stdout(stdout):
                 rc = setup_runtime.main(
                     [
                         "--install-hermes",
