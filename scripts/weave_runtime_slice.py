@@ -2504,6 +2504,61 @@ def html_list(values: list[Any]) -> str:
     return "<ul>" + "".join(f"<li>{html.escape(item)}</li>" for item in items) + "</ul>"
 
 
+def html_message_meta(message: Any) -> str:
+    if not isinstance(message, dict):
+        return ""
+    keys = [
+        "role",
+        "source",
+        "model",
+        "provider",
+        "reasoning_effort",
+        "session_id",
+        "captured_by",
+    ]
+    rows = []
+    for key in keys:
+        value = str(message.get(key) or "").strip()
+        if value:
+            label = key.replace("_", " ").title()
+            rows.append(f"<dt>{html.escape(label)}</dt><dd>{html.escape(value)}</dd>")
+    if not rows:
+        return ""
+    return "<dl class=\"message-meta\">" + "".join(rows) + "</dl>"
+
+
+def conversation_source_summary(turns: list[dict[str, Any]]) -> dict[str, Any]:
+    agent_sources: dict[str, int] = {}
+    operator_sources: dict[str, int] = {}
+    models: dict[str, int] = {}
+    providers: dict[str, int] = {}
+    for turn in turns:
+        operator_message = turn.get("operator_message", {})
+        agent_reply = turn.get("agent_reply", {})
+        if isinstance(operator_message, dict):
+            source = str(operator_message.get("source") or "unspecified")
+            operator_sources[source] = operator_sources.get(source, 0) + 1
+        if isinstance(agent_reply, dict):
+            source = str(agent_reply.get("source") or "unspecified")
+            model = str(agent_reply.get("model") or "unspecified")
+            provider = str(agent_reply.get("provider") or "unspecified")
+            agent_sources[source] = agent_sources.get(source, 0) + 1
+            models[model] = models.get(model, 0) + 1
+            providers[provider] = providers.get(provider, 0) + 1
+    return {
+        "operator_message_sources": operator_sources,
+        "agent_reply_sources": agent_sources,
+        "agent_reply_models": models,
+        "agent_reply_providers": providers,
+        "all_agent_replies_source_labeled": bool(turns)
+        and all(
+            isinstance(turn.get("agent_reply"), dict)
+            and bool(str(turn.get("agent_reply", {}).get("source") or "").strip())
+            for turn in turns
+        ),
+    }
+
+
 def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[str, Any]], events: list[dict[str, Any]]) -> str:
     app = load_app(root, app_id)
     profile = ensure_agent_profile(root)
@@ -2526,8 +2581,10 @@ def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[st
                     f"<dt>Channel</dt><dd>{html.escape(str(turn.get('channel', '')))}</dd>",
                     "</dl>",
                     "<h3>Operator Message Sent To Hermes</h3>",
+                    html_message_meta(turn.get("operator_message", {})),
                     html_pre(turn.get("operator_message", {}).get("text")),
                     "<h3>Hermes Reply</h3>",
+                    html_message_meta(turn.get("agent_reply", {})),
                     html_pre(turn.get("agent_reply", {}).get("text")),
                     "<h3>Owner-Reviewable Rationale</h3>",
                     html_pre(rationale.get("summary")),
@@ -2568,6 +2625,7 @@ def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[st
             "h1{font-size:30px;margin:0 0 10px}h2{font-size:22px;margin:0 0 12px}h3{font-size:16px;margin:18px 0 8px}h4{font-size:14px;margin:14px 0 6px}",
             ".summary,.turn{background:#fff;border:1px solid #d8d0c2;border-radius:8px;padding:18px;margin:16px 0}",
             ".meta{display:grid;grid-template-columns:150px 1fr;gap:6px 14px}.meta dt{font-weight:700}.meta dd{margin:0}",
+            ".message-meta{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;margin:0 0 8px;font-size:13px;color:#50483e}.message-meta dt{font-weight:700}.message-meta dd{margin:0}",
             "pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#161614;color:#f7f4ed;border-radius:6px;padding:12px;margin:0;font-size:14px}",
             "code{background:#eee6d8;padding:1px 4px;border-radius:4px}.empty{color:#6b6256}ul{margin-top:6px}",
             "</style>",
@@ -2620,6 +2678,7 @@ def export_conversation_review(root: Path, app_id: str) -> dict[str, Any]:
         "generated_at": utc_now(),
         "turn_count": len(turns),
         "event_count": len(events),
+        "source_summary": conversation_source_summary(turns),
         "canonical_turns_path": relative(conversation_turn_path(root, app_id), root),
         "canonical_events_path": relative(conversation_event_path(root, app_id), root),
         "exports": {

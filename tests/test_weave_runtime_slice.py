@@ -230,8 +230,19 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             turn = runtime.new_conversation_turn(
                 "demo",
                 "intent",
-                {"role": "owner", "text": "Make a short visual novel about a crow learning to ask for water."},
-                {"role": "hermes", "text": "I captured the intent and created the first intent artifact for review."},
+                {
+                    "role": "owner",
+                    "source": "qa_operator",
+                    "text": "Make a short visual novel about a crow learning to ask for water.",
+                },
+                {
+                    "role": "hermes",
+                    "source": "live_hermes",
+                    "model": "gpt-5.5",
+                    "provider": "codex",
+                    "session_id": "test-session",
+                    "text": "I captured the intent and created the first intent artifact for review.",
+                },
                 agent_rationale={
                     "summary": "Foundation documents were complete and the intent artifact now exists; owner review is the next gate.",
                     "gate_questions": ["Are foundation docs complete?", "Is the intent artifact present?"],
@@ -269,6 +280,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(events[0]["content"], turn["operator_message"]["text"])
             self.assertEqual(events[1]["type"], "turn.hermes_reply")
             self.assertEqual(events[1]["content"], turn["agent_reply"]["text"])
+            self.assertEqual(events[1]["payload"]["message"]["source"], "live_hermes")
             self.assertEqual(events[0]["content_sha256"], runtime.sha256_text(turn["operator_message"]["text"]))
             self.assertEqual(turns[0]["artifact_refs"][0]["path"], "apps/demo/lifecycle/01-intent/artifacts/intent.md")
             self.assertEqual(turns[0]["event_refs"][0]["event_id"], event["event_id"])
@@ -299,7 +311,11 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
                 "/apps/demo/conversation",
                 {
                     "operator_message": "Can you proceed to research next?",
-                    "agent_reply": "Not yet. Owner approval is still required before advancing.\n\n```md\n# raw markdown\n```\n<script>not executable</script>",
+                    "agent_reply": {
+                        "role": "hermes",
+                        "source": "runtime_gate",
+                        "text": "Not yet. Owner approval is still required before advancing.\n\n```md\n# raw markdown\n```\n<script>not executable</script>",
+                    },
                     "agent_rationale": {
                         "summary": "The intent stage is ready, but the deterministic owner approval gate has not been recorded.",
                         "chain_of_thought_captured": False,
@@ -332,6 +348,9 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(review["schema"], runtime.CONVERSATION_REVIEW_REPORT_SCHEMA)
             self.assertEqual(review["turn_count"], 2)
             self.assertEqual(review["event_count"], 16)
+            self.assertTrue(review["source_summary"]["all_agent_replies_source_labeled"])
+            self.assertEqual(review["source_summary"]["agent_reply_sources"]["live_hermes"], 1)
+            self.assertEqual(review["source_summary"]["agent_reply_sources"]["runtime_gate"], 1)
             html_path = root / review["exports"]["html_review"]
             event_copy_path = root / review["exports"]["event_stream"]
             report_path = root / review["exports"]["report"]
@@ -341,6 +360,9 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             html = html_path.read_text(encoding="utf-8")
             self.assertIn("Operator Message Sent To Hermes", html)
             self.assertIn("Hermes Reply", html)
+            self.assertIn("live_hermes", html)
+            self.assertIn("gpt-5.5", html)
+            self.assertIn("test-session", html)
             self.assertIn("Make a short visual novel", html)
             self.assertIn("&lt;script&gt;not executable&lt;/script&gt;", html)
             self.assertNotIn("<script>not executable</script>", html)

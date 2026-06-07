@@ -1,0 +1,796 @@
+#!/usr/bin/env python3
+"""Run a live Hermes-backed WEAVE lifecycle QA proof.
+
+This is intentionally separate from lifecycle_rehearsal_smoke.py. The rehearsal
+smoke is deterministic runtime coverage. This runner requires an installed
+Hermes executable and fails if Hermes does not produce the stage replies.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import textwrap
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import weave_runtime_slice as runtime
+
+
+APP_ID = "lantern-archive-live"
+APP_NAME = "Lantern Archive Live QA"
+APP_INTENT = (
+    "Lantern Archive is a small browser visual novel where a visitor helps a "
+    "keeper restore lost memories into lantern cards. The proof should feel like "
+    "an actual product slice, work locally without a backend, expose restored "
+    "cards and exportable state, and keep hosting, analytics, and paid story "
+    "packs gated until the owner supplies credentials and approval."
+)
+REQUIRED_APP_FILES = ("index.html", "styles.css", "app.js", "README.md")
+
+
+OWNER_STAGE_MESSAGES = {
+    "intent": (
+        "I want to create Lantern Archive, a tiny but finished browser visual "
+        "novel. The first playable slice should have an opening scene, a keeper "
+        "character, memory cards, meaningful choices, local progress, exportable "
+        "state, and a future paid story-pack path. No real payments, public "
+        "launch, analytics, or credential collection should happen in this QA."
+    ),
+    "research": (
+        "Before choosing the build shape, research what would make Lantern "
+        "Archive viable as a static first slice. I care about emotional specificity, "
+        "reviewable evidence, local QA, and what must stay gated before launch."
+    ),
+    "selection": (
+        "Choose the smallest implementation direction that still feels like a "
+        "real product, not a placeholder. Say what you reject and why."
+    ),
+    "plan": (
+        "Give me the implementation plan. Include files, user flows, QA checks, "
+        "credentials needed later, stop boundaries, and what you will not claim."
+    ),
+    "engineering": (
+        "Implement the first playable local app in the current working directory. "
+        "Create index.html, styles.css, app.js, and README.md. The app should be "
+        "usable in a browser, have scene progression, restored memory cards, "
+        "local state or export, and a visibly disabled future paid-pack path. "
+        "Do not use network services, external secrets, or real payments."
+    ),
+    "qa": (
+        "QA the app as a reviewer would. Use the current source files as evidence. "
+        "Separate what is proven locally from what is not proven."
+    ),
+    "kpi": (
+        "Define the KPI and measurement plan for Lantern Archive. Identify what "
+        "can be checked locally and what needs analytics credentials later."
+    ),
+    "marketing": (
+        "Create the first marketing and launch-readiness plan. Keep public sends, "
+        "hosting, analytics, and payments gated behind owner approval and credentials."
+    ),
+    "iteration": (
+        "Assume the first owner QA feedback is: the story needs clearer emotional "
+        "payoff, the restored cards should feel more collectible, and the disabled "
+        "paid-pack path must not look like a broken checkout. Propose the iteration."
+    ),
+    "analysis": (
+        "Analyze the end-to-end lifecycle result. Say whether this can be reviewed "
+        "as a month-one proof, what remains blocked, and the next decision."
+    ),
+}
+
+
+def utc_timestamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def sha256_text(text: str) -> str:
+    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text.strip() + "\n", encoding="utf-8")
+
+
+def stage_artifact_path(root: Path, stage_id: str) -> Path:
+    stage = runtime.stage_by_id(stage_id)
+    return (
+        runtime.app_root(root, APP_ID)
+        / "lifecycle"
+        / stage.directory
+        / "artifacts"
+        / f"{stage_id}-live-hermes.md"
+    )
+
+
+def setup_clean_runtime(root: Path, model: str, provider: str, reasoning_effort: str) -> None:
+    created = runtime.create_app(root, APP_ID, APP_NAME)
+    base = runtime.app_root(root, APP_ID)
+    write_text(
+        root / "artifacts" / "general" / "soul.md",
+        """
+        # Hermes Soul For Live QA
+
+        Act as a careful product operator and creative engineering partner. Do
+        not move lifecycle stages unless the stage artifact, transcript turn,
+        and owner-review gate are present. Ask for missing information when it
+        is genuinely blocking. Keep launch, credentials, and public effects
+        gated.
+        """,
+    )
+    write_text(
+        root / "artifacts" / "general" / "owner-profile.md",
+        """
+        # Owner Profile For Live QA
+
+        The owner wants real app substance, not only runtime mechanics. They
+        prefer direct evidence, clean state, readable artifacts, no overclaiming,
+        and explicit separation between local proof, mocked capability, and live
+        deployment.
+        """,
+    )
+    write_text(
+        base / "context" / "app-context.md",
+        f"""
+        # App Context
+
+        {APP_INTENT}
+        """,
+    )
+    write_text(
+        base / "context" / "user-context-for-this-app.md",
+        """
+        # User Context For This App
+
+        The user wants a short, polished product proof that can be inspected by
+        reviewers. The app should be emotionally specific and easy to QA locally.
+        """,
+    )
+    write_text(
+        base / "context" / "domain-context.md",
+        """
+        # Domain Context
+
+        The domain is small narrative web apps and visual-novel prototypes.
+        Proof quality depends on story clarity, interaction, browser reliability,
+        and honest boundaries around future monetization.
+        """,
+    )
+    write_text(
+        base / "inventory" / "app-inventory.md",
+        """
+        # App Inventory
+
+        - Product app workspace
+        - Static source under repo/primary
+        - Lifecycle artifacts under lifecycle/*
+        - Conversation review under exports/conversation
+        """,
+    )
+    write_text(
+        base / "contract" / "gestaltian-contract.md",
+        """
+        # Gestaltian Contract
+
+        Lantern Archive must progress through intent, research, selection, plan,
+        engineering, QA, KPI, marketing, iteration, and analysis. Each stage needs
+        a live Hermes transcript turn, stage artifact, gate check, and owner
+        approval before advancement.
+        """,
+    )
+    app = runtime.load_app(root, APP_ID)
+    app["credential_requirements"] = [
+        {
+            "id": "hosting-provider",
+            "label": "Hosting provider access",
+            "stages": ["marketing", "analysis"],
+            "required": True,
+            "status": "missing",
+        },
+        {
+            "id": "analytics-provider",
+            "label": "Analytics provider access",
+            "stages": ["kpi", "analysis"],
+            "required": True,
+            "status": "missing",
+        },
+        {
+            "id": "payment-provider",
+            "label": "Payment provider access",
+            "stages": ["marketing", "analysis"],
+            "required": True,
+            "status": "missing",
+        },
+    ]
+    runtime.write_app(root, app)
+    profile = runtime.default_agent_profile(root)
+    profile["model"] = model
+    profile["provider_adapter"] = provider
+    profile["reasoning_effort"] = reasoning_effort
+    profile["recorded_at"] = runtime.utc_now()
+    profile["profile_hash"] = runtime.profile_hash(profile)
+    runtime.write_agent_profile(root, profile)
+    runtime.append_event(
+        root,
+        APP_ID,
+        runtime.new_event(
+            "foundation.completed",
+            APP_ID,
+            "intent",
+            "Live QA foundation context was populated before lifecycle work.",
+            payload={"created_paths": created["created"]},
+        ),
+    )
+
+
+def parse_hermes_stdout(stdout: str) -> dict[str, str]:
+    session_id = ""
+    reply_lines: list[str] = []
+    for line in stdout.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if "tirith security scanner" in stripped:
+            continue
+        if stripped.startswith("session_id:"):
+            session_id = stripped.split(":", 1)[1].strip()
+            continue
+        reply_lines.append(line.rstrip())
+    return {"session_id": session_id, "reply": "\n".join(reply_lines).strip()}
+
+
+def run_hermes(
+    *,
+    hermes_bin: Path,
+    prompt: str,
+    cwd: Path,
+    model: str,
+    provider: str,
+    max_turns: int,
+    timeout: int,
+    yolo: bool,
+) -> dict[str, Any]:
+    command = [
+        str(hermes_bin),
+        "chat",
+        "--quiet",
+        "--source",
+        "tool",
+        "--max-turns",
+        str(max_turns),
+        "--model",
+        model,
+        "--provider",
+        provider,
+    ]
+    if yolo:
+        command.extend(["--yolo", "--accept-hooks"])
+    command.extend(["--query", prompt])
+    started = time.monotonic()
+    result = subprocess.run(
+        command,
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+        check=False,
+    )
+    elapsed = round(time.monotonic() - started, 3)
+    parsed = parse_hermes_stdout(result.stdout)
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Hermes invocation failed for live QA. "
+            f"returncode={result.returncode}; stderr_sha256={sha256_text(result.stderr)}"
+        )
+    if not parsed["reply"]:
+        raise RuntimeError("Hermes invocation returned no reviewable reply text.")
+    return {
+        "reply": parsed["reply"],
+        "session_id": parsed["session_id"],
+        "stdout_sha256": sha256_text(result.stdout),
+        "stderr_sha256": sha256_text(result.stderr),
+        "elapsed_seconds": elapsed,
+        "returncode": result.returncode,
+        "command_shape": "hermes chat --quiet --source tool --max-turns N --model MODEL --provider PROVIDER --query PROMPT",
+    }
+
+
+def build_stage_prompt(stage_id: str, root: Path, app_repo: Path, prior_summary: str) -> str:
+    current_state = runtime.app_state(root, APP_ID)
+    gate = runtime.stage_gate_status(root, APP_ID, stage_id)
+    owner_message = OWNER_STAGE_MESSAGES[stage_id]
+    engineering_instruction = ""
+    if stage_id == "engineering":
+        engineering_instruction = f"""
+        Keep this stage reply concise. Do not output full source code here.
+        After this stage reply, WEAVE will ask you for the four source files in
+        smaller live Hermes file-generation calls and will write those exact
+        outputs to:
+        {app_repo}
+
+        In this reply, state the implementation approach, file list, proof
+        behavior, local QA checks, and gated non-goals.
+        """
+    return textwrap.dedent(
+        f"""
+        You are Hermes operating inside a clean WEAVE lifecycle QA run.
+
+        Application: {APP_NAME}
+        Intent: {APP_INTENT}
+        Current lifecycle stage: {stage_id}
+        Current runtime gate passed before your reply: {gate["passed"]}
+        Current runtime gate missing items: {gate["missing"]}
+        Prior lifecycle summary:
+        {prior_summary or "No prior stage summary yet."}
+
+        Owner/operator message:
+        {owner_message}
+
+        {engineering_instruction}
+
+        Reply in a reviewable operational format with these headings:
+
+        Hermes reply
+        Owner-reviewable rationale
+        Gate questions
+        Missing information
+        Decision basis
+        Artifact content
+        Next action
+
+        Rules:
+        - Do not include hidden chain-of-thought.
+        - Do not invent live credentials, live users, revenue, analytics, public
+          deploys, or payment processing.
+        - If something is blocked, name the exact blocker and what should happen.
+        - If the stage can proceed to owner review, say why in concrete terms.
+        - Keep the response specific to Lantern Archive, not generic WEAVE work.
+
+        Runtime state snapshot for your context:
+        {json.dumps({"stage": current_state["stage_status"], "foundation_gate": current_state["foundation_gate"]}, indent=2, sort_keys=True)}
+        """
+    ).strip()
+
+
+def write_stage_artifact(root: Path, stage_id: str, hermes_result: dict[str, Any], extra: str = "") -> Path:
+    path = stage_artifact_path(root, stage_id)
+    body = f"""# {stage_id.title()} Live Hermes Artifact
+
+Source: live_hermes
+Session: {hermes_result.get("session_id") or "not-reported"}
+Stdout checksum: {hermes_result["stdout_sha256"]}
+
+## Hermes Reply
+
+{hermes_result["reply"]}
+"""
+    if extra.strip():
+        body += f"\n## Deterministic Verification\n\n{extra.strip()}\n"
+    write_text(path, body)
+    runtime.append_event(
+        root,
+        APP_ID,
+        runtime.new_event(
+            "artifact.created",
+            APP_ID,
+            stage_id,
+            f"Created {stage_id} live Hermes artifact.",
+            created_by="hermes",
+            payload={
+                "source": "live_hermes",
+                "session_id": hermes_result.get("session_id", ""),
+                "stdout_sha256": hermes_result["stdout_sha256"],
+            },
+            artifact_refs=[{"path": runtime.relative(path, root), "action": "created"}],
+        ),
+    )
+    return path
+
+
+def extract_named_files(reply: str) -> dict[str, str]:
+    files: dict[str, str] = {}
+    pattern = re.compile(
+        r"FILE:\s*(?P<name>index\.html|styles\.css|app\.js|README\.md)\s*"
+        r"```[^\n`]*\n(?P<body>.*?)\n```",
+        re.IGNORECASE | re.DOTALL,
+    )
+    for match in pattern.finditer(reply):
+        name = match.group("name")
+        canonical = next(item for item in REQUIRED_APP_FILES if item.lower() == name.lower())
+        body = match.group("body").strip()
+        if body:
+            files[canonical] = body + "\n"
+    return files
+
+
+def write_live_generated_files(app_repo: Path, files: dict[str, str]) -> dict[str, Any]:
+    written: dict[str, dict[str, Any]] = {}
+    for name, content in files.items():
+        if name not in REQUIRED_APP_FILES:
+            continue
+        path = app_repo / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        written[name] = {
+            "bytes": path.stat().st_size,
+            "sha256": runtime.artifact_checksum(path),
+            "source": "live_hermes_named_code_block",
+        }
+    return written
+
+
+def strip_single_code_fence(text: str) -> str:
+    cleaned = text.strip()
+    match = re.fullmatch(r"```[^\n`]*\n(?P<body>.*?)\n```", cleaned, flags=re.DOTALL)
+    if match:
+        return match.group("body").strip() + "\n"
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```[^\n`]*\n?", "", cleaned)
+        cleaned = re.sub(r"\n?```$", "", cleaned)
+    return cleaned.strip() + "\n"
+
+
+def build_file_generation_prompt(file_name: str) -> str:
+    shared = (
+        "Generate exactly one file for the Lantern Archive static browser app. "
+        "Return only raw file content, no explanations and no surrounding fences. "
+        "No network calls, no external secrets, no real payments. The app is a "
+        "local proof visual novel with scene progression, restored memory cards, "
+        "exportable local state, and a disabled future paid-pack path."
+    )
+    if file_name == "index.html":
+        return (
+            shared
+            + " File: index.html. Include semantic HTML, references to styles.css and app.js, "
+            "main app regions, buttons, memory-card area, export area, and disabled paid-pack section. "
+            "Keep it under 180 lines."
+        )
+    if file_name == "styles.css":
+        return (
+            shared
+            + " File: styles.css. Create a polished readable product UI, responsive layout, "
+            "button states, card styling, disabled paid-pack styling, and no external font imports. "
+            "Keep it under 220 lines."
+        )
+    if file_name == "app.js":
+        return (
+            shared
+            + " File: app.js. Implement deterministic scenes, choices, restored memory cards, "
+            "localStorage progress, export JSON, reset, simple KPI counters, and disabled paid-pack behavior. "
+            "Keep it compact under 180 lines. Prefer simple arrays and functions over framework-style structure."
+        )
+    if file_name == "README.md":
+        return (
+            shared
+            + " File: README.md. Document local open/run instructions, app behavior, lifecycle proof boundary, "
+            "disabled monetization, local-only KPI proof, and credentials required before real launch. "
+            "Keep it under 120 lines."
+        )
+    raise ValueError(f"unsupported file: {file_name}")
+
+
+def build_compact_file_generation_prompt(file_name: str) -> str:
+    return (
+        f"Return only raw {file_name} content for a minimal static browser proof called "
+        "Lantern Archive. No explanations, no fences, no network, no secrets, no real "
+        "payments. Keep it short but functional. It must fit with index.html, "
+        "styles.css, app.js, and README.md. Include disabled future paid-pack behavior "
+        "where relevant."
+    )
+
+
+def generate_engineering_files(
+    *,
+    hermes_bin: Path,
+    app_repo: Path,
+    model: str,
+    provider: str,
+    max_turns: int,
+    timeout: int,
+    yolo: bool,
+) -> dict[str, Any]:
+    generated: dict[str, dict[str, Any]] = {}
+    for file_name in REQUIRED_APP_FILES:
+        try:
+            result = run_hermes(
+                hermes_bin=hermes_bin,
+                prompt=build_file_generation_prompt(file_name),
+                cwd=app_repo,
+                model=model,
+                provider=provider,
+                max_turns=max_turns,
+                timeout=timeout,
+                yolo=yolo,
+            )
+        except subprocess.TimeoutExpired:
+            result = run_hermes(
+                hermes_bin=hermes_bin,
+                prompt=build_compact_file_generation_prompt(file_name),
+                cwd=app_repo,
+                model=model,
+                provider=provider,
+                max_turns=max_turns,
+                timeout=timeout,
+                yolo=yolo,
+            )
+        content = strip_single_code_fence(result["reply"])
+        write_live_generated_files(app_repo, {file_name: content})
+        path = app_repo / file_name
+        generated[file_name] = {
+            "source": "live_hermes_file_generation",
+            "stdout_sha256": result["stdout_sha256"],
+            "session_id": result.get("session_id", ""),
+            "bytes": path.stat().st_size,
+            "sha256": runtime.artifact_checksum(path),
+        }
+    return generated
+
+
+def append_live_turn(
+    *,
+    root: Path,
+    stage_id: str,
+    owner_message: str,
+    hermes_result: dict[str, Any],
+    artifact_path: Path,
+    model: str,
+    provider: str,
+    reasoning_effort: str,
+) -> dict[str, Any]:
+    before_gate = runtime.stage_gate_status(root, APP_ID, stage_id)
+    turn = runtime.new_conversation_turn(
+        APP_ID,
+        stage_id,
+        {
+            "role": "owner",
+            "source": "qa_owner_emulation",
+            "captured_by": "scripts/live_hermes_lifecycle_qa.py",
+            "text": owner_message,
+        },
+        {
+            "role": "hermes",
+            "source": "live_hermes",
+            "model": model,
+            "provider": provider,
+            "reasoning_effort": reasoning_effort,
+            "session_id": hermes_result.get("session_id", ""),
+            "captured_by": "scripts/live_hermes_lifecycle_qa.py",
+            "raw_stdout_sha256": hermes_result["stdout_sha256"],
+            "elapsed_seconds": hermes_result["elapsed_seconds"],
+            "text": hermes_result["reply"],
+        },
+        channel="direct-hermes-cli",
+        created_by="hermes",
+        agent_rationale={
+            "summary": "Captured from a live Hermes CLI response and linked to the current lifecycle artifact.",
+            "gate_questions": [
+                "Did live Hermes answer this lifecycle-stage owner message?",
+                "Was a current-stage artifact created from that answer?",
+                "Can the deterministic gate be reviewed before approval?",
+            ],
+            "missing_information": before_gate["missing"],
+            "decision_basis": [
+                "live Hermes response captured",
+                "stage artifact written",
+                "runtime gate evaluated",
+            ],
+            "chain_of_thought_captured": False,
+        },
+        artifact_refs=[{"path": runtime.relative(artifact_path, root), "action": "created"}],
+        state_transition={
+            "from_stage": stage_id,
+            "from_state": "collecting",
+            "to_stage": stage_id,
+            "to_state": "ready_for_review",
+            "initiated_by": "hermes",
+            "reason": "Live Hermes produced a reviewable stage reply and stage artifact.",
+        },
+        next_action="Owner reviews the stage artifact, then the runtime may approve and advance if gates pass.",
+    )
+    return runtime.append_conversation_turn(root, APP_ID, turn)
+
+
+def verify_engineering_files(app_repo: Path) -> dict[str, Any]:
+    files = {}
+    missing = []
+    for name in REQUIRED_APP_FILES:
+        path = app_repo / name
+        if path.exists() and path.is_file() and path.stat().st_size > 0:
+            files[name] = {
+                "bytes": path.stat().st_size,
+                "sha256": runtime.artifact_checksum(path),
+            }
+        else:
+            missing.append(name)
+    return {"passed": not missing, "missing": missing, "files": files}
+
+
+def approve_and_advance(root: Path, stage_id: str) -> dict[str, Any]:
+    defer = stage_id in {"kpi", "marketing", "analysis"}
+    approval = runtime.approve_stage(
+        root,
+        APP_ID,
+        stage_id,
+        note="Live QA owner-emulation approval after reviewing stage artifact.",
+        defer_capability=defer,
+        defer_reason="Credential capability intentionally deferred in local live QA; no public launch or live measurement is in scope.",
+    )
+    if not approval.get("approved"):
+        raise RuntimeError(f"Stage approval failed for {stage_id}: {approval.get('gate', {}).get('missing')}")
+    if runtime.next_stage_id(stage_id) is None:
+        return {"approval": approval, "advance": {"advanced": False, "reason": "final_stage"}}
+    advance = runtime.advance_stage(root, APP_ID, note="Live QA advanced after owner-emulated approval.")
+    if not advance.get("advanced"):
+        raise RuntimeError(f"Stage advance failed for {stage_id}: {advance}")
+    return {"approval": approval, "advance": advance}
+
+
+def copy_tree_snapshot(src: Path, dst: Path) -> None:
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+
+
+def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
+    hermes_bin = Path(args.hermes_bin).expanduser()
+    if not hermes_bin.exists():
+        raise RuntimeError(f"Hermes executable does not exist: {hermes_bin}")
+    run_id = args.run_id or f"{utc_timestamp()}-live-hermes-lifecycle"
+    report_dir = Path(args.report_dir).expanduser() / run_id
+    root = report_dir / "weave-root"
+    if report_dir.exists() and not args.force:
+        raise RuntimeError(f"Report directory already exists: {report_dir}")
+    if report_dir.exists():
+        shutil.rmtree(report_dir)
+    app_repo = root / "apps" / APP_ID / "repo" / "primary"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    setup_clean_runtime(root, args.model, args.provider, args.reasoning_effort)
+
+    stage_reports: list[dict[str, Any]] = []
+    prior_summary = ""
+    for stage_id in runtime.stage_ids():
+        prompt = build_stage_prompt(stage_id, root, app_repo, prior_summary)
+        max_turns = args.engineering_max_turns if stage_id == "engineering" else args.max_turns
+        cwd = app_repo if stage_id == "engineering" else root
+        hermes_result = run_hermes(
+            hermes_bin=hermes_bin,
+            prompt=prompt,
+            cwd=cwd,
+            model=args.model,
+            provider=args.provider,
+            max_turns=max_turns,
+            timeout=args.timeout,
+            yolo=args.yolo,
+        )
+        engineering_extra = ""
+        if stage_id == "engineering":
+            generated_files = generate_engineering_files(
+                hermes_bin=hermes_bin,
+                app_repo=app_repo,
+                model=args.model,
+                provider=args.provider,
+                max_turns=args.max_turns,
+                timeout=args.timeout,
+                yolo=args.yolo,
+            )
+            verification = verify_engineering_files(app_repo)
+            if not verification["passed"]:
+                raise RuntimeError(f"Engineering files missing after live Hermes run: {verification['missing']}")
+            engineering_extra = json.dumps(
+                {
+                    "file_write_source": "WEAVE wrote exact contents from live Hermes file-generation replies.",
+                    "generated_files": generated_files,
+                    "verification": verification,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        artifact_path = write_stage_artifact(root, stage_id, hermes_result, engineering_extra)
+        turn = append_live_turn(
+            root=root,
+            stage_id=stage_id,
+            owner_message=OWNER_STAGE_MESSAGES[stage_id],
+            hermes_result=hermes_result,
+            artifact_path=artifact_path,
+            model=args.model,
+            provider=args.provider,
+            reasoning_effort=args.reasoning_effort,
+        )
+        gate_after_turn = runtime.stage_gate_status(root, APP_ID, stage_id)
+        transition = approve_and_advance(root, stage_id)
+        stage_reports.append(
+            {
+                "stage": stage_id,
+                "turn_id": turn["turn_id"],
+                "session_id": hermes_result.get("session_id", ""),
+                "artifact": runtime.relative(artifact_path, root),
+                "gate_after_turn": gate_after_turn,
+                "transition": transition,
+                "stdout_sha256": hermes_result["stdout_sha256"],
+            }
+        )
+        prior_summary = (
+            prior_summary
+            + f"\n- {stage_id}: turn={turn['turn_id']}; artifact={runtime.relative(artifact_path, root)}; "
+            + f"session={hermes_result.get('session_id') or 'not-reported'}"
+        )
+
+    export = runtime.export_conversation_review(root, APP_ID)
+    final_state = runtime.app_state(root, APP_ID)
+    app_snapshot = report_dir / "app-source-snapshot"
+    copy_tree_snapshot(app_repo, app_snapshot)
+    qa_report = {
+        "schema": "weave-live-hermes-lifecycle-qa/v0.1",
+        "run_id": run_id,
+        "created_at": runtime.utc_now(),
+        "reply_source_requirement": "Every Hermes reply in the transcript must have agent_reply.source=live_hermes.",
+        "runtime_root": str(root),
+        "app_id": APP_ID,
+        "app_name": APP_NAME,
+        "model": args.model,
+        "provider": args.provider,
+        "reasoning_effort": args.reasoning_effort,
+        "hermes_bin_exists": hermes_bin.exists(),
+        "stage_count": len(stage_reports),
+        "stage_reports": stage_reports,
+        "conversation_review": export,
+        "final_stage": final_state["stage_status"],
+        "engineering_files": verify_engineering_files(app_repo),
+        "app_source_snapshot": str(app_snapshot),
+    }
+    qa_report_path = report_dir / "qa-report.json"
+    write_text(qa_report_path, json.dumps(qa_report, indent=2, sort_keys=True))
+    return {
+        "run_id": run_id,
+        "report_dir": str(report_dir),
+        "qa_report": str(qa_report_path),
+        "review_html": str(root / export["exports"]["html_review"]),
+        "conversation_events": str(root / export["exports"]["event_stream"]),
+        "app_source_snapshot": str(app_snapshot),
+        "stage_count": len(stage_reports),
+        "turn_count": export["turn_count"],
+        "source_summary": export["source_summary"],
+    }
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--hermes-bin", default=os.environ.get("WEAVE_HERMES_BIN", "hermes"))
+    parser.add_argument("--report-dir", default=str(Path.home() / "Documents" / "Codex" / "artifacts" / "weave-runtime-proof"))
+    parser.add_argument("--run-id", default="")
+    parser.add_argument("--model", default=os.environ.get("WEAVE_HERMES_MODEL", "gpt-5.5"))
+    parser.add_argument("--provider", default=os.environ.get("WEAVE_HERMES_PROVIDER_ADAPTER", "codex"))
+    parser.add_argument("--reasoning-effort", default=os.environ.get("WEAVE_HERMES_REASONING_EFFORT", "xhigh"))
+    parser.add_argument("--max-turns", type=int, default=4)
+    parser.add_argument("--engineering-max-turns", type=int, default=4)
+    parser.add_argument("--repair-attempts", type=int, default=1)
+    parser.add_argument("--timeout", type=int, default=300)
+    parser.add_argument("--force", action="store_true")
+    parser.add_argument("--no-yolo", dest="yolo", action="store_false")
+    parser.set_defaults(yolo=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        result = run_live_qa(args)
+    except Exception as exc:
+        print(f"live Hermes lifecycle QA failed: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
