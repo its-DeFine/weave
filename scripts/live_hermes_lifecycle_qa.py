@@ -350,6 +350,15 @@ def build_stage_prompt(stage_id: str, root: Path, app_repo: Path, prior_summary:
 
         {engineering_instruction}
 
+        Response budget:
+        - Keep the whole reply under 900 words.
+        - Keep Artifact content reviewable: concise sections, no exhaustive
+          file trees, no repeated lifecycle history.
+        - For plan, name only the first-slice files this QA runner will create:
+          index.html, styles.css, app.js, and README.md.
+        - If more detail would be useful later, put it under Deferred items or
+          Next action instead of expanding this turn.
+
         Reply in a reviewable operational format with these headings:
 
         Hermes reply
@@ -452,6 +461,11 @@ def build_stage_completion_prompt(
         or ask a blocking question if completion is impossible. For this QA run,
         avoid blocking unless a real secret, public action, or external credential
         is required.
+
+        Response budget:
+        - Keep the whole completion reply under 700 words.
+        - Do not repeat the full draft artifact.
+        - Summarize which recommendations were handled, deferred, or blocked.
 
         Reply in the same reviewable operational format with these headings:
 
