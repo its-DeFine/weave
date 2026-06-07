@@ -519,7 +519,11 @@ def build_file_generation_prompt(file_name: str) -> str:
         "the exact content you return. "
         "No network calls, no external secrets, no real payments. The app is a "
         "local proof visual novel with scene progression, restored memory cards, "
-        "exportable local state, and a disabled future paid-pack path."
+        "exportable local state, and a disabled future paid-pack path. Export is "
+        "required; import state is out of scope unless you fully implement it. "
+        "Future paid/story-pack controls must remain non-interactive and disabled: "
+        "no click handler, no paid-click counter, no checkout-like action, and no "
+        "runtime code that sets a paid control disabled=false."
     )
     if file_name == "index.html":
         return (
@@ -540,6 +544,7 @@ def build_file_generation_prompt(file_name: str) -> str:
             shared
             + " File: app.js. Implement deterministic scenes, choices, restored memory cards, "
             "localStorage progress, export JSON, reset, simple KPI counters, and disabled paid-pack behavior. "
+            "Do not restore any memory card before an explicit visitor choice/action. "
             "Keep it compact under 180 lines. Prefer simple arrays and functions over framework-style structure."
         )
     if file_name == "README.md":
@@ -713,6 +718,26 @@ def run_app_verification(app_repo: Path) -> dict[str, Any]:
         "export": "export" in (index + script + readme).lower(),
         "paid_pack_disabled": "disabled" in (index + script + readme).lower() and "paid" in (index + script + readme).lower(),
     }
+    paid_enable_patterns = [
+        r"\$\(\s*['\"]#paid['\"]\s*\)\.disabled\s*=\s*false",
+        r"getElementById\(\s*['\"]paid['\"]\s*\)\.disabled\s*=\s*false",
+        r"querySelector\(\s*['\"]#paid['\"]\s*\)\.disabled\s*=\s*false",
+        r"\bpaid(?:Button|Btn|Control|El|Element)?\.disabled\s*=\s*false",
+    ]
+    paid_control_enabled = any(re.search(pattern, script) for pattern in paid_enable_patterns)
+    paid_click_counter = bool(re.search(r"\bpaidClicks\b", script))
+    import_mentions = bool(re.search(r"\bimport\b", index + readme, re.IGNORECASE))
+    import_runtime = bool(re.search(r"\bimport(?:State|Archive|Json|JSON)\b", script))
+    initial_restore_before_action = bool(
+        re.search(r"function\s+render[^{]*\{[\s\S]{0,1800}\brestore\([^)]*scene\.card[^)]*\)", script)
+        or re.search(r"\brender\s*=\s*\([^)]*\)\s*=>\s*\{[\s\S]{0,1800}\brestore\([^)]*scene\.card[^)]*\)", script)
+    )
+    checks["runtime_boundaries"] = {
+        "paid_control_remains_disabled": not paid_control_enabled,
+        "paid_click_counter_absent": not paid_click_counter,
+        "import_not_advertised_without_runtime": not import_mentions or import_runtime,
+        "no_initial_restore_before_action_pattern": not initial_restore_before_action,
+    }
     try:
         result = subprocess.run(
             ["node", "--check", str(app_repo / "app.js")],
@@ -735,6 +760,7 @@ def run_app_verification(app_repo: Path) -> dict[str, Any]:
         engineering["passed"]
         and all(checks["html_refs"].values())
         and all(checks["product_terms"].values())
+        and all(checks["runtime_boundaries"].values())
         and bool(checks["javascript_syntax"].get("passed"))
     )
     return checks
@@ -835,6 +861,11 @@ def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
             stage_extra = json.dumps(deterministic_work, indent=2, sort_keys=True)
         elif stage_id == "qa":
             deterministic_work = {"local_app_verification": run_app_verification(app_repo)}
+            if not deterministic_work["local_app_verification"]["passed"]:
+                raise RuntimeError(
+                    "Local app verification failed before QA completion: "
+                    + json.dumps(deterministic_work["local_app_verification"], sort_keys=True)
+                )
             stage_extra = json.dumps(deterministic_work, indent=2, sort_keys=True)
 
         completion_prompt = build_stage_completion_prompt(
