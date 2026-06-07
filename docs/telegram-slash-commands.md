@@ -127,6 +127,8 @@ chat flow:
 WEAVE Transcript: Demo App (demo-app)
 - turns: 2
 - source: apps/demo-app/ledger/conversation-turns.jsonl
+- event_source: apps/demo-app/ledger/conversation-events.jsonl
+- review_export: apps/demo-app/exports/conversation/conversation-review.html
 
 Recent Turns
 1. 2026-06-06T12:00:00Z [intent]
@@ -152,6 +154,20 @@ Each row is stored as `weave-conversation-turn/v0.1` in
 - `state_transition`: lifecycle or stage-state change proposed or initiated
   from the turn.
 - `next_action`: the immediate owner-visible next action.
+
+The canonical raw review stream is stored separately as
+`weave-conversation-event/v0.1` rows in
+`apps/<app_id>/ledger/conversation-events.jsonl`. The runtime can export the
+review bundle to `apps/<app_id>/exports/conversation/`:
+
+- `conversation.events.jsonl`: portable event stream.
+- `conversation-review.html`: primary human review artifact. It escapes raw
+  message content so Markdown fences, tables, and literal HTML in agent replies
+  do not break the review surface.
+- `conversation-report.json`: paths, counts, checksums, renderer, and policy.
+
+Use the HTML review artifact for owner review and the event JSONL as the source
+of truth. Markdown renderings are optional convenience exports only.
 
 Transcript capture is mandatory for app work. A Hermes app-work reply is not
 complete until the structured turn has been appended, or Hermes explicitly
@@ -262,6 +278,8 @@ The runtime exposes REST-equivalent control paths for deterministic clients:
 | `GET /apps/<app_id>/lifecycle` | `/lifecycle <app_id>` payload. |
 | `GET /apps/<app_id>/conversation` | Full app conversation-turn ledger. |
 | `GET /apps/<app_id>/conversation/form` | Deterministic transcript-capture form for Hermes to complete. |
+| `GET /apps/<app_id>/conversation/events` | Canonical conversation event stream. |
+| `POST /apps/<app_id>/conversation/export` | Materialize the review bundle under `exports/conversation/`. |
 | `POST /apps/<app_id>/conversation` | Append a public-safe conversation turn after Hermes replies. |
 | `POST /apps/<app_id>/approve-stage` | `/approve_stage <app_id>`. |
 | `POST /apps/<app_id>/advance` | `/advance <app_id>`. |

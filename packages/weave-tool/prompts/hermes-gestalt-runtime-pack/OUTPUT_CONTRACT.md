@@ -62,6 +62,13 @@ must capture:
 
 Never record hidden model chain-of-thought. Never record raw secrets.
 
+The canonical raw review stream is `weave-conversation-event/v0.1` JSONL,
+materialized from the turn record in
+`apps/<app_id>/ledger/conversation-events.jsonl`. The primary human review
+artifact is escaped HTML at
+`apps/<app_id>/exports/conversation/conversation-review.html`; Markdown is only
+a fallback/export format, not the source of truth.
+
 ## Contract Update Mode Output
 
 Required sections:

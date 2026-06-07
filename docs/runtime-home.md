@@ -145,6 +145,23 @@ instead of hidden model chain-of-thought. Artifacts and state transitions should
 be referenced from the turn so a reviewer can move from chat, to file, to
 ledger event, to lifecycle state without reconstructing the run from memory.
 
+The canonical raw review stream is
+`apps/<app_id>/ledger/conversation-events.jsonl`, using
+`weave-conversation-event/v0.1` rows derived from each validated turn. The
+runtime can materialize review artifacts under
+`apps/<app_id>/exports/conversation/`:
+
+- `conversation.events.jsonl`: portable copy of the canonical event stream.
+- `conversation-review.html`: primary human review artifact with escaped raw
+  owner/operator messages, Hermes replies, rationale summaries, refs, and state
+  transitions.
+- `conversation-report.json`: counts, paths, checksums, renderer, and review
+  policy.
+
+Markdown can be exported later for convenience, but it is not the canonical
+artifact because raw Hermes replies can contain fences, tables, or HTML that
+break Markdown rendering.
+
 Transcript capture is mandatory for lifecycle movement. A lifecycle stage
 cannot be approved or advanced unless the current stage has a transcript row.
 When stage artifacts exist, that row must link to a stage artifact, ledger

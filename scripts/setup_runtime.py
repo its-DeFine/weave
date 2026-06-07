@@ -271,6 +271,13 @@ artifact refs, event refs, state transition, and next action. Do not record
 hidden model chain-of-thought or raw secrets. Lifecycle approval and advance
 are blocked when current-stage transcript capture is missing.
 
+The runtime materializes the canonical raw review stream as
+`weave-conversation-event/v0.1` rows in
+`apps/<app_id>/ledger/conversation-events.jsonl`. For human review, use the
+escaped HTML artifact generated at
+`apps/<app_id>/exports/conversation/conversation-review.html`; do not rely on
+Markdown rendering as the canonical transcript.
+
 When available, fetch `GET /apps/<app_id>/conversation/form` before recording
 the turn. Let WEAVE fill deterministic fields such as app id, current
 lifecycle stage, known artifact refs, recent event refs, and gate state. You

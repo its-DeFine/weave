@@ -11,6 +11,7 @@ It does not contact Hermes, Telegram, external networks, or private runtimes.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import os
 import re
@@ -30,7 +31,9 @@ APP_SCHEMA = "weave-app/v0.1"
 REGISTRY_SCHEMA = "weave-app-registry/v0.1"
 EVENT_SCHEMA = "weave-event/v0.1"
 CONVERSATION_TURN_SCHEMA = "weave-conversation-turn/v0.1"
+CONVERSATION_EVENT_SCHEMA = "weave-conversation-event/v0.1"
 CONVERSATION_CAPTURE_FORM_SCHEMA = "weave-conversation-capture-form/v0.1"
+CONVERSATION_REVIEW_REPORT_SCHEMA = "weave-conversation-review-report/v0.1"
 FOUNDATION_SCHEMA = "weave-foundation-gate/v0.1"
 REST_SCHEMA = "weave-rest-dispatch/v0.1"
 GATEWAY_CONTEXT_SCHEMA = "weave-gateway-context/v0.1"
@@ -849,6 +852,14 @@ def conversation_turn_path(root: Path, app_id: str) -> Path:
     return app_root(root, app_id) / "ledger" / "conversation-turns.jsonl"
 
 
+def conversation_event_path(root: Path, app_id: str) -> Path:
+    return app_root(root, app_id) / "ledger" / "conversation-events.jsonl"
+
+
+def conversation_export_dir(root: Path, app_id: str) -> Path:
+    return app_root(root, app_id) / "exports" / "conversation"
+
+
 def normalize_message(value: Any, *, default_role: str) -> dict[str, Any]:
     if isinstance(value, dict):
         text = str(value.get("text") or value.get("message") or "")
@@ -884,6 +895,174 @@ def normalize_agent_rationale(value: Any) -> dict[str, Any]:
     rationale.setdefault("chain_of_thought_captured", False)
     rationale.setdefault("review_note", "Owner-reviewable rationale summary; not hidden model chain-of-thought.")
     return rationale
+
+
+CONVERSATION_EVENT_TYPES = {
+    "turn.operator_message",
+    "turn.hermes_reply",
+    "turn.rationale",
+    "turn.gate_checks",
+    "turn.artifact_refs",
+    "turn.event_refs",
+    "turn.state_transition",
+    "turn.next_action",
+}
+
+
+def stable_event_id(turn_id: str, event_type: str, sequence: int) -> str:
+    digest = hashlib.sha256(f"{turn_id}:{sequence}:{event_type}".encode("utf-8")).hexdigest()
+    return digest[:24]
+
+
+def sha256_text(value: str) -> str:
+    return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def new_conversation_event(
+    turn: dict[str, Any],
+    event_type: str,
+    sequence: int,
+    *,
+    role: str,
+    content: str = "",
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    turn_id = str(turn.get("turn_id") or "")
+    return {
+        "schema": CONVERSATION_EVENT_SCHEMA,
+        "event_id": stable_event_id(turn_id, event_type, sequence),
+        "turn_id": turn_id,
+        "sequence": sequence,
+        "type": event_type,
+        "app_id": slugify(str(turn.get("app_id") or "")),
+        "stage": normalize_stage_id(str(turn.get("stage") or "intent")),
+        "channel": str(turn.get("channel") or "telegram"),
+        "created_at": str(turn.get("created_at") or utc_now()),
+        "created_by": str(turn.get("created_by") or "hermes"),
+        "role": role,
+        "content": content,
+        "content_sha256": sha256_text(content),
+        "payload": payload or {},
+        "source_turn_schema": CONVERSATION_TURN_SCHEMA,
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+
+
+def conversation_events_from_turn(turn: dict[str, Any]) -> list[dict[str, Any]]:
+    rationale = turn.get("agent_rationale", {})
+    if not isinstance(rationale, dict):
+        rationale = normalize_agent_rationale(rationale)
+    return [
+        new_conversation_event(
+            turn,
+            "turn.operator_message",
+            1,
+            role=str(turn.get("operator_message", {}).get("role") or "owner"),
+            content=str(turn.get("operator_message", {}).get("text") or ""),
+            payload={"message": turn.get("operator_message", {})},
+        ),
+        new_conversation_event(
+            turn,
+            "turn.hermes_reply",
+            2,
+            role=str(turn.get("agent_reply", {}).get("role") or "hermes"),
+            content=str(turn.get("agent_reply", {}).get("text") or ""),
+            payload={"message": turn.get("agent_reply", {})},
+        ),
+        new_conversation_event(
+            turn,
+            "turn.rationale",
+            3,
+            role="hermes",
+            content=str(rationale.get("summary") or ""),
+            payload={"agent_rationale": rationale},
+        ),
+        new_conversation_event(
+            turn,
+            "turn.gate_checks",
+            4,
+            role="weave-runtime",
+            content=json.dumps(turn.get("gate_checks", {}), sort_keys=True),
+            payload={"gate_checks": turn.get("gate_checks", {})},
+        ),
+        new_conversation_event(
+            turn,
+            "turn.artifact_refs",
+            5,
+            role="weave-runtime",
+            content=json.dumps(turn.get("artifact_refs", []), sort_keys=True),
+            payload={"artifact_refs": turn.get("artifact_refs", [])},
+        ),
+        new_conversation_event(
+            turn,
+            "turn.event_refs",
+            6,
+            role="weave-runtime",
+            content=json.dumps(turn.get("event_refs", []), sort_keys=True),
+            payload={"event_refs": turn.get("event_refs", [])},
+        ),
+        new_conversation_event(
+            turn,
+            "turn.state_transition",
+            7,
+            role="weave-runtime",
+            content=json.dumps(turn.get("state_transition", {}), sort_keys=True),
+            payload={"state_transition": turn.get("state_transition", {})},
+        ),
+        new_conversation_event(
+            turn,
+            "turn.next_action",
+            8,
+            role="hermes",
+            content=str(turn.get("next_action") or ""),
+            payload={"next_action": turn.get("next_action", "")},
+        ),
+    ]
+
+
+def validate_conversation_event(event: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "event_id",
+        "turn_id",
+        "sequence",
+        "type",
+        "app_id",
+        "stage",
+        "channel",
+        "created_at",
+        "created_by",
+        "role",
+        "content",
+        "content_sha256",
+        "payload",
+        "source_turn_schema",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(event))
+    if missing:
+        raise RuntimeSliceError(f"conversation event missing required fields: {', '.join(missing)}")
+    if event["schema"] != CONVERSATION_EVENT_SCHEMA:
+        raise RuntimeSliceError(f"conversation event schema must be {CONVERSATION_EVENT_SCHEMA}")
+    if event["source_turn_schema"] != CONVERSATION_TURN_SCHEMA:
+        raise RuntimeSliceError(f"conversation event source_turn_schema must be {CONVERSATION_TURN_SCHEMA}")
+    if event["type"] not in CONVERSATION_EVENT_TYPES:
+        raise RuntimeSliceError(f"unsupported conversation event type: {event['type']}")
+    if not str(event["turn_id"]).strip():
+        raise RuntimeSliceError("conversation event turn_id is required")
+    if int(event["sequence"]) < 1:
+        raise RuntimeSliceError("conversation event sequence must be positive")
+    if event["public_safe"] is not True:
+        raise RuntimeSliceError("conversation event must be public_safe=true")
+    if event["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("conversation event must set secret_payload_allowed=false")
+    if event["content_sha256"] != sha256_text(str(event["content"])):
+        raise RuntimeSliceError("conversation event content_sha256 mismatch")
+    if contains_secret_like_value(event):
+        raise RuntimeSliceError("conversation event contains a secret-shaped value")
+    normalize_stage_id(str(event["stage"]))
 
 
 def new_conversation_turn(
@@ -973,10 +1152,18 @@ def append_conversation_turn(root: Path, app_id: str, turn: dict[str, Any]) -> d
     if turn.get("app_id") != slugify(app_id):
         raise RuntimeSliceError("conversation turn app_id does not match target app")
     validate_conversation_turn(turn)
+    events = conversation_events_from_turn(turn)
+    for event in events:
+        validate_conversation_event(event)
     path = conversation_turn_path(root, app_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(turn, sort_keys=True) + "\n")
+    event_path = conversation_event_path(root, app_id)
+    event_path.parent.mkdir(parents=True, exist_ok=True)
+    with event_path.open("a", encoding="utf-8") as handle:
+        for event in events:
+            handle.write(json.dumps(event, sort_keys=True) + "\n")
     return turn
 
 
@@ -995,6 +1182,42 @@ def read_conversation_turns(root: Path, app_id: str) -> list[dict[str, Any]]:
         validate_conversation_turn(turn)
         turns.append(turn)
     return turns
+
+
+def read_conversation_events(root: Path, app_id: str) -> list[dict[str, Any]]:
+    path = conversation_event_path(root, app_id)
+    if not path.exists():
+        return []
+    events: list[dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise RuntimeSliceError(f"invalid conversation event JSON at line {line_number}: {exc}") from exc
+        validate_conversation_event(event)
+        events.append(event)
+    return events
+
+
+def ensure_conversation_events(root: Path, app_id: str) -> list[dict[str, Any]]:
+    turns = read_conversation_turns(root, app_id)
+    expected_ids = {
+        event["event_id"]
+        for turn in turns
+        for event in conversation_events_from_turn(turn)
+    }
+    existing = read_conversation_events(root, app_id)
+    if expected_ids and {event["event_id"] for event in existing} != expected_ids:
+        path = conversation_event_path(root, app_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rebuilt = [event for turn in turns for event in conversation_events_from_turn(turn)]
+        for event in rebuilt:
+            validate_conversation_event(event)
+        path.write_text("".join(json.dumps(event, sort_keys=True) + "\n" for event in rebuilt), encoding="utf-8")
+        return rebuilt
+    return existing
 
 
 def conversation_turn_from_body(root: Path, app_id: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -1083,6 +1306,7 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
     )
     write_new(base / "ledger" / "events.jsonl", "", created, root)
     write_new(base / "ledger" / "conversation-turns.jsonl", "", created, root)
+    write_new(base / "ledger" / "conversation-events.jsonl", "", created, root)
 
     now = utc_now()
     metadata = {
@@ -1106,6 +1330,7 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
         ],
         "ledger_path": "ledger/events.jsonl",
         "conversation_turns_path": "ledger/conversation-turns.jsonl",
+        "conversation_events_path": "ledger/conversation-events.jsonl",
         "decision_log_path": "context/decisions.md",
         "required_inputs": [],
         "owner_questions": [],
@@ -1119,6 +1344,7 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
             "git-tracked-workspace",
             "append-only-ledger",
             "conversation-turn-ledger",
+            "conversation-event-ledger",
             "rest-dispatch-skeleton",
             "telegram-deterministic-slash-commands",
         ],
@@ -2262,10 +2488,163 @@ def contract_diff(root: Path, app_id: str) -> dict[str, Any]:
     }
 
 
+def html_pre(value: Any) -> str:
+    text = str(value if value is not None else "")
+    return f"<pre>{html.escape(text)}</pre>"
+
+
+def html_json(value: Any) -> str:
+    return html_pre(json.dumps(value, indent=2, sort_keys=True))
+
+
+def html_list(values: list[Any]) -> str:
+    items = [str(value) for value in values if str(value).strip()]
+    if not items:
+        return "<p class=\"empty\">none recorded</p>"
+    return "<ul>" + "".join(f"<li>{html.escape(item)}</li>" for item in items) + "</ul>"
+
+
+def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[str, Any]], events: list[dict[str, Any]]) -> str:
+    app = load_app(root, app_id)
+    profile = ensure_agent_profile(root)
+    event_path = relative(conversation_event_path(root, app_id), root)
+    turn_path = relative(conversation_turn_path(root, app_id), root)
+    generated_at = utc_now()
+    sections: list[str] = []
+    for index, turn in enumerate(turns, 1):
+        rationale = turn.get("agent_rationale", {})
+        if not isinstance(rationale, dict):
+            rationale = normalize_agent_rationale(rationale)
+        sections.append(
+            "\n".join(
+                [
+                    f"<section class=\"turn\" id=\"turn-{html.escape(str(turn.get('turn_id', index)))}\">",
+                    f"<h2>Turn {index}: {html.escape(str(turn.get('stage', 'intent')))}</h2>",
+                    "<dl class=\"meta\">",
+                    f"<dt>Time</dt><dd>{html.escape(str(turn.get('created_at', '')))}</dd>",
+                    f"<dt>Turn id</dt><dd><code>{html.escape(str(turn.get('turn_id', '')))}</code></dd>",
+                    f"<dt>Channel</dt><dd>{html.escape(str(turn.get('channel', '')))}</dd>",
+                    "</dl>",
+                    "<h3>Operator Message Sent To Hermes</h3>",
+                    html_pre(turn.get("operator_message", {}).get("text")),
+                    "<h3>Hermes Reply</h3>",
+                    html_pre(turn.get("agent_reply", {}).get("text")),
+                    "<h3>Owner-Reviewable Rationale</h3>",
+                    html_pre(rationale.get("summary")),
+                    "<h4>Gate Questions</h4>",
+                    html_list(rationale.get("gate_questions", []) if isinstance(rationale.get("gate_questions"), list) else []),
+                    "<h4>Missing Information</h4>",
+                    html_list(rationale.get("missing_information", []) if isinstance(rationale.get("missing_information"), list) else []),
+                    "<h4>Decision Basis</h4>",
+                    html_list(rationale.get("decision_basis", []) if isinstance(rationale.get("decision_basis"), list) else []),
+                    "<h3>Gate Checks</h3>",
+                    html_json(turn.get("gate_checks", {})),
+                    "<h3>Artifacts Created Or Used</h3>",
+                    html_json(turn.get("artifact_refs", [])),
+                    "<h3>Ledger Events Referenced</h3>",
+                    html_json(turn.get("event_refs", [])),
+                    "<h3>State Transition</h3>",
+                    html_json(turn.get("state_transition", {})),
+                    "<h3>Next Action</h3>",
+                    html_pre(turn.get("next_action", "")),
+                    "</section>",
+                ]
+            )
+        )
+    if not sections:
+        sections.append("<section class=\"turn\"><h2>No Turns Recorded</h2><p class=\"empty\">No conversation turns are available.</p></section>")
+    return "\n".join(
+        [
+            "<!doctype html>",
+            "<html lang=\"en\">",
+            "<head>",
+            "<meta charset=\"utf-8\">",
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+            f"<title>WEAVE Conversation Review - {html.escape(app['name'])}</title>",
+            "<style>",
+            "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;margin:0;background:#f7f4ed;color:#1c1b18;line-height:1.45}",
+            "main{max-width:1080px;margin:0 auto;padding:32px 20px 60px}",
+            "header{border-bottom:2px solid #24221f;padding-bottom:18px;margin-bottom:24px}",
+            "h1{font-size:30px;margin:0 0 10px}h2{font-size:22px;margin:0 0 12px}h3{font-size:16px;margin:18px 0 8px}h4{font-size:14px;margin:14px 0 6px}",
+            ".summary,.turn{background:#fff;border:1px solid #d8d0c2;border-radius:8px;padding:18px;margin:16px 0}",
+            ".meta{display:grid;grid-template-columns:150px 1fr;gap:6px 14px}.meta dt{font-weight:700}.meta dd{margin:0}",
+            "pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#161614;color:#f7f4ed;border-radius:6px;padding:12px;margin:0;font-size:14px}",
+            "code{background:#eee6d8;padding:1px 4px;border-radius:4px}.empty{color:#6b6256}ul{margin-top:6px}",
+            "</style>",
+            "</head>",
+            "<body>",
+            "<main>",
+            "<header>",
+            f"<h1>WEAVE Conversation Review: {html.escape(app['name'])}</h1>",
+            "<p>Human-readable projection of the validated transcript. The canonical raw records remain JSONL.</p>",
+            "</header>",
+            "<section class=\"summary\">",
+            "<h2>Review Summary</h2>",
+            "<dl class=\"meta\">",
+            f"<dt>App</dt><dd>{html.escape(app['name'])} (<code>{html.escape(app['app_id'])}</code>)</dd>",
+            f"<dt>Generated</dt><dd>{html.escape(generated_at)}</dd>",
+            f"<dt>Turns</dt><dd>{len(turns)}</dd>",
+            f"<dt>Events</dt><dd>{len(events)}</dd>",
+            f"<dt>Turn ledger</dt><dd><code>{html.escape(turn_path)}</code></dd>",
+            f"<dt>Event ledger</dt><dd><code>{html.escape(event_path)}</code></dd>",
+            f"<dt>Agent</dt><dd>{html.escape(format_agent_line(profile))}</dd>",
+            "<dt>Rationale policy</dt><dd>Owner-reviewable summaries only; hidden model chain-of-thought is not captured.</dd>",
+            "</dl>",
+            "</section>",
+            *sections,
+            "</main>",
+            "</body>",
+            "</html>",
+        ]
+    )
+
+
+def write_text_file(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def export_conversation_review(root: Path, app_id: str) -> dict[str, Any]:
+    load_app(root, app_id)
+    turns = read_conversation_turns(root, app_id)
+    events = ensure_conversation_events(root, app_id)
+    export_dir = conversation_export_dir(root, app_id)
+    event_export = export_dir / "conversation.events.jsonl"
+    html_export = export_dir / "conversation-review.html"
+    report_export = export_dir / "conversation-report.json"
+    write_text_file(event_export, "".join(json.dumps(event, sort_keys=True) + "\n" for event in events))
+    write_text_file(html_export, render_conversation_review_html(root, app_id, turns, events))
+    report = {
+        "schema": CONVERSATION_REVIEW_REPORT_SCHEMA,
+        "app_id": slugify(app_id),
+        "generated_at": utc_now(),
+        "turn_count": len(turns),
+        "event_count": len(events),
+        "canonical_turns_path": relative(conversation_turn_path(root, app_id), root),
+        "canonical_events_path": relative(conversation_event_path(root, app_id), root),
+        "exports": {
+            "event_stream": relative(event_export, root),
+            "html_review": relative(html_export, root),
+            "report": relative(report_export, root),
+        },
+        "checksums": {
+            "event_stream": artifact_checksum(event_export),
+            "html_review": artifact_checksum(html_export),
+        },
+        "renderer": "weave-runtime-slice-html-escaped/v0.1",
+        "canonical_format": CONVERSATION_EVENT_SCHEMA,
+        "primary_review_format": "html",
+        "chain_of_thought_policy": "owner-reviewable rationale summaries only; hidden model chain-of-thought is not captured",
+    }
+    write_text_file(report_export, json.dumps(report, indent=2, sort_keys=True) + "\n")
+    return report
+
+
 def app_state(root: Path, app_id: str) -> dict[str, Any]:
     stage = derive_stage(root, app_id)
     app = load_app(root, app_id)
     conversation_turns = read_conversation_turns(root, app_id)
+    conversation_events = read_conversation_events(root, app_id)
     state = {
         "schema": "weave-app-state/v0.1",
         "app": app,
@@ -2276,8 +2655,12 @@ def app_state(root: Path, app_id: str) -> dict[str, Any]:
         "conversation": {
             "schema": CONVERSATION_TURN_SCHEMA,
             "path": f"apps/{slugify(app_id)}/ledger/conversation-turns.jsonl",
+            "event_schema": CONVERSATION_EVENT_SCHEMA,
+            "event_path": f"apps/{slugify(app_id)}/ledger/conversation-events.jsonl",
             "turn_count": len(conversation_turns),
+            "event_count": len(conversation_events),
             "recent_turns": conversation_turns[-5:],
+            "review_export_path": f"apps/{slugify(app_id)}/exports/conversation/conversation-review.html",
         },
         "contract_diff": contract_diff(root, app_id),
     }
@@ -3032,6 +3415,8 @@ def transcript_command(root: Path, args: list[str]) -> dict[str, Any]:
         f"WEAVE Transcript: {app['name']} ({app_id})",
         f"- turns: {len(turns)}",
         f"- source: {relative(conversation_turn_path(root, app_id), root)}",
+        f"- event_source: {relative(conversation_event_path(root, app_id), root)}",
+        f"- review_export: {relative(conversation_export_dir(root, app_id) / 'conversation-review.html', root)}",
         "",
         "Recent Turns",
     ]
@@ -3057,6 +3442,8 @@ def transcript_command(root: Path, args: list[str]) -> dict[str, Any]:
             "app_resolution_source": source,
             "turn_count": len(turns),
             "conversation_turns_path": relative(conversation_turn_path(root, app_id), root),
+            "conversation_events_path": relative(conversation_event_path(root, app_id), root),
+            "review_export_path": relative(conversation_export_dir(root, app_id) / "conversation-review.html", root),
             "recent_turns": recent_turns,
             "chain_of_thought_policy": "owner-reviewable rationale summaries only; hidden model chain-of-thought is not captured",
         },
@@ -3232,15 +3619,32 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
             return 200, {"schema": REST_SCHEMA, "form": conversation_capture_form(root, app_id, stage or None)}
         if method == "GET" and parts[2:] in (["conversation"], ["conversation-turns"], ["transcript"]):
             turns = read_conversation_turns(root, app_id)
+            events = read_conversation_events(root, app_id)
             return 200, {
                 "schema": REST_SCHEMA,
                 "conversation_schema": CONVERSATION_TURN_SCHEMA,
+                "conversation_event_schema": CONVERSATION_EVENT_SCHEMA,
                 "app_id": slugify(app_id),
                 "turn_count": len(turns),
+                "event_count": len(events),
                 "conversation_turns_path": relative(conversation_turn_path(root, app_id), root),
+                "conversation_events_path": relative(conversation_event_path(root, app_id), root),
+                "review_export_path": relative(conversation_export_dir(root, app_id) / "conversation-review.html", root),
                 "turns": turns,
                 "chain_of_thought_policy": "owner-reviewable rationale summaries only; hidden model chain-of-thought is not captured",
             }
+        if method == "GET" and parts[2:] in (["conversation", "events"], ["transcript", "events"]):
+            events = read_conversation_events(root, app_id)
+            return 200, {
+                "schema": REST_SCHEMA,
+                "conversation_event_schema": CONVERSATION_EVENT_SCHEMA,
+                "app_id": slugify(app_id),
+                "event_count": len(events),
+                "conversation_events_path": relative(conversation_event_path(root, app_id), root),
+                "events": events,
+            }
+        if method in {"GET", "POST"} and parts[2:] in (["conversation", "export"], ["transcript", "export"], ["conversation", "review"]):
+            return 200, {"schema": REST_SCHEMA, "review": export_conversation_review(root, app_id)}
         if method == "POST" and parts[2:] in (["conversation"], ["conversation-turns"], ["transcript"]):
             turn = conversation_turn_from_body(root, app_id, body)
             return 201, {"schema": REST_SCHEMA, "conversation_turn": append_conversation_turn(root, app_id, turn)}

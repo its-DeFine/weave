@@ -144,8 +144,11 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue((app_root / "lifecycle" / "02-research" / "artifacts").is_dir())
             self.assertTrue((app_root / "repo" / "primary").is_dir())
             self.assertTrue((app_root / "ledger" / "conversation-turns.jsonl").exists())
+            self.assertTrue((app_root / "ledger" / "conversation-events.jsonl").exists())
             self.assertEqual(result["app"]["conversation_turns_path"], "ledger/conversation-turns.jsonl")
+            self.assertEqual(result["app"]["conversation_events_path"], "ledger/conversation-events.jsonl")
             self.assertIn("conversation-turn-ledger", result["app"]["capabilities"])
+            self.assertIn("conversation-event-ledger", result["app"]["capabilities"])
             registry = runtime.load_registry(root)
             self.assertEqual(registry["apps"][0]["app_id"], "demo-app")
             self.assertEqual(registry["apps"][0]["app_type"], "product")
@@ -257,9 +260,16 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             runtime.append_conversation_turn(root, "demo", turn)
 
             turns = runtime.read_conversation_turns(root, "demo")
+            events = runtime.read_conversation_events(root, "demo")
             self.assertEqual(len(turns), 1)
+            self.assertEqual(len(events), 8)
             self.assertEqual(turns[0]["operator_message"]["text"], turn["operator_message"]["text"])
             self.assertEqual(turns[0]["agent_reply"]["text"], turn["agent_reply"]["text"])
+            self.assertEqual(events[0]["type"], "turn.operator_message")
+            self.assertEqual(events[0]["content"], turn["operator_message"]["text"])
+            self.assertEqual(events[1]["type"], "turn.hermes_reply")
+            self.assertEqual(events[1]["content"], turn["agent_reply"]["text"])
+            self.assertEqual(events[0]["content_sha256"], runtime.sha256_text(turn["operator_message"]["text"]))
             self.assertEqual(turns[0]["artifact_refs"][0]["path"], "apps/demo/lifecycle/01-intent/artifacts/intent.md")
             self.assertEqual(turns[0]["event_refs"][0]["event_id"], event["event_id"])
             self.assertEqual(turns[0]["state_transition"]["to_state"], "ready_for_review")
@@ -278,7 +288,9 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             status, transcript = runtime.dispatch_rest(root, "GET", "/apps/demo/conversation")
             self.assertEqual(status, 200)
             self.assertEqual(transcript["turn_count"], 1)
+            self.assertEqual(transcript["event_count"], 8)
             self.assertEqual(transcript["conversation_schema"], runtime.CONVERSATION_TURN_SCHEMA)
+            self.assertEqual(transcript["conversation_event_schema"], runtime.CONVERSATION_EVENT_SCHEMA)
             self.assertIn("hidden model chain-of-thought is not captured", transcript["chain_of_thought_policy"])
 
             status, posted = runtime.dispatch_rest(
@@ -287,7 +299,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
                 "/apps/demo/conversation",
                 {
                     "operator_message": "Can you proceed to research next?",
-                    "agent_reply": "Not yet. Owner approval is still required before advancing.",
+                    "agent_reply": "Not yet. Owner approval is still required before advancing.\n\n```md\n# raw markdown\n```\n<script>not executable</script>",
                     "agent_rationale": {
                         "summary": "The intent stage is ready, but the deterministic owner approval gate has not been recorded.",
                         "chain_of_thought_captured": False,
@@ -306,13 +318,44 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(posted["conversation_turn"]["artifact_refs"][0]["path"], "apps/demo/lifecycle/01-intent/artifacts/intent.md")
             self.assertTrue(posted["conversation_turn"]["gate_checks"]["foundation_gate_passed"])
             self.assertEqual(len(runtime.read_conversation_turns(root, "demo")), 2)
+            self.assertEqual(len(runtime.read_conversation_events(root, "demo")), 16)
+
+            status, event_stream = runtime.dispatch_rest(root, "GET", "/apps/demo/conversation/events")
+            self.assertEqual(status, 200)
+            self.assertEqual(event_stream["event_count"], 16)
+            self.assertEqual(event_stream["events"][9]["type"], "turn.hermes_reply")
+            self.assertIn("<script>not executable</script>", event_stream["events"][9]["content"])
+
+            status, export = runtime.dispatch_rest(root, "POST", "/apps/demo/conversation/export")
+            self.assertEqual(status, 200)
+            review = export["review"]
+            self.assertEqual(review["schema"], runtime.CONVERSATION_REVIEW_REPORT_SCHEMA)
+            self.assertEqual(review["turn_count"], 2)
+            self.assertEqual(review["event_count"], 16)
+            html_path = root / review["exports"]["html_review"]
+            event_copy_path = root / review["exports"]["event_stream"]
+            report_path = root / review["exports"]["report"]
+            self.assertTrue(html_path.exists())
+            self.assertTrue(event_copy_path.exists())
+            self.assertTrue(report_path.exists())
+            html = html_path.read_text(encoding="utf-8")
+            self.assertIn("Operator Message Sent To Hermes", html)
+            self.assertIn("Hermes Reply", html)
+            self.assertIn("Make a short visual novel", html)
+            self.assertIn("&lt;script&gt;not executable&lt;/script&gt;", html)
+            self.assertNotIn("<script>not executable</script>", html)
+            self.assertEqual(len(event_copy_path.read_text(encoding="utf-8").splitlines()), 16)
 
             slash = runtime.dispatch_telegram_command(root, "/transcript demo")
             self.assertTrue(slash["handled"])
             self.assertIn("WEAVE Transcript", slash["text"])
+            self.assertIn("event_source: apps/demo/ledger/conversation-events.jsonl", slash["text"])
+            self.assertIn("review_export: apps/demo/exports/conversation/conversation-review.html", slash["text"])
             self.assertIn("Make a short visual novel", slash["text"])
             self.assertIn("Foundation documents were complete", slash["text"])
             self.assertEqual(slash["payload"]["turn_count"], 2)
+            self.assertEqual(slash["payload"]["conversation_events_path"], "apps/demo/ledger/conversation-events.jsonl")
+            self.assertEqual(slash["payload"]["review_export_path"], "apps/demo/exports/conversation/conversation-review.html")
 
             app_status = runtime.dispatch_telegram_command(root, "/status demo")
             self.assertIn("Conversation Trace", app_status["text"])
