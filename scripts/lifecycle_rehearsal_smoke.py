@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,6 +49,55 @@ def write_stage_artifact(root: Path, app_id: str, stage_id: str) -> Path:
         f"Proof for the {stage_id} lifecycle stage. This is deterministic rehearsal evidence.",
     )
     return path
+
+
+def record_stage_turn(root: Path, app_id: str, stage_id: str, artifact_path: Path) -> dict[str, Any]:
+    relative_artifact = runtime.relative(artifact_path, root)
+    turn = runtime.new_conversation_turn(
+        app_id,
+        stage_id,
+        {
+            "role": "owner",
+            "text": (
+                f"For the {stage_id} lifecycle step, review the evidence and tell me "
+                "whether Hermes has enough to move forward."
+            ),
+        },
+        {
+            "role": "hermes",
+            "text": (
+                f"I recorded the {stage_id} lifecycle evidence for owner review. "
+                "I will not advance until the deterministic approval gate passes.\n\n"
+                "```md\n"
+                f"# {stage_id} review note\n"
+                "This fenced block is intentionally present to prove HTML review rendering stays stable.\n"
+                "```\n"
+                "<review-sentinel>escaped by HTML renderer</review-sentinel>"
+            ),
+        },
+        agent_rationale={
+            "summary": f"{stage_id} evidence exists and is linked to this owner-visible exchange.",
+            "gate_questions": [
+                "Is the stage artifact present?",
+                "Is the transcript row linked to the stage evidence?",
+                "Is owner approval still required before movement?",
+            ],
+            "missing_information": [],
+            "decision_basis": [f"stage artifact: {relative_artifact}", "foundation gate passed"],
+            "chain_of_thought_captured": False,
+        },
+        artifact_refs=[{"path": relative_artifact, "action": "created"}],
+        state_transition={
+            "from_stage": stage_id,
+            "from_state": "collecting",
+            "to_stage": stage_id,
+            "to_state": "ready_for_review",
+            "initiated_by": "hermes",
+            "reason": "Stage evidence is recorded; owner approval remains the movement gate.",
+        },
+        next_action=f"Owner reviews {stage_id} evidence, then may approve the stage.",
+    )
+    return runtime.append_conversation_turn(root, app_id, turn)
 
 
 def add_missing_credential(root: Path, app_id: str, stage_id: str) -> None:
@@ -132,7 +182,7 @@ def assert_condition(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
-def run_rehearsal() -> dict[str, Any]:
+def run_rehearsal(artifact_dir: Path | None = None) -> dict[str, Any]:
     steps: list[dict[str, Any]] = []
     app_id = "visual-novel"
     stage_ids = runtime.stage_ids()
@@ -171,9 +221,20 @@ def run_rehearsal() -> dict[str, Any]:
         status = command("status exposes stage gate attention", "/status")
         assert_condition(status["payload"].get("stage_gate_blocked_apps") == [app_id], "status did not expose stage gate attention")
 
-        write_stage_artifact(root, app_id, "intent")
+        artifact_path = write_stage_artifact(root, app_id, "intent")
         advanced = command("advance blocks before owner approval", f"/advance {app_id}")
-        assert_condition(advanced["handled"] is False and advanced["error"] == "current_stage_not_approved", "advance did not block before approval")
+        assert_condition(
+            advanced["handled"] is False and advanced["error"] == "current_stage_gate_not_passing",
+            "advance did not block before transcript capture",
+        )
+        transcript_block = command("approval blocks before transcript capture", f"/approve_stage {app_id}")
+        assert_condition(transcript_block["handled"] is False and "transcript capture" in transcript_block["text"], "approval did not require transcript capture")
+        record_stage_turn(root, app_id, "intent", artifact_path)
+        advanced = command("advance still blocks before owner approval", f"/advance {app_id}")
+        assert_condition(
+            advanced["handled"] is False and advanced["error"] == "current_stage_not_approved",
+            "advance did not block before owner approval",
+        )
 
         for index, stage_id in enumerate(stage_ids):
             current = runtime.app_state(root, app_id)["stage_status"]["stage"]
@@ -181,7 +242,13 @@ def run_rehearsal() -> dict[str, Any]:
             if stage_id != "intent":
                 missing = command(f"{stage_id} approval blocks before proof", f"/approve_stage {app_id}")
                 assert_condition(missing["handled"] is False, f"{stage_id} should block before proof")
-                write_stage_artifact(root, app_id, stage_id)
+                artifact_path = write_stage_artifact(root, app_id, stage_id)
+                missing_transcript = command(f"{stage_id} approval blocks before transcript", f"/approve_stage {app_id}")
+                assert_condition(
+                    missing_transcript["handled"] is False and "transcript capture" in missing_transcript["text"],
+                    f"{stage_id} should block before transcript capture",
+                )
+                record_stage_turn(root, app_id, stage_id, artifact_path)
 
             if stage_id in {"kpi", "marketing", "analysis"}:
                 add_missing_credential(root, app_id, stage_id)
@@ -224,6 +291,24 @@ def run_rehearsal() -> dict[str, Any]:
         final_state = runtime.app_state(root, app_id)
         approved = final_state["app"].get("approved_stages", [])
         assert_condition(approved == stage_ids, f"approved stages mismatch: {approved}")
+        status_code, transcript = rest("REST transcript exposes event stream", "GET", f"/apps/{app_id}/conversation")
+        assert_condition(status_code == 200, "REST transcript returned non-200")
+        assert_condition(transcript["turn_count"] == len(stage_ids), "transcript turn count mismatch")
+        assert_condition(transcript["event_count"] == len(stage_ids) * 8, "conversation event count mismatch")
+        status_code, exported = rest("REST transcript export materializes review artifacts", "POST", f"/apps/{app_id}/conversation/export")
+        assert_condition(status_code == 200, "REST transcript export returned non-200")
+        review = exported["review"]
+        review_artifacts: dict[str, str] = {}
+        if artifact_dir is not None:
+            target_dir = artifact_dir / app_id / "conversation"
+            target_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(root / "apps" / app_id / "exports" / "conversation", target_dir, dirs_exist_ok=True)
+            review_artifacts = {
+                "directory": str(target_dir),
+                "html_review": str(target_dir / "conversation-review.html"),
+                "event_stream": str(target_dir / "conversation.events.jsonl"),
+                "report": str(target_dir / "conversation-report.json"),
+            }
 
         return {
             "schema": "weave-lifecycle-rehearsal/v0.1",
@@ -237,6 +322,18 @@ def run_rehearsal() -> dict[str, Any]:
             "final_stage_state": final_state["stage_status"]["stage_state"],
             "approved_stages": approved,
             "artifact_count": len(final_state["artifacts"]),
+            "conversation_turn_count": transcript["turn_count"],
+            "conversation_event_count": transcript["event_count"],
+            "conversation_review": {
+                "schema": review["schema"],
+                "turn_count": review["turn_count"],
+                "event_count": review["event_count"],
+                "canonical_format": review["canonical_format"],
+                "primary_review_format": review["primary_review_format"],
+                "exports": review["exports"],
+                "checksums": review["checksums"],
+                "copied_artifacts": review_artifacts,
+            },
             "edge_cases": [
                 "approval blocked before foundation",
                 "invalid app rejected",
@@ -248,6 +345,8 @@ def run_rehearsal() -> dict[str, Any]:
                 "active app switch",
                 "REST lifecycle parity",
                 "REST Telegram dispatch parity",
+                "REST transcript event-stream parity",
+                "HTML transcript review export",
             ],
             "steps": steps,
         }
@@ -268,8 +367,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run WEAVE lifecycle rehearsal smoke.")
     parser.add_argument("--report-out", type=Path, default=None, help="Path for the JSON proof artifact.")
     args = parser.parse_args()
+    artifact_dir = None
+    if args.report_out is not None:
+        artifact_dir = args.report_out.parent / f"{args.report_out.stem}-artifacts"
+    else:
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        artifact_dir = DEFAULT_REPORT_DIR / f"lifecycle-rehearsal-{stamp}-artifacts"
     try:
-        report = run_rehearsal()
+        report = run_rehearsal(artifact_dir)
     except Exception as exc:  # noqa: BLE001 - smoke script should emit one concise failure.
         failure = {
             "schema": "weave-lifecycle-rehearsal/v0.1",
