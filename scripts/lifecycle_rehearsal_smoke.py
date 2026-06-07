@@ -21,6 +21,356 @@ import weave_runtime_slice as runtime
 
 
 DEFAULT_REPORT_DIR = Path.home() / "Documents" / "Codex" / "artifacts" / "weave-lifecycle-rehearsals"
+APP_ID = "lantern-archive"
+APP_NAME = "Lantern Archive"
+APP_INTENT = (
+    "Build a small, polished browser visual novel where a visitor helps a keeper "
+    "restore lost memories into lantern cards. The app should feel emotionally "
+    "specific, be easy to QA locally, work without a backend, and leave a clear "
+    "future path for paid story packs without taking real payments during QA."
+)
+
+FOUNDATION_DOCS = {
+    "soul": (
+        "Hermes should act like a careful product operator and creative director: "
+        "first clarify the human intent, then move through lifecycle gates with "
+        "evidence, visible tradeoffs, and owner review before stage movement."
+    ),
+    "owner": (
+        "The owner wants concrete application substance, not only runtime mechanics. "
+        "They prefer direct evidence, clean state, strong UX thinking, and no claim "
+        "that a lifecycle is complete unless the artifact shows the actual work."
+    ),
+    "app_context": (
+        f"{APP_NAME} is a proof app for the WEAVE lifecycle. It is a browser-based "
+        "micro visual novel with a memory-restoration loop, scene cards, local "
+        "progress, exportable JSON, KPI estimates, and a disabled monetization "
+        "surface that can be enabled only after owner-approved credentials exist."
+    ),
+    "inventory": (
+        "Expected inventory: static web source, story engine, visual scene layout, "
+        "local QA proof, KPI model, marketing draft, feedback iteration note, "
+        "and analysis of what would be required before monetized launch."
+    ),
+    "contract": (
+        "The app must progress in order through intent, research, selection, plan, "
+        "engineering, qa, kpi, marketing, iteration, and analysis. Each stage needs "
+        "a stage artifact, transcript turn, owner approval, and deterministic gate "
+        "state before advancement."
+    ),
+}
+
+STAGE_SCRIPTS = {
+    "intent": {
+        "title": "Intent Brief",
+        "artifact_body": (
+            f"Owner intent: {APP_INTENT}\n\n"
+            "Success means the proof feels like an actual application concept, not "
+            "a placeholder, and the transcript shows why this app should exist."
+        ),
+        "owner": (
+            "I want to build a tiny but finished browser visual novel called "
+            "Lantern Archive. A visitor should help a keeper restore lost memories "
+            "into lantern cards. It should feel gentle, inspectable, and monetizable "
+            "later through paid story packs, but for now no real payments or public "
+            "launch. What do you need before we move forward?"
+        ),
+        "hermes": (
+            "I understand the app as a concrete visual novel proof, not a generic "
+            "demo. I have enough to form the intent contract: target user, emotional "
+            "promise, non-backend constraint, local QA boundary, and deferred "
+            "monetization path are all explicit. I will keep payments and public "
+            "launch gated."
+        ),
+        "rationale": (
+            "The owner supplied a named app, audience experience, constraints, and "
+            "launch boundary. The intent stage can move to review once the intent "
+            "brief is recorded."
+        ),
+        "questions": [
+            "Is the app named and emotionally specific?",
+            "Are launch and payment boundaries explicit?",
+            "Is there enough context to research a viable shape?",
+        ],
+        "basis": ["named app intent", "local-only QA boundary", "monetization deferred"],
+    },
+    "research": {
+        "title": "Research Notes",
+        "artifact_body": (
+            "Research conclusion: a static browser app can support the intended "
+            "visual novel proof with local state, deterministic scenes, exportable "
+            "JSON, and a disabled checkout path. Main risks are shallow story "
+            "writing, unclear replay value, and overstating monetization before "
+            "real validation."
+        ),
+        "owner": (
+            "Research this properly before we choose the build shape. I care that "
+            "Lantern Archive feels like a small real product: an opening scene, "
+            "choices, restored memory cards, export/share value, and a later paid "
+            "pack path. What should we learn and what would make this viable?"
+        ),
+        "hermes": (
+            "Research points to a static-first app: no backend for the proof, local "
+            "scene state, a generated memory-card inventory, export JSON for review, "
+            "and a visible but disabled paid-pack callout. The viability test is "
+            "whether the first session creates enough emotional completion and a "
+            "clear next-pack desire. I would not choose a complex auth or database "
+            "path for this slice."
+        ),
+        "rationale": (
+            "The research stage identifies a simple technical shape, product risk, "
+            "and monetization boundary. It gives enough evidence to select the first "
+            "implementation direction."
+        ),
+        "questions": [
+            "Can the proof work without backend infrastructure?",
+            "What risk would make the app feel fake?",
+            "What monetization path can be shown without taking payment?",
+        ],
+        "basis": ["static-first path", "local state sufficient", "paid pack path deferred"],
+    },
+    "selection": {
+        "title": "Selection Decision",
+        "artifact_body": (
+            "Selected direction: static visual novel with a curated story engine, "
+            "three memory cards, local progress, review export, and disabled paid "
+            "pack configuration. Rejected: backend account system, generative API "
+            "calls, and live checkout in this proof."
+        ),
+        "owner": (
+            "Choose the smallest direction that still feels like a real app. I do "
+            "not want a toy that only proves routing. I want the first playable "
+            "slice of Lantern Archive to have a reason to exist."
+        ),
+        "hermes": (
+            "I select a static, playable first slice: one keeper character, three "
+            "recoverable memory cards, two meaningful choices, a completion state, "
+            "and an exportable proof. This keeps the app inspectable while still "
+            "expressing the product. I am rejecting live auth, live payments, and "
+            "external AI calls for this lifecycle proof."
+        ),
+        "rationale": (
+            "The selected approach balances emotional product quality with low QA "
+            "surface area and clear blocked boundaries for credentials and launch."
+        ),
+        "questions": [
+            "Does the chosen direction preserve the product feeling?",
+            "Are rejected directions clearly documented?",
+            "Is the slice small enough to QA end to end?",
+        ],
+        "basis": ["static playable slice", "backend rejected", "live payment rejected"],
+    },
+    "plan": {
+        "title": "Implementation Plan",
+        "artifact_body": (
+            "Plan: create source files, implement scene progression, memory-card "
+            "state, accessible controls, export JSON, KPI counters, disabled paid "
+            "pack config, and local QA. Stop before public deploy or real provider "
+            "credentials."
+        ),
+        "owner": (
+            "Give me the plan before engineering. I want the plan to include what "
+            "the app will contain, how it will be tested, what it will not do, and "
+            "what credentials would be needed later."
+        ),
+        "hermes": (
+            "The plan is: build the static app shell, implement the story engine, "
+            "create a memory-card UI, add export and KPI surfaces, keep checkout "
+            "disabled by config, and verify with local static, node, and browser "
+            "checks. Later credentials would be hosting, analytics, and payment "
+            "provider access, but those remain outside this QA run."
+        ),
+        "rationale": (
+            "The plan is complete enough for engineering because it defines files, "
+            "behavior, QA, non-goals, and credential boundaries."
+        ),
+        "questions": [
+            "Are the expected app surfaces named?",
+            "Are tests and stop boundaries explicit?",
+            "Are future credentials identified without collecting them now?",
+        ],
+        "basis": ["file-level build plan", "QA plan", "credential boundary"],
+    },
+    "engineering": {
+        "title": "Engineering Evidence",
+        "artifact_body": (
+            "Engineering evidence: source would include index.html, app.js, "
+            "story-engine module, styles, config, and README. The app behavior "
+            "should show progression, restored cards, export, and disabled "
+            "monetization."
+        ),
+        "owner": (
+            "Now implement the proof as if you care about it. It should not be a "
+            "blank demo. I expect the first screen, scene progression, memory-card "
+            "state, and a clearly disabled monetization path."
+        ),
+        "hermes": (
+            "I would implement Lantern Archive as a static app with a full first "
+            "session: opening scene, choice buttons, restored memory-card inventory, "
+            "export JSON, and KPI counters. I would keep any `<paid-pack>` marker "
+            "as inert display/config text until credentials and owner approval "
+            "exist."
+        ),
+        "rationale": (
+            "Engineering can proceed because the app surfaces and technical "
+            "constraints are concrete, with public/payment actions still blocked."
+        ),
+        "questions": [
+            "Does engineering produce an inspectable app surface?",
+            "Does the disabled monetization path remain inert?",
+            "Are app files and behavior tied to the product intent?",
+        ],
+        "basis": ["static app source", "memory-card interaction", "inert monetization marker"],
+    },
+    "qa": {
+        "title": "QA Proof",
+        "artifact_body": (
+            "QA proof: verify required files, story progression, export schema, "
+            "disabled checkout, layout readability, and local serving. Known gap: "
+            "no live user evidence and no public deployment in this rehearsal."
+        ),
+        "owner": (
+            "QA it like a reviewer will inspect it. I want to know what passed, "
+            "what is still fake or mocked, and whether the app is good enough to "
+            "show as a proof without overclaiming."
+        ),
+        "hermes": (
+            "QA should pass only for local product proof claims: source exists, "
+            "story progression works, export shape is inspectable, paid path is "
+            "disabled, and the lifecycle evidence is linked. I will not claim live "
+            "users, live revenue, or hosted production from this rehearsal."
+        ),
+        "rationale": (
+            "The QA stage separates proven local app behavior from unproven market "
+            "and hosted claims."
+        ),
+        "questions": [
+            "Are local proof claims actually verified?",
+            "Are unproven claims explicitly withheld?",
+            "Is there enough evidence for owner QA review?",
+        ],
+        "basis": ["local proof only", "known gaps listed", "no hosted/revenue claim"],
+    },
+    "kpi": {
+        "title": "KPI Setup",
+        "artifact_body": (
+            "KPI setup: track completion, restored-card count, export action, "
+            "replay intent, paid-pack click intent, and qualitative feedback. "
+            "Analytics credentials are missing and must be deferred or provided "
+            "before real measurement."
+        ),
+        "owner": (
+            "Set up the KPIs we would need before marketing. I want to know whether "
+            "people finish the first story, care about the memory cards, export the "
+            "result, and show intent for a paid pack."
+        ),
+        "hermes": (
+            "The KPI model should track completion rate, restored-card count, export "
+            "rate, replay intent, and paid-pack click intent. In this rehearsal the "
+            "measurement is local and mocked; real analytics provider credentials "
+            "are required before production measurement."
+        ),
+        "rationale": (
+            "The KPI stage is ready for review only with credential deferral, because "
+            "real analytics credentials are not present in this clean run."
+        ),
+        "questions": [
+            "Are product-specific KPIs defined?",
+            "Are analytics credentials treated as a gate?",
+            "Is mocked measurement labeled honestly?",
+        ],
+        "basis": ["completion KPI", "export KPI", "analytics credential deferred"],
+    },
+    "marketing": {
+        "title": "Marketing Draft",
+        "artifact_body": (
+            "Marketing draft: position Lantern Archive as a five-minute memory "
+            "restoration visual novel for people who like quiet interactive fiction. "
+            "No public send happens in the rehearsal."
+        ),
+        "owner": (
+            "Draft the marketing logic, but do not send anything. I want to see the "
+            "audience, promise, proof points, and what approvals or credentials are "
+            "needed before distribution."
+        ),
+        "hermes": (
+            "Marketing should target quiet interactive-fiction fans and creators "
+            "who like personal archive themes. The promise is a five-minute story "
+            "where choices restore memory cards. Distribution accounts, analytics, "
+            "and public-send approval are required before any real campaign."
+        ),
+        "rationale": (
+            "Marketing can be reviewed as a draft, but distribution remains blocked "
+            "without credentials and explicit owner approval."
+        ),
+        "questions": [
+            "Is the audience concrete?",
+            "Is the promise tied to the product artifact?",
+            "Are public sends blocked until approval?",
+        ],
+        "basis": ["audience defined", "positioning draft", "public send blocked"],
+    },
+    "iteration": {
+        "title": "Iteration Note",
+        "artifact_body": (
+            "Mock feedback: the first scene needs a stronger emotional hook and the "
+            "paid-pack hint should appear after completion, not before the visitor "
+            "trusts the story. Proposed iteration: rewrite opening prompt and delay "
+            "paid-pack copy."
+        ),
+        "owner": (
+            "Pretend the first reviewer says the app is pretty but the opening scene "
+            "does not yet make them care. Iterate from that feedback without losing "
+            "the small-scope proof."
+        ),
+        "hermes": (
+            "I would revise the opening to start with a specific lost memory, not a "
+            "generic welcome. I would delay paid-pack language until after the third "
+            "memory card is restored. This improves emotional trust without adding "
+            "new infrastructure."
+        ),
+        "rationale": (
+            "The iteration responds to product feedback while preserving the chosen "
+            "static proof boundary."
+        ),
+        "questions": [
+            "Is feedback specific enough to act on?",
+            "Does the iteration preserve the proof scope?",
+            "Does the change improve the product experience?",
+        ],
+        "basis": ["mock reviewer feedback", "opening rewrite", "paid-pack copy delayed"],
+    },
+    "analysis": {
+        "title": "Outcome Analysis",
+        "artifact_body": (
+            "Analysis: the lifecycle can produce a coherent local app proof with "
+            "reviewable evidence, but monetization is not proven until hosted app, "
+            "analytics, payment credentials, and real user feedback are added."
+        ),
+        "owner": (
+            "Analyze the outcome honestly. Can this become monetizable, what did we "
+            "actually prove, and what is still missing before I should treat it as "
+            "a real launch candidate?"
+        ),
+        "hermes": (
+            "This run proves a coherent app concept, lifecycle gating, transcript "
+            "review, and a path to monetization. It does not prove market demand, "
+            "revenue, hosted performance, or payment setup. The next real step would "
+            "be a hosted beta with analytics and owner-approved payment/provider "
+            "credentials."
+        ),
+        "rationale": (
+            "Analysis distinguishes product substance from launch proof and prevents "
+            "the runtime from overstating monetization readiness."
+        ),
+        "questions": [
+            "What did the lifecycle actually prove?",
+            "What remains unproven before monetization?",
+            "What is the next reviewable action?",
+        ],
+        "basis": ["local app proof", "market demand unproven", "hosted beta next"],
+    },
+}
 
 
 def utc_now() -> str:
@@ -33,57 +383,34 @@ def fill(path: Path, title: str, body: str = "Rehearsal evidence is complete.") 
 
 
 def complete_foundation(root: Path, app_id: str) -> None:
-    fill(root / "artifacts" / "general" / "soul.md", "Hermes Soul")
-    fill(root / "artifacts" / "general" / "owner-profile.md", "Owner Profile")
-    fill(root / "apps" / app_id / "context" / "app-context.md", "App Context")
-    fill(root / "apps" / app_id / "inventory" / "app-inventory.md", "App Inventory")
-    fill(root / "apps" / app_id / "contract" / "gestaltian-contract.md", "Gestaltian Contract")
+    fill(root / "artifacts" / "general" / "soul.md", "Hermes Soul", FOUNDATION_DOCS["soul"])
+    fill(root / "artifacts" / "general" / "owner-profile.md", "Owner Profile", FOUNDATION_DOCS["owner"])
+    fill(root / "apps" / app_id / "context" / "app-context.md", "App Context", FOUNDATION_DOCS["app_context"])
+    fill(root / "apps" / app_id / "inventory" / "app-inventory.md", "App Inventory", FOUNDATION_DOCS["inventory"])
+    fill(root / "apps" / app_id / "contract" / "gestaltian-contract.md", "Gestaltian Contract", FOUNDATION_DOCS["contract"])
 
 
 def write_stage_artifact(root: Path, app_id: str, stage_id: str) -> Path:
     stage = runtime.stage_by_id(stage_id)
     path = root / "apps" / app_id / "lifecycle" / stage.directory / "artifacts" / f"{stage_id}-proof.md"
-    fill(
-        path,
-        f"{stage_id.title()} Proof",
-        f"Proof for the {stage_id} lifecycle stage. This is deterministic rehearsal evidence.",
-    )
+    script = STAGE_SCRIPTS[stage_id]
+    fill(path, script["title"], script["artifact_body"])
     return path
 
 
 def record_stage_turn(root: Path, app_id: str, stage_id: str, artifact_path: Path) -> dict[str, Any]:
     relative_artifact = runtime.relative(artifact_path, root)
+    script = STAGE_SCRIPTS[stage_id]
     turn = runtime.new_conversation_turn(
         app_id,
         stage_id,
-        {
-            "role": "owner",
-            "text": (
-                f"For the {stage_id} lifecycle step, review the evidence and tell me "
-                "whether Hermes has enough to move forward."
-            ),
-        },
-        {
-            "role": "hermes",
-            "text": (
-                f"I recorded the {stage_id} lifecycle evidence for owner review. "
-                "I will not advance until the deterministic approval gate passes.\n\n"
-                "```md\n"
-                f"# {stage_id} review note\n"
-                "This fenced block is intentionally present to prove HTML review rendering stays stable.\n"
-                "```\n"
-                "<review-sentinel>escaped by HTML renderer</review-sentinel>"
-            ),
-        },
+        {"role": "owner", "text": script["owner"]},
+        {"role": "hermes", "text": script["hermes"]},
         agent_rationale={
-            "summary": f"{stage_id} evidence exists and is linked to this owner-visible exchange.",
-            "gate_questions": [
-                "Is the stage artifact present?",
-                "Is the transcript row linked to the stage evidence?",
-                "Is owner approval still required before movement?",
-            ],
+            "summary": script["rationale"],
+            "gate_questions": script["questions"],
             "missing_information": [],
-            "decision_basis": [f"stage artifact: {relative_artifact}", "foundation gate passed"],
+            "decision_basis": [*script["basis"], f"stage artifact: {relative_artifact}", "foundation gate passed"],
             "chain_of_thought_captured": False,
         },
         artifact_refs=[{"path": relative_artifact, "action": "created"}],
@@ -93,9 +420,9 @@ def record_stage_turn(root: Path, app_id: str, stage_id: str, artifact_path: Pat
             "to_stage": stage_id,
             "to_state": "ready_for_review",
             "initiated_by": "hermes",
-            "reason": "Stage evidence is recorded; owner approval remains the movement gate.",
+            "reason": script["rationale"],
         },
-        next_action=f"Owner reviews {stage_id} evidence, then may approve the stage.",
+        next_action=f"Owner reviews {APP_NAME} {stage_id} evidence, then may approve the stage.",
     )
     return runtime.append_conversation_turn(root, app_id, turn)
 
@@ -184,7 +511,7 @@ def assert_condition(condition: bool, message: str) -> None:
 
 def run_rehearsal(artifact_dir: Path | None = None) -> dict[str, Any]:
     steps: list[dict[str, Any]] = []
-    app_id = "visual-novel"
+    app_id = APP_ID
     stage_ids = runtime.stage_ids()
     with tempfile.TemporaryDirectory(prefix="weave-lifecycle-rehearsal-") as tmpdir:
         root = Path(tmpdir) / "weave-root"
@@ -207,7 +534,7 @@ def run_rehearsal(artifact_dir: Path | None = None) -> dict[str, Any]:
             )
             return status, response
 
-        command("create app", "/create_app Visual Novel")
+        command("create app from clean state", f"/create_app {APP_NAME}")
         blocked = command("approval blocks before foundation", f"/approve_stage {app_id}")
         assert_condition(blocked["handled"] is False and "foundation context" in blocked["text"], "approval did not block before foundation")
 
@@ -316,6 +643,9 @@ def run_rehearsal(artifact_dir: Path | None = None) -> dict[str, Any]:
             "environment": "isolated-temp-runtime",
             "runtime_root": "<isolated-temp-root>/weave-root",
             "app_id": app_id,
+            "app_name": APP_NAME,
+            "app_intent": APP_INTENT,
+            "conversation_model": "stage-specific scripted owner/Hermes product exchange from clean state",
             "passed": True,
             "stages_rehearsed": stage_ids,
             "final_stage": final_state["stage_status"]["stage"],
@@ -335,6 +665,7 @@ def run_rehearsal(artifact_dir: Path | None = None) -> dict[str, Any]:
                 "copied_artifacts": review_artifacts,
             },
             "edge_cases": [
+                "clean isolated runtime root starts without prior app context",
                 "approval blocked before foundation",
                 "invalid app rejected",
                 "approval blocked before stage proof",
