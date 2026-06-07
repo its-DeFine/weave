@@ -753,7 +753,15 @@ def run_app_verification(app_repo: Path) -> dict[str, Any]:
     ]
     paid_control_enabled = any(re.search(pattern, script) for pattern in paid_enable_patterns)
     paid_click_counter = bool(re.search(r"\bpaidClicks\b", script))
-    import_mentions = bool(re.search(r"\bimport\b", index + readme, re.IGNORECASE))
+    index_import_control = bool(
+        re.search(r"\b(id|for|name)=['\"][^'\"]*import", index, re.IGNORECASE)
+        or re.search(r"<button[^>]*>\s*import\b", index, re.IGNORECASE)
+        or re.search(r"<textarea[^>]*\bimport\b", index, re.IGNORECASE)
+    )
+    readme_import_promise = bool(re.search(r"\bimport\b", readme, re.IGNORECASE)) and not bool(
+        re.search(r"import(?:ing)?[^.\n]{0,100}out of scope", readme, re.IGNORECASE)
+        or re.search(r"out of scope[^.\n]{0,100}import", readme, re.IGNORECASE)
+    )
     import_runtime = bool(re.search(r"\bimport(?:State|Archive|Json|JSON)\b", script))
     initial_restore_before_action = bool(
         re.search(r"function\s+render[^{]*\{[\s\S]{0,1800}\brestore\([^)]*scene\.card[^)]*\)", script)
@@ -762,7 +770,7 @@ def run_app_verification(app_repo: Path) -> dict[str, Any]:
     checks["runtime_boundaries"] = {
         "paid_control_remains_disabled": not paid_control_enabled,
         "paid_click_counter_absent": not paid_click_counter,
-        "import_not_advertised_without_runtime": not import_mentions or import_runtime,
+        "import_not_advertised_without_runtime": not (index_import_control or readme_import_promise) or import_runtime,
         "no_initial_restore_before_action_pattern": not initial_restore_before_action,
     }
     try:
