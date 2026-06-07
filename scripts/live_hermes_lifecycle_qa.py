@@ -350,6 +350,9 @@ def build_stage_prompt(stage_id: str, root: Path, app_repo: Path, prior_summary:
 
         Rules:
         - Do not include hidden chain-of-thought.
+        - Do not write files, edit JSONL ledgers, call transcript-capture tools,
+          or append lifecycle state yourself. The WEAVE QA runner will capture
+          your reply, write the stage artifact, and append the transcript turn.
         - Do not invent live credentials, live users, revenue, analytics, public
           deploys, or payment processing.
         - If something is blocked, name the exact blocker and what should happen.
@@ -451,6 +454,10 @@ def build_stage_completion_prompt(
 
         Rules:
         - Do not include hidden chain-of-thought.
+        - Do not write files, edit JSONL ledgers, call transcript-capture tools,
+          or append lifecycle state yourself. The WEAVE QA runner will capture
+          your reply, write the final stage artifact, and append the transcript
+          turn.
         - Do not invent live credentials, live users, revenue, analytics, public
           deploys, or payment processing.
         - Keep the response specific to Lantern Archive.
@@ -508,6 +515,8 @@ def build_file_generation_prompt(file_name: str) -> str:
     shared = (
         "Generate exactly one file for the Lantern Archive static browser app. "
         "Return only raw file content, no explanations and no surrounding fences. "
+        "Do not write files or edit WEAVE ledgers yourself; the QA runner writes "
+        "the exact content you return. "
         "No network calls, no external secrets, no real payments. The app is a "
         "local proof visual novel with scene progression, restored memory cards, "
         "exportable local state, and a disabled future paid-pack path."

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 import unittest
@@ -337,9 +338,47 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(len(runtime.read_conversation_turns(root, "demo")), 2)
             self.assertEqual(len(runtime.read_conversation_events(root, "demo")), 16)
 
+            status, partial_posted = runtime.dispatch_rest(
+                root,
+                "POST",
+                "/apps/demo/conversation",
+                {
+                    "schema": runtime.CONVERSATION_TURN_SCHEMA,
+                    "stage": "intent",
+                    "channel": "direct-hermes-cli",
+                    "owner_message": {
+                        "role": "owner",
+                        "source": "qa_owner_operator_followup",
+                        "text": "Follow up on the draft before owner review.",
+                    },
+                    "agent_reply": {
+                        "role": "hermes",
+                        "source": "live_hermes",
+                        "model": "gpt-5.5",
+                        "provider": "codex",
+                        "text_summary": "Recommendations were handled and the stage is ready for review.",
+                        "artifact_refs": [
+                            {
+                                "path": "apps/demo/lifecycle/01-intent/artifacts/intent.md",
+                                "action": "updated",
+                            }
+                        ],
+                    },
+                    "agent_rationale": {
+                        "summary": "Partial model-authored body should be normalized by deterministic runtime fields.",
+                        "chain_of_thought_captured": False,
+                    },
+                },
+            )
+            self.assertEqual(status, 201)
+            self.assertEqual(partial_posted["conversation_turn"]["agent_reply"]["text"], "Recommendations were handled and the stage is ready for review.")
+            self.assertEqual(partial_posted["conversation_turn"]["artifact_refs"][0]["path"], "apps/demo/lifecycle/01-intent/artifacts/intent.md")
+            self.assertEqual(len(runtime.read_conversation_turns(root, "demo")), 3)
+            self.assertEqual(len(runtime.read_conversation_events(root, "demo")), 24)
+
             status, event_stream = runtime.dispatch_rest(root, "GET", "/apps/demo/conversation/events")
             self.assertEqual(status, 200)
-            self.assertEqual(event_stream["event_count"], 16)
+            self.assertEqual(event_stream["event_count"], 24)
             self.assertEqual(event_stream["events"][9]["type"], "turn.hermes_reply")
             self.assertIn("<script>not executable</script>", event_stream["events"][9]["content"])
 
@@ -347,10 +386,10 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(status, 200)
             review = export["review"]
             self.assertEqual(review["schema"], runtime.CONVERSATION_REVIEW_REPORT_SCHEMA)
-            self.assertEqual(review["turn_count"], 2)
-            self.assertEqual(review["event_count"], 16)
+            self.assertEqual(review["turn_count"], 3)
+            self.assertEqual(review["event_count"], 24)
             self.assertTrue(review["source_summary"]["all_agent_replies_source_labeled"])
-            self.assertEqual(review["source_summary"]["agent_reply_sources"]["live_hermes"], 1)
+            self.assertEqual(review["source_summary"]["agent_reply_sources"]["live_hermes"], 2)
             self.assertEqual(review["source_summary"]["agent_reply_sources"]["runtime_gate"], 1)
             html_path = root / review["exports"]["html_review"]
             event_copy_path = root / review["exports"]["event_stream"]
@@ -368,7 +407,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("Make a short visual novel", html)
             self.assertIn("&lt;script&gt;not executable&lt;/script&gt;", html)
             self.assertNotIn("<script>not executable</script>", html)
-            self.assertEqual(len(event_copy_path.read_text(encoding="utf-8").splitlines()), 16)
+            self.assertEqual(len(event_copy_path.read_text(encoding="utf-8").splitlines()), 24)
 
             slash = runtime.dispatch_telegram_command(root, "/transcript demo")
             self.assertTrue(slash["handled"])
@@ -377,13 +416,13 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("review_export: apps/demo/exports/conversation/conversation-review.html", slash["text"])
             self.assertIn("Make a short visual novel", slash["text"])
             self.assertIn("Foundation documents were complete", slash["text"])
-            self.assertEqual(slash["payload"]["turn_count"], 2)
+            self.assertEqual(slash["payload"]["turn_count"], 3)
             self.assertEqual(slash["payload"]["conversation_events_path"], "apps/demo/ledger/conversation-events.jsonl")
             self.assertEqual(slash["payload"]["review_export_path"], "apps/demo/exports/conversation/conversation-review.html")
 
             app_status = runtime.dispatch_telegram_command(root, "/status demo")
             self.assertIn("Conversation Trace", app_status["text"])
-            self.assertEqual(app_status["payload"]["conversation"]["turn_count"], 2)
+            self.assertEqual(app_status["payload"]["conversation"]["turn_count"], 3)
 
             unsafe_value = "Use this provider credential " + "123456789:" + "abcdefghijklmnopqrstuvwxyzABCDEF"
             unsafe_turn = runtime.new_conversation_turn(
@@ -394,6 +433,60 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             )
             with self.assertRaises(runtime.RuntimeSliceError):
                 runtime.append_conversation_turn(root, "demo", unsafe_turn)
+
+    def test_conversation_turn_reader_normalizes_partial_model_written_turn(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            path = runtime.conversation_turn_path(root, "demo")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema": runtime.CONVERSATION_TURN_SCHEMA,
+                        "turn_id": "partial-turn",
+                        "app_id": "demo",
+                        "created_at": "2026-06-07T00:00:00Z",
+                        "created_by": "hermes",
+                        "stage": "intent",
+                        "channel": "direct-hermes-cli",
+                        "owner_message": {
+                            "role": "owner",
+                            "source": "qa_owner_operator_followup",
+                            "text": "Follow up before review.",
+                        },
+                        "agent_reply": {
+                            "role": "hermes",
+                            "source": "live_hermes",
+                            "model": "gpt-5.5",
+                            "provider": "codex",
+                            "text_summary": "Handled the recommendation and kept launch gates closed.",
+                            "artifact_refs": [
+                                {
+                                    "path": "apps/demo/lifecycle/01-intent/artifacts/intent-final.md",
+                                    "action": "updated",
+                                }
+                            ],
+                        },
+                        "agent_rationale": {
+                            "summary": "Model-authored partial record should not break review export.",
+                            "chain_of_thought_captured": False,
+                        },
+                    },
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            turns = runtime.read_conversation_turns(root, "demo")
+            self.assertEqual(len(turns), 1)
+            self.assertEqual(turns[0]["turn_id"], "partial-turn")
+            self.assertEqual(turns[0]["operator_message"]["text"], "Follow up before review.")
+            self.assertEqual(turns[0]["agent_reply"]["text"], "Handled the recommendation and kept launch gates closed.")
+            self.assertEqual(turns[0]["artifact_refs"][0]["path"], "apps/demo/lifecycle/01-intent/artifacts/intent-final.md")
+            self.assertFalse(turns[0]["secret_payload_allowed"])
 
     def test_stage_derivation_uses_lifecycle_artifacts_and_refs(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -1101,27 +1101,29 @@ def new_conversation_turn(
     }
 
 
+CONVERSATION_TURN_REQUIRED_FIELDS = {
+    "schema",
+    "turn_id",
+    "app_id",
+    "created_at",
+    "created_by",
+    "stage",
+    "channel",
+    "operator_message",
+    "agent_reply",
+    "agent_rationale",
+    "gate_checks",
+    "artifact_refs",
+    "event_refs",
+    "state_transition",
+    "next_action",
+    "public_safe",
+    "secret_payload_allowed",
+}
+
+
 def validate_conversation_turn(turn: dict[str, Any]) -> None:
-    required = {
-        "schema",
-        "turn_id",
-        "app_id",
-        "created_at",
-        "created_by",
-        "stage",
-        "channel",
-        "operator_message",
-        "agent_reply",
-        "agent_rationale",
-        "gate_checks",
-        "artifact_refs",
-        "event_refs",
-        "state_transition",
-        "next_action",
-        "public_safe",
-        "secret_payload_allowed",
-    }
-    missing = sorted(required - set(turn))
+    missing = sorted(CONVERSATION_TURN_REQUIRED_FIELDS - set(turn))
     if missing:
         raise RuntimeSliceError(f"conversation turn missing required fields: {', '.join(missing)}")
     if turn["schema"] != CONVERSATION_TURN_SCHEMA:
@@ -1145,6 +1147,62 @@ def validate_conversation_turn(turn: dict[str, Any]) -> None:
     if contains_secret_like_value(turn):
         raise RuntimeSliceError("conversation turn contains a secret-shaped value")
     normalize_stage_id(str(turn["stage"]))
+
+
+def normalize_agent_reply_body(value: Any) -> Any:
+    if isinstance(value, dict) and not str(value.get("text", "")).strip():
+        summary = str(value.get("text_summary") or value.get("summary") or "").strip()
+        if summary:
+            normalized = dict(value)
+            normalized["text"] = summary
+            return normalized
+    return value
+
+
+def conversation_turn_from_partial_body(
+    root: Path,
+    app_id: str,
+    body: dict[str, Any],
+    *,
+    deterministic_fields: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    app = load_app(root, app_id)
+    stage = str(body.get("stage") or app.get("current_stage") or "intent")
+    deterministic = deterministic_fields or {}
+    transcript_capture = deterministic.get("transcript_capture") if isinstance(deterministic.get("transcript_capture"), dict) else {}
+    default_gate_checks = {
+        "foundation_gate_passed": deterministic.get("foundation_gate_passed", False),
+        "stage_gate_passed": deterministic.get("stage_gate_passed", False),
+        "stage_gate_missing": deterministic.get("stage_gate_missing", []),
+        "transcript_capture_passed_before_append": transcript_capture.get("passed", False),
+    }
+    agent_reply = normalize_agent_reply_body(body.get("agent_reply", body.get("hermes_reply", "")))
+    agent_reply_refs = agent_reply.get("artifact_refs") if isinstance(agent_reply, dict) else None
+    turn = new_conversation_turn(
+        app_id,
+        stage,
+        body.get("operator_message", body.get("owner_message", body.get("user_message", ""))),
+        agent_reply,
+        channel=str(body.get("channel") or "telegram"),
+        created_by=str(body.get("created_by") or "hermes"),
+        agent_rationale=body.get("agent_rationale", body.get("rationale", "")),
+        gate_checks=body.get("gate_checks") if isinstance(body.get("gate_checks"), dict) else default_gate_checks,
+        artifact_refs=(
+            body.get("artifact_refs")
+            if isinstance(body.get("artifact_refs"), list)
+            else agent_reply_refs
+            if isinstance(agent_reply_refs, list)
+            else deterministic.get("artifact_refs", [])
+        ),
+        event_refs=body.get("event_refs") if isinstance(body.get("event_refs"), list) else deterministic.get("event_refs", []),
+        state_transition=body.get("state_transition") if isinstance(body.get("state_transition"), dict) else {},
+        next_action=str(body.get("next_action") or body.get("next_action_summary") or ""),
+    )
+    if isinstance(body.get("turn_id"), str) and body["turn_id"].strip():
+        turn["turn_id"] = body["turn_id"].strip()
+    if isinstance(body.get("created_at"), str) and body["created_at"].strip():
+        turn["created_at"] = body["created_at"].strip()
+    return turn
 
 
 def append_conversation_turn(root: Path, app_id: str, turn: dict[str, Any]) -> dict[str, Any]:
@@ -1179,7 +1237,11 @@ def read_conversation_turns(root: Path, app_id: str) -> list[dict[str, Any]]:
             turn = json.loads(line)
         except json.JSONDecodeError as exc:
             raise RuntimeSliceError(f"invalid conversation JSON at line {line_number}: {exc}") from exc
-        validate_conversation_turn(turn)
+        try:
+            validate_conversation_turn(turn)
+        except RuntimeSliceError:
+            turn = conversation_turn_from_partial_body(root, app_id, turn)
+            validate_conversation_turn(turn)
         turns.append(turn)
     return turns
 
@@ -1222,33 +1284,17 @@ def ensure_conversation_events(root: Path, app_id: str) -> list[dict[str, Any]]:
 
 def conversation_turn_from_body(root: Path, app_id: str, body: dict[str, Any]) -> dict[str, Any]:
     if body.get("schema") == CONVERSATION_TURN_SCHEMA:
-        return dict(body)
+        turn = dict(body)
+        try:
+            validate_conversation_turn(turn)
+            return turn
+        except RuntimeSliceError:
+            pass
     app = load_app(root, app_id)
     stage = str(body.get("stage") or app.get("current_stage") or "intent")
     form = conversation_capture_form(root, app_id, stage)
     deterministic = form["deterministic_fields"]
-    gate_checks = body.get("gate_checks") if isinstance(body.get("gate_checks"), dict) else {
-        "foundation_gate_passed": deterministic["foundation_gate_passed"],
-        "stage_gate_passed": deterministic["stage_gate_passed"],
-        "stage_gate_missing": deterministic["stage_gate_missing"],
-        "transcript_capture_passed_before_append": deterministic["transcript_capture"]["passed"],
-    }
-    artifact_refs = body.get("artifact_refs") if isinstance(body.get("artifact_refs"), list) else deterministic["artifact_refs"]
-    event_refs = body.get("event_refs") if isinstance(body.get("event_refs"), list) else deterministic["event_refs"]
-    return new_conversation_turn(
-        app_id,
-        stage,
-        body.get("operator_message", body.get("owner_message", body.get("user_message", ""))),
-        body.get("agent_reply", body.get("hermes_reply", "")),
-        channel=str(body.get("channel") or "telegram"),
-        created_by=str(body.get("created_by") or "hermes"),
-        agent_rationale=body.get("agent_rationale", body.get("rationale", "")),
-        gate_checks=gate_checks,
-        artifact_refs=artifact_refs,
-        event_refs=event_refs,
-        state_transition=body.get("state_transition") if isinstance(body.get("state_transition"), dict) else {},
-        next_action=str(body.get("next_action") or ""),
-    )
+    return conversation_turn_from_partial_body(root, app_id, body, deterministic_fields=deterministic)
 
 
 def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
