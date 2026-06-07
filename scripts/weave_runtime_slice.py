@@ -2550,6 +2550,175 @@ def html_list(values: list[Any]) -> str:
     return "<ul>" + "".join(f"<li>{html.escape(item)}</li>" for item in items) + "</ul>"
 
 
+OWNER_STAGE_LABELS = {
+    "intent": "Intent",
+    "research": "Research",
+    "selection": "Selection / Selected Approach",
+    "plan": "Plan",
+    "engineering": "Engineering",
+    "qa": "QA",
+    "kpi": "KPI Setup",
+    "marketing": "Marketing",
+    "iteration": "Iteration",
+    "analysis": "Analysis",
+}
+
+TURN_KIND_LABELS = {
+    "stage_draft": "Draft",
+    "stage_completion": "Completion",
+}
+
+
+def owner_stage_label(stage_id: Any) -> str:
+    clean = str(stage_id or "intent")
+    return OWNER_STAGE_LABELS.get(clean, clean.replace("-", " ").title())
+
+
+def turn_kind_label(turn: dict[str, Any]) -> str:
+    message = turn.get("agent_reply", {})
+    kind = message.get("turn_kind") if isinstance(message, dict) else ""
+    return TURN_KIND_LABELS.get(str(kind or ""), str(kind or "").replace("_", " ").title() or "Turn")
+
+
+def html_attr(value: Any) -> str:
+    return html.escape(str(value if value is not None else ""), quote=True)
+
+
+def html_link(label: str, href: str, class_name: str = "") -> str:
+    class_attr = f" class=\"{html_attr(class_name)}\"" if class_name else ""
+    return f"<a{class_attr} href=\"{html_attr(href)}\">{html.escape(label)}</a>"
+
+
+def artifact_ref_target(root: Path, app_id: str, ref: dict[str, Any]) -> tuple[str, Path | None, str]:
+    raw_path = str(ref.get("path") or ref.get("canonical_path") or "").strip()
+    if not raw_path:
+        return "", None, ""
+    target = root / raw_path
+    export_dir = conversation_export_dir(root, app_id)
+    try:
+        href = os.path.relpath(target, export_dir)
+    except ValueError:
+        href = str(target)
+    return raw_path, target, href
+
+
+def artifact_preview(path: Path) -> str:
+    if not path.exists() or not path.is_file():
+        return ""
+    if path.suffix.lower() not in {".md", ".txt", ".json", ".jsonl", ".html", ".css", ".js"}:
+        return ""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    text = text.strip()
+    if not text:
+        return ""
+    limit = 1800
+    if len(text) > limit:
+        text = text[:limit].rstrip() + "\n\n[preview clipped; open the artifact for full content]"
+    return text
+
+
+def html_artifact_cards(root: Path, app_id: str, refs: Any) -> str:
+    if not isinstance(refs, list) or not refs:
+        return "<p class=\"empty\">No artifacts were linked from this turn.</p>"
+    cards: list[str] = []
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        raw_path, target, href = artifact_ref_target(root, app_id, ref)
+        if not raw_path:
+            continue
+        action = str(ref.get("action") or ref.get("kind") or "referenced")
+        exists = bool(target and target.exists())
+        size = target.stat().st_size if target and target.exists() and target.is_file() else 0
+        checksum = runtime_checksum = ""
+        if target and target.exists() and target.is_file():
+            try:
+                runtime_checksum = artifact_checksum(target)
+            except OSError:
+                runtime_checksum = ""
+        checksum = str(ref.get("checksum") or runtime_checksum or "")
+        preview = artifact_preview(target) if target else ""
+        meta_items = [
+            f"<span>{html.escape(action)}</span>",
+            f"<span>{'exists' if exists else 'missing'}</span>",
+        ]
+        if size:
+            meta_items.append(f"<span>{size} bytes</span>")
+        if checksum:
+            meta_items.append(f"<span><code>{html.escape(checksum)}</code></span>")
+        preview_html = (
+            "<details class=\"artifact-preview\"><summary>Preview artifact content</summary>"
+            + html_pre(preview)
+            + "</details>"
+            if preview
+            else ""
+        )
+        cards.append(
+            "\n".join(
+                [
+                    "<article class=\"artifact-card\">",
+                    f"<h4>{html_link(raw_path, href)}</h4>",
+                    "<p class=\"artifact-actions\">"
+                    + html_link("Open artifact", href, "button-link")
+                    + "</p>",
+                    "<p class=\"artifact-meta\">" + "".join(meta_items) + "</p>",
+                    preview_html,
+                    "</article>",
+                ]
+            )
+        )
+    if not cards:
+        return "<p class=\"empty\">No artifact paths were recorded on this turn.</p>"
+    return "<div class=\"artifact-grid\">" + "".join(cards) + "</div>"
+
+
+def html_gate_snapshot(gate_checks: Any) -> str:
+    if not isinstance(gate_checks, dict) or not gate_checks:
+        return (
+            "<p class=\"empty\">No deterministic gate snapshot was recorded on this turn. "
+            "Use the artifact cards and state transition for review evidence.</p>"
+        )
+    passed_keys = [
+        key
+        for key, value in gate_checks.items()
+        if key.endswith("_passed") or key.endswith("_required") or key in {"owner_approval_required"}
+        if isinstance(value, bool)
+    ]
+    rows = []
+    for key in passed_keys:
+        value = gate_checks[key]
+        label = key.replace("_", " ")
+        state = "yes" if value else "no"
+        rows.append(f"<dt>{html.escape(label)}</dt><dd>{html.escape(state)}</dd>")
+    missing = gate_checks.get("stage_gate_missing") or gate_checks.get("missing")
+    warnings = gate_checks.get("warnings")
+    chunks = []
+    if rows:
+        chunks.append("<dl class=\"gate-summary\">" + "".join(rows) + "</dl>")
+    if isinstance(missing, list):
+        chunks.extend(["<h4>Missing Inputs / Proof</h4>", html_list(missing)])
+    if isinstance(warnings, list):
+        chunks.extend(["<h4>Warnings</h4>", html_list(warnings)])
+    chunks.extend(["<details class=\"raw-json\"><summary>Raw gate snapshot</summary>", html_json(gate_checks), "</details>"])
+    return "\n".join(chunks)
+
+
+def html_lifecycle_legend() -> str:
+    items = []
+    for stage in STAGES:
+        label = owner_stage_label(stage.id)
+        items.append(
+            "<li>"
+            f"<code>{html.escape(stage.id)}</code>"
+            f"<span>{html.escape(label)}</span>"
+            "</li>"
+        )
+    return "<ol class=\"lifecycle-legend\">" + "".join(items) + "</ol>"
+
+
 def html_message_meta(message: Any) -> str:
     if not isinstance(message, dict):
         return ""
@@ -2617,17 +2786,21 @@ def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[st
         rationale = turn.get("agent_rationale", {})
         if not isinstance(rationale, dict):
             rationale = normalize_agent_rationale(rationale)
+        stage_label = owner_stage_label(turn.get("stage", "intent"))
+        kind_label = turn_kind_label(turn)
         sections.append(
             "\n".join(
                 [
                     f"<section class=\"turn\" id=\"turn-{html.escape(str(turn.get('turn_id', index)))}\">",
-                    f"<h2>Turn {index}: {html.escape(str(turn.get('stage', 'intent')))}</h2>",
+                    f"<h2>Turn {index}: {html.escape(stage_label)} - {html.escape(kind_label)}</h2>",
                     "<dl class=\"meta\">",
+                    f"<dt>Lifecycle stage</dt><dd>{html.escape(stage_label)}</dd>",
+                    f"<dt>Turn kind</dt><dd>{html.escape(kind_label)}</dd>",
                     f"<dt>Time</dt><dd>{html.escape(str(turn.get('created_at', '')))}</dd>",
                     f"<dt>Turn id</dt><dd><code>{html.escape(str(turn.get('turn_id', '')))}</code></dd>",
                     f"<dt>Channel</dt><dd>{html.escape(str(turn.get('channel', '')))}</dd>",
                     "</dl>",
-                    "<h3>Operator Message Sent To Hermes</h3>",
+                    "<h3>Owner Message Sent To Hermes</h3>",
                     html_message_meta(turn.get("operator_message", {})),
                     html_pre(turn.get("operator_message", {}).get("text")),
                     "<h3>Hermes Reply</h3>",
@@ -2635,18 +2808,20 @@ def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[st
                     html_pre(turn.get("agent_reply", {}).get("text")),
                     "<h3>Owner-Reviewable Rationale</h3>",
                     html_pre(rationale.get("summary")),
-                    "<h4>Gate Questions</h4>",
+                    "<h4>Hermes Gate Questions For Owner</h4>",
                     html_list(rationale.get("gate_questions", []) if isinstance(rationale.get("gate_questions"), list) else []),
                     "<h4>Missing Information</h4>",
                     html_list(rationale.get("missing_information", []) if isinstance(rationale.get("missing_information"), list) else []),
                     "<h4>Decision Basis</h4>",
                     html_list(rationale.get("decision_basis", []) if isinstance(rationale.get("decision_basis"), list) else []),
-                    "<h3>Gate Checks</h3>",
-                    html_json(turn.get("gate_checks", {})),
                     "<h3>Artifacts Created Or Used</h3>",
-                    html_json(turn.get("artifact_refs", [])),
+                    html_artifact_cards(root, app_id, turn.get("artifact_refs", [])),
+                    "<h3>Runtime Gate Snapshot</h3>",
+                    html_gate_snapshot(turn.get("gate_checks", {})),
                     "<h3>Ledger Events Referenced</h3>",
-                    html_json(turn.get("event_refs", [])),
+                    "<details class=\"raw-json\"><summary>Show ledger event references</summary>"
+                    + html_json(turn.get("event_refs", []))
+                    + "</details>",
                     "<h3>State Transition</h3>",
                     html_json(turn.get("state_transition", {})),
                     "<h3>Next Action</h3>",
@@ -2673,8 +2848,13 @@ def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[st
             ".summary,.turn{background:#fff;border:1px solid #d8d0c2;border-radius:8px;padding:18px;margin:16px 0}",
             ".meta{display:grid;grid-template-columns:150px 1fr;gap:6px 14px}.meta dt{font-weight:700}.meta dd{margin:0}",
             ".message-meta{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;margin:0 0 8px;font-size:13px;color:#50483e}.message-meta dt{font-weight:700}.message-meta dd{margin:0}",
+            ".review-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0 0}.guide-card{border:1px solid #d8d0c2;border-radius:8px;padding:12px;background:#fbf8f1}.guide-card strong{display:block;margin-bottom:4px}",
+            ".lifecycle-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 12px;margin:12px 0 0;padding-left:18px}.lifecycle-legend li{padding:2px 0}.lifecycle-legend span{margin-left:6px}",
+            ".artifact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.artifact-card{border:1px solid #d8d0c2;border-radius:8px;padding:12px;background:#fbf8f1}.artifact-card h4{font-size:14px;margin:0 0 8px;overflow-wrap:anywhere}.artifact-actions{margin:0 0 8px}.button-link{display:inline-block;border:1px solid #24221f;border-radius:6px;padding:4px 8px;text-decoration:none;color:#24221f;background:#fff}.artifact-meta{display:flex;flex-wrap:wrap;gap:6px;margin:0;color:#5c5348;font-size:12px}.artifact-meta span{background:#eee6d8;border-radius:999px;padding:2px 7px}.artifact-preview{margin-top:10px}",
+            ".gate-summary{display:grid;grid-template-columns:220px 1fr;gap:4px 10px;margin:0 0 10px}.gate-summary dt{font-weight:700}.gate-summary dd{margin:0}.raw-json{margin-top:8px}.raw-json summary,.artifact-preview summary{cursor:pointer;color:#4d3b1f;font-weight:700}",
             "pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#161614;color:#f7f4ed;border-radius:6px;padding:12px;margin:0;font-size:14px}",
             "code{background:#eee6d8;padding:1px 4px;border-radius:4px}.empty{color:#6b6256}ul{margin-top:6px}",
+            "a{color:#2f4f8f}",
             "</style>",
             "</head>",
             "<body>",
@@ -2695,6 +2875,14 @@ def render_conversation_review_html(root: Path, app_id: str, turns: list[dict[st
             f"<dt>Agent</dt><dd>{html.escape(format_agent_line(profile))}</dd>",
             "<dt>Rationale policy</dt><dd>Owner-reviewable summaries only; hidden model chain-of-thought is not captured.</dd>",
             "</dl>",
+            "<div class=\"review-guide\">",
+            "<p class=\"guide-card\"><strong>Owner questions</strong>Hermes gate questions are for the owner when the agent needs clarification or a decision.</p>",
+            "<p class=\"guide-card\"><strong>Runtime proof</strong>Runtime gate snapshots are deterministic checks. They are evidence, not prose.</p>",
+            "<p class=\"guide-card\"><strong>Artifacts</strong>Use artifact cards to open the exact files created or used by each turn.</p>",
+            "<p class=\"guide-card\"><strong>State movement</strong>State transitions show what changed after the turn and why.</p>",
+            "</div>",
+            "<h3>Lifecycle Legend</h3>",
+            html_lifecycle_legend(),
             "</section>",
             *sections,
             "</main>",

@@ -26,7 +26,7 @@ import weave_runtime_slice as runtime
 
 
 APP_ID = "lantern-archive-live"
-APP_NAME = "Lantern Archive Live QA"
+APP_NAME = "Lantern Archive Live Proof"
 APP_INTENT = (
     "Lantern Archive is a small browser visual novel where a visitor helps a "
     "keeper restore lost memories into lantern cards. The proof should feel like "
@@ -43,7 +43,7 @@ OWNER_STAGE_MESSAGES = {
         "novel. The first playable slice should have an opening scene, a keeper "
         "character, memory cards, meaningful choices, local progress, exportable "
         "state, and a future paid story-pack path. No real payments, public "
-        "launch, analytics, or credential collection should happen in this QA."
+        "launch, analytics, or credential collection should happen in this local proof."
     ),
     "research": (
         "Before choosing the build shape, research what would make Lantern "
@@ -131,7 +131,7 @@ def setup_clean_runtime(root: Path, model: str, provider: str, reasoning_effort:
     write_text(
         root / "artifacts" / "general" / "soul.md",
         """
-        # Hermes Soul For Live QA
+        # Hermes Soul For Live Proof
 
         Act as a careful product operator and creative engineering partner. Do
         not move lifecycle stages unless the stage artifact, transcript turn,
@@ -143,7 +143,7 @@ def setup_clean_runtime(root: Path, model: str, provider: str, reasoning_effort:
     write_text(
         root / "artifacts" / "general" / "owner-profile.md",
         """
-        # Owner Profile For Live QA
+        # Owner Profile For Live Proof
 
         The owner wants real app substance, not only runtime mechanics. They
         prefer direct evidence, clean state, readable artifacts, no overclaiming,
@@ -165,7 +165,7 @@ def setup_clean_runtime(root: Path, model: str, provider: str, reasoning_effort:
         # User Context For This App
 
         The user wants a short, polished product proof that can be inspected by
-        reviewers. The app should be emotionally specific and easy to QA locally.
+        reviewers. The app should be emotionally specific and easy to review locally.
         """,
     )
     write_text(
@@ -239,7 +239,7 @@ def setup_clean_runtime(root: Path, model: str, provider: str, reasoning_effort:
             "foundation.completed",
             APP_ID,
             "intent",
-            "Live QA foundation context was populated before lifecycle work.",
+            "Live proof foundation context was populated before lifecycle work.",
             payload={"created_paths": created["created"]},
         ),
     )
@@ -335,7 +335,7 @@ def build_stage_prompt(stage_id: str, root: Path, app_repo: Path, prior_summary:
         """
     return textwrap.dedent(
         f"""
-        You are Hermes operating inside a clean WEAVE lifecycle QA run.
+        You are Hermes operating inside a clean WEAVE lifecycle proof run.
 
         Application: {APP_NAME}
         Intent: {APP_INTENT}
@@ -354,7 +354,7 @@ def build_stage_prompt(stage_id: str, root: Path, app_repo: Path, prior_summary:
         - Keep the whole reply under 900 words.
         - Keep Artifact content reviewable: concise sections, no exhaustive
           file trees, no repeated lifecycle history.
-        - For plan, name only the first-slice files this QA runner will create:
+        - For plan, name only the first-slice files the WEAVE runtime will create:
           index.html, styles.css, app.js, and README.md.
         - If more detail would be useful later, put it under Deferred items or
           Next action instead of expanding this turn.
@@ -372,7 +372,7 @@ def build_stage_prompt(stage_id: str, root: Path, app_repo: Path, prior_summary:
         Rules:
         - Do not include hidden chain-of-thought.
         - Do not write files, edit JSONL ledgers, call transcript-capture tools,
-          or append lifecycle state yourself. The WEAVE QA runner will capture
+          or append lifecycle state yourself. The WEAVE runtime will capture
           your reply, write the stage artifact, and append the transcript turn.
         - Do not invent live credentials, live users, revenue, analytics, public
           deploys, or payment processing.
@@ -458,9 +458,9 @@ def build_stage_completion_prompt(
         Do not advance yet. First complete this lifecycle stage properly. Review
         your draft, identify the recommendations or gaps you created, then either
         implement them, mark them as intentionally deferred with a concrete reason,
-        or ask a blocking question if completion is impossible. For this QA run,
-        avoid blocking unless a real secret, public action, or external credential
-        is required.
+        or ask a blocking question if completion is impossible. For this proof
+        run, avoid blocking unless a real secret, public action, or external
+        credential is required.
 
         Response budget:
         - Keep the whole completion reply under 700 words.
@@ -482,7 +482,7 @@ def build_stage_completion_prompt(
         Rules:
         - Do not include hidden chain-of-thought.
         - Do not write files, edit JSONL ledgers, call transcript-capture tools,
-          or append lifecycle state yourself. The WEAVE QA runner will capture
+          or append lifecycle state yourself. The WEAVE runtime will capture
           your reply, write the final stage artifact, and append the transcript
           turn.
         - Do not invent live credentials, live users, revenue, analytics, public
@@ -542,7 +542,7 @@ def build_file_generation_prompt(file_name: str) -> str:
     shared = (
         "Generate exactly one file for the Lantern Archive static browser app. "
         "Return only raw file content, no explanations and no surrounding fences. "
-        "Do not write files or edit WEAVE ledgers yourself; the QA runner writes "
+        "Do not write files or edit WEAVE ledgers yourself; the WEAVE runtime writes "
         "the exact content you return. "
         "No network calls, no external secrets, no real payments. The app is a "
         "local proof visual novel with scene progression, restored memory cards, "
@@ -657,6 +657,16 @@ def append_live_turn(
     rationale_summary: str,
 ) -> dict[str, Any]:
     before_gate = runtime.stage_gate_status(root, APP_ID, stage_id)
+    gate_checks = {
+        "foundation_gate_passed": bool(before_gate.get("foundation_gate", {}).get("passed")),
+        "stage_gate_passed_before_turn": bool(before_gate.get("passed")),
+        "stage_gate_missing_before_turn": before_gate.get("missing", []),
+        "stage_gate_warnings_before_turn": before_gate.get("warnings", []),
+        "transcript_capture_passed_before_turn": bool(before_gate.get("transcript_capture", {}).get("passed")),
+        "transcript_capture_missing_before_turn": before_gate.get("transcript_capture", {}).get("missing", []),
+        "artifact_created_for_turn": artifact_path.exists(),
+        "owner_review_required": True,
+    }
     turn = runtime.new_conversation_turn(
         APP_ID,
         stage_id,
@@ -697,6 +707,7 @@ def append_live_turn(
             ],
             "chain_of_thought_captured": False,
         },
+        gate_checks=gate_checks,
         artifact_refs=[{"path": runtime.relative(artifact_path, root), "action": "created"}],
         state_transition={
             "from_stage": stage_id,
@@ -807,15 +818,15 @@ def approve_and_advance(root: Path, stage_id: str) -> dict[str, Any]:
         root,
         APP_ID,
         stage_id,
-        note="Live QA owner-emulation approval after reviewing stage artifact.",
+        note="Live proof owner-emulation approval after reviewing stage artifact.",
         defer_capability=defer,
-        defer_reason="Credential capability intentionally deferred in local live QA; no public launch or live measurement is in scope.",
+        defer_reason="Credential capability intentionally deferred in the local live proof; no public launch or live measurement is in scope.",
     )
     if not approval.get("approved"):
         raise RuntimeError(f"Stage approval failed for {stage_id}: {approval.get('gate', {}).get('missing')}")
     if runtime.next_stage_id(stage_id) is None:
         return {"approval": approval, "advance": {"advanced": False, "reason": "final_stage"}}
-    advance = runtime.advance_stage(root, APP_ID, note="Live QA advanced after owner-emulated approval.")
+    advance = runtime.advance_stage(root, APP_ID, note="Live proof advanced after owner-emulated approval.")
     if not advance.get("advanced"):
         raise RuntimeError(f"Stage advance failed for {stage_id}: {advance}")
     return {"approval": approval, "advance": advance}
