@@ -102,14 +102,14 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text.strip() + "\n", encoding="utf-8")
 
 
-def stage_artifact_path(root: Path, stage_id: str) -> Path:
+def stage_artifact_path(root: Path, stage_id: str, revision: str = "final") -> Path:
     stage = runtime.stage_by_id(stage_id)
     return (
         runtime.app_root(root, APP_ID)
         / "lifecycle"
         / stage.directory
         / "artifacts"
-        / f"{stage_id}-live-hermes.md"
+        / f"{stage_id}-{revision}-live-hermes.md"
     )
 
 
@@ -362,11 +362,19 @@ def build_stage_prompt(stage_id: str, root: Path, app_repo: Path, prior_summary:
     ).strip()
 
 
-def write_stage_artifact(root: Path, stage_id: str, hermes_result: dict[str, Any], extra: str = "") -> Path:
-    path = stage_artifact_path(root, stage_id)
+def write_stage_artifact(
+    root: Path,
+    stage_id: str,
+    hermes_result: dict[str, Any],
+    *,
+    revision: str,
+    extra: str = "",
+) -> Path:
+    path = stage_artifact_path(root, stage_id, revision)
     body = f"""# {stage_id.title()} Live Hermes Artifact
 
 Source: live_hermes
+Revision: {revision}
 Session: {hermes_result.get("session_id") or "not-reported"}
 Stdout checksum: {hermes_result["stdout_sha256"]}
 
@@ -381,13 +389,14 @@ Stdout checksum: {hermes_result["stdout_sha256"]}
         root,
         APP_ID,
         runtime.new_event(
-            "artifact.created",
+            "artifact.created" if revision == "draft" else "artifact.updated",
             APP_ID,
             stage_id,
-            f"Created {stage_id} live Hermes artifact.",
+            f"Recorded {stage_id} {revision} live Hermes artifact.",
             created_by="hermes",
             payload={
                 "source": "live_hermes",
+                "revision": revision,
                 "session_id": hermes_result.get("session_id", ""),
                 "stdout_sha256": hermes_result["stdout_sha256"],
             },
@@ -395,6 +404,61 @@ Stdout checksum: {hermes_result["stdout_sha256"]}
         ),
     )
     return path
+
+
+def build_stage_completion_prompt(
+    *,
+    stage_id: str,
+    draft_reply: str,
+    stage_extra: str,
+    prior_summary: str,
+) -> str:
+    extra = stage_extra.strip() or "No deterministic side-effect or verification output was needed for this stage."
+    return textwrap.dedent(
+        f"""
+        You are still Hermes working on the same WEAVE lifecycle stage.
+
+        Application: {APP_NAME}
+        Stage: {stage_id}
+        Prior lifecycle summary:
+        {prior_summary or "No prior stage summary yet."}
+
+        Your draft response for this stage was:
+        {draft_reply}
+
+        Runtime or implementation evidence now available:
+        {extra}
+
+        Owner/operator follow-up:
+        Do not advance yet. First complete this lifecycle stage properly. Review
+        your draft, identify the recommendations or gaps you created, then either
+        implement them, mark them as intentionally deferred with a concrete reason,
+        or ask a blocking question if completion is impossible. For this QA run,
+        avoid blocking unless a real secret, public action, or external credential
+        is required.
+
+        Reply in the same reviewable operational format with these headings:
+
+        Hermes reply
+        Owner-reviewable rationale
+        Gate questions
+        Missing information
+        Decision basis
+        Artifact content
+        Recommendations handled
+        Deferred items
+        Next action
+
+        Rules:
+        - Do not include hidden chain-of-thought.
+        - Do not invent live credentials, live users, revenue, analytics, public
+          deploys, or payment processing.
+        - Keep the response specific to Lantern Archive.
+        - The stage is only ready for owner review if the stage artifact and
+          transcript now show what was done, what was verified, and what remains
+          gated.
+        """
+    ).strip()
 
 
 def extract_named_files(reply: str) -> dict[str, str]:
@@ -546,6 +610,10 @@ def append_live_turn(
     model: str,
     provider: str,
     reasoning_effort: str,
+    turn_kind: str,
+    to_state: str,
+    next_action: str,
+    rationale_summary: str,
 ) -> dict[str, Any]:
     before_gate = runtime.stage_gate_status(root, APP_ID, stage_id)
     turn = runtime.new_conversation_turn(
@@ -555,6 +623,7 @@ def append_live_turn(
             "role": "owner",
             "source": "qa_owner_emulation",
             "captured_by": "scripts/live_hermes_lifecycle_qa.py",
+            "turn_kind": turn_kind,
             "text": owner_message,
         },
         {
@@ -565,6 +634,7 @@ def append_live_turn(
             "reasoning_effort": reasoning_effort,
             "session_id": hermes_result.get("session_id", ""),
             "captured_by": "scripts/live_hermes_lifecycle_qa.py",
+            "turn_kind": turn_kind,
             "raw_stdout_sha256": hermes_result["stdout_sha256"],
             "elapsed_seconds": hermes_result["elapsed_seconds"],
             "text": hermes_result["reply"],
@@ -572,7 +642,7 @@ def append_live_turn(
         channel="direct-hermes-cli",
         created_by="hermes",
         agent_rationale={
-            "summary": "Captured from a live Hermes CLI response and linked to the current lifecycle artifact.",
+            "summary": rationale_summary,
             "gate_questions": [
                 "Did live Hermes answer this lifecycle-stage owner message?",
                 "Was a current-stage artifact created from that answer?",
@@ -593,10 +663,11 @@ def append_live_turn(
             "to_stage": stage_id,
             "to_state": "ready_for_review",
             "initiated_by": "hermes",
-            "reason": "Live Hermes produced a reviewable stage reply and stage artifact.",
+            "reason": rationale_summary,
         },
-        next_action="Owner reviews the stage artifact, then the runtime may approve and advance if gates pass.",
+        next_action=next_action,
     )
+    turn["state_transition"]["to_state"] = to_state
     return runtime.append_conversation_turn(root, APP_ID, turn)
 
 
@@ -613,6 +684,51 @@ def verify_engineering_files(app_repo: Path) -> dict[str, Any]:
         else:
             missing.append(name)
     return {"passed": not missing, "missing": missing, "files": files}
+
+
+def run_app_verification(app_repo: Path) -> dict[str, Any]:
+    checks: dict[str, Any] = {"schema": "weave-live-app-verification/v0.1"}
+    engineering = verify_engineering_files(app_repo)
+    checks["required_files"] = engineering
+    index = (app_repo / "index.html").read_text(encoding="utf-8") if (app_repo / "index.html").exists() else ""
+    styles = (app_repo / "styles.css").read_text(encoding="utf-8") if (app_repo / "styles.css").exists() else ""
+    script = (app_repo / "app.js").read_text(encoding="utf-8") if (app_repo / "app.js").exists() else ""
+    readme = (app_repo / "README.md").read_text(encoding="utf-8") if (app_repo / "README.md").exists() else ""
+    checks["html_refs"] = {
+        "styles_css": "styles.css" in index,
+        "app_js": "app.js" in index,
+    }
+    checks["product_terms"] = {
+        "lantern": "lantern" in (index + styles + script + readme).lower(),
+        "memory": "memory" in (index + styles + script + readme).lower(),
+        "export": "export" in (index + script + readme).lower(),
+        "paid_pack_disabled": "disabled" in (index + script + readme).lower() and "paid" in (index + script + readme).lower(),
+    }
+    try:
+        result = subprocess.run(
+            ["node", "--check", str(app_repo / "app.js")],
+            text=True,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+        checks["javascript_syntax"] = {
+            "passed": result.returncode == 0,
+            "returncode": result.returncode,
+            "stderr_sha256": sha256_text(result.stderr),
+        }
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        checks["javascript_syntax"] = {
+            "passed": False,
+            "error": exc.__class__.__name__,
+        }
+    checks["passed"] = (
+        engineering["passed"]
+        and all(checks["html_refs"].values())
+        and all(checks["product_terms"].values())
+        and bool(checks["javascript_syntax"].get("passed"))
+    )
+    return checks
 
 
 def approve_and_advance(root: Path, stage_id: str) -> dict[str, Any]:
@@ -662,7 +778,7 @@ def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
         prompt = build_stage_prompt(stage_id, root, app_repo, prior_summary)
         max_turns = args.engineering_max_turns if stage_id == "engineering" else args.max_turns
         cwd = app_repo if stage_id == "engineering" else root
-        hermes_result = run_hermes(
+        draft_result = run_hermes(
             hermes_bin=hermes_bin,
             prompt=prompt,
             cwd=cwd,
@@ -672,7 +788,23 @@ def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
             timeout=args.timeout,
             yolo=args.yolo,
         )
-        engineering_extra = ""
+        draft_artifact_path = write_stage_artifact(root, stage_id, draft_result, revision="draft")
+        draft_turn = append_live_turn(
+            root=root,
+            stage_id=stage_id,
+            owner_message=OWNER_STAGE_MESSAGES[stage_id],
+            hermes_result=draft_result,
+            artifact_path=draft_artifact_path,
+            model=args.model,
+            provider=args.provider,
+            reasoning_effort=args.reasoning_effort,
+            turn_kind="stage_draft",
+            to_state="in_progress",
+            next_action="Owner-emulated follow-up asks Hermes to resolve recommendations, implement work, or defer blockers before review.",
+            rationale_summary="Live Hermes produced a draft stage response; the stage remains in progress until follow-up completion.",
+        )
+        stage_extra = ""
+        deterministic_work: dict[str, Any] = {}
         if stage_id == "engineering":
             generated_files = generate_engineering_files(
                 hermes_bin=hermes_bin,
@@ -686,43 +818,73 @@ def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
             verification = verify_engineering_files(app_repo)
             if not verification["passed"]:
                 raise RuntimeError(f"Engineering files missing after live Hermes run: {verification['missing']}")
-            engineering_extra = json.dumps(
-                {
-                    "file_write_source": "WEAVE wrote exact contents from live Hermes file-generation replies.",
-                    "generated_files": generated_files,
-                    "verification": verification,
-                },
-                indent=2,
-                sort_keys=True,
-            )
-        artifact_path = write_stage_artifact(root, stage_id, hermes_result, engineering_extra)
-        turn = append_live_turn(
+            deterministic_work = {
+                "file_write_source": "WEAVE wrote exact contents from live Hermes file-generation replies.",
+                "generated_files": generated_files,
+                "verification": verification,
+            }
+            stage_extra = json.dumps(deterministic_work, indent=2, sort_keys=True)
+        elif stage_id == "qa":
+            deterministic_work = {"local_app_verification": run_app_verification(app_repo)}
+            stage_extra = json.dumps(deterministic_work, indent=2, sort_keys=True)
+
+        completion_prompt = build_stage_completion_prompt(
+            stage_id=stage_id,
+            draft_reply=draft_result["reply"],
+            stage_extra=stage_extra,
+            prior_summary=prior_summary,
+        )
+        completion_result = run_hermes(
+            hermes_bin=hermes_bin,
+            prompt=completion_prompt,
+            cwd=cwd,
+            model=args.model,
+            provider=args.provider,
+            max_turns=max_turns,
+            timeout=args.timeout,
+            yolo=args.yolo,
+        )
+        final_artifact_path = write_stage_artifact(root, stage_id, completion_result, revision="final", extra=stage_extra)
+        completion_turn = append_live_turn(
             root=root,
             stage_id=stage_id,
-            owner_message=OWNER_STAGE_MESSAGES[stage_id],
-            hermes_result=hermes_result,
-            artifact_path=artifact_path,
+            owner_message=(
+                "Follow up on your draft for this lifecycle stage. Implement, verify, "
+                "ask, or explicitly defer the recommendations and gaps before owner review."
+            ),
+            hermes_result=completion_result,
+            artifact_path=final_artifact_path,
             model=args.model,
             provider=args.provider,
             reasoning_effort=args.reasoning_effort,
+            turn_kind="stage_completion",
+            to_state="ready_for_review",
+            next_action="Owner reviews the completed stage artifact, then the runtime may approve and advance if gates pass.",
+            rationale_summary="Live Hermes completed the stage follow-up and linked the final stage artifact for owner review.",
         )
         gate_after_turn = runtime.stage_gate_status(root, APP_ID, stage_id)
         transition = approve_and_advance(root, stage_id)
         stage_reports.append(
             {
                 "stage": stage_id,
-                "turn_id": turn["turn_id"],
-                "session_id": hermes_result.get("session_id", ""),
-                "artifact": runtime.relative(artifact_path, root),
+                "draft_turn_id": draft_turn["turn_id"],
+                "completion_turn_id": completion_turn["turn_id"],
+                "draft_session_id": draft_result.get("session_id", ""),
+                "completion_session_id": completion_result.get("session_id", ""),
+                "draft_artifact": runtime.relative(draft_artifact_path, root),
+                "final_artifact": runtime.relative(final_artifact_path, root),
                 "gate_after_turn": gate_after_turn,
                 "transition": transition,
-                "stdout_sha256": hermes_result["stdout_sha256"],
+                "draft_stdout_sha256": draft_result["stdout_sha256"],
+                "completion_stdout_sha256": completion_result["stdout_sha256"],
+                "deterministic_work": deterministic_work,
             }
         )
         prior_summary = (
             prior_summary
-            + f"\n- {stage_id}: turn={turn['turn_id']}; artifact={runtime.relative(artifact_path, root)}; "
-            + f"session={hermes_result.get('session_id') or 'not-reported'}"
+            + f"\n- {stage_id}: draft_turn={draft_turn['turn_id']}; completion_turn={completion_turn['turn_id']}; "
+            + f"artifact={runtime.relative(final_artifact_path, root)}; "
+            + f"session={completion_result.get('session_id') or 'not-reported'}"
         )
 
     export = runtime.export_conversation_review(root, APP_ID)
@@ -741,6 +903,9 @@ def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
         "provider": args.provider,
         "reasoning_effort": args.reasoning_effort,
         "hermes_bin_exists": hermes_bin.exists(),
+        "conversation_turn_model": "multi-turn per lifecycle stage: draft turn, work/verification, completion turn, then approval",
+        "max_turns_note": "Hermes --max-turns controls internal tool iterations per model call; it is not the number of owner/Hermes messages allowed per lifecycle stage.",
+        "hermes_max_turns_per_call": args.max_turns,
         "stage_count": len(stage_reports),
         "stage_reports": stage_reports,
         "conversation_review": export,

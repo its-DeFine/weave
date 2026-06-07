@@ -2515,6 +2515,7 @@ def html_message_meta(message: Any) -> str:
         "reasoning_effort",
         "session_id",
         "captured_by",
+        "turn_kind",
     ]
     rows = []
     for key in keys:

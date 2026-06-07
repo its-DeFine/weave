@@ -241,6 +241,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
                     "model": "gpt-5.5",
                     "provider": "codex",
                     "session_id": "test-session",
+                    "turn_kind": "stage_completion",
                     "text": "I captured the intent and created the first intent artifact for review.",
                 },
                 agent_rationale={
@@ -363,6 +364,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("live_hermes", html)
             self.assertIn("gpt-5.5", html)
             self.assertIn("test-session", html)
+            self.assertIn("stage_completion", html)
             self.assertIn("Make a short visual novel", html)
             self.assertIn("&lt;script&gt;not executable&lt;/script&gt;", html)
             self.assertNotIn("<script>not executable</script>", html)
