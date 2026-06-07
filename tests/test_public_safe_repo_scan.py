@@ -20,6 +20,16 @@ class PublicSafeRepoScanTests(unittest.TestCase):
         hits = public_safe_repo_scan.scan_text('host = "127.0.0.1"', path="scripts/weave_runtime_api.py")
         self.assertEqual(hits, [])
 
+    def test_allows_loopback_terms_in_explicit_local_proof_surfaces_only(self) -> None:
+        for path in (
+            "scripts/live_hermes_lifecycle_qa.py",
+            "scripts/weave_runtime_slice.py",
+            "tests/test_live_hermes_lifecycle_qa.py",
+        ):
+            with self.subTest(path=path):
+                hits = public_safe_repo_scan.scan_text('proof binds to "127.0.0.1" / localhost', path=path)
+                self.assertEqual(hits, [])
+
     def test_flags_private_topology_terms(self) -> None:
         private_device = "p" + "c2"
         overlay_vendor = "tail" + "scale"

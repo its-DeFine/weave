@@ -338,6 +338,10 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(len(runtime.read_conversation_turns(root, "demo")), 2)
             self.assertEqual(len(runtime.read_conversation_events(root, "demo")), 16)
 
+            product_source = root / "apps" / "demo" / "repo" / "primary" / "index.html"
+            product_source.parent.mkdir(parents=True, exist_ok=True)
+            product_source.write_text("<main>Playable product output</main>\n", encoding="utf-8")
+
             status, partial_posted = runtime.dispatch_rest(
                 root,
                 "POST",
@@ -364,6 +368,18 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
                             }
                         ],
                     },
+                    "artifact_refs": [
+                        {
+                            "path": "apps/demo/lifecycle/01-intent/artifacts/intent.md",
+                            "action": "updated",
+                            "kind": "stage_artifact",
+                        },
+                        {
+                            "path": runtime.relative(product_source, root),
+                            "action": "created",
+                            "kind": "product_source",
+                        },
+                    ],
                     "agent_rationale": {
                         "summary": "Partial model-authored body should be normalized by deterministic runtime fields.",
                         "chain_of_thought_captured": False,
@@ -407,6 +423,9 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("Open artifact", html)
             self.assertIn("Preview artifact content", html)
             self.assertIn("apps/demo/lifecycle/01-intent/artifacts/intent.md", html)
+            self.assertIn("apps/demo/repo/primary/index.html", html)
+            self.assertIn("Playable product output", html)
+            self.assertIn("product_source", html)
             self.assertIn("Selection / Selected Approach", html)
             self.assertIn("live_hermes", html)
             self.assertIn("gpt-5.5", html)
@@ -496,7 +515,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertEqual(turns[0]["artifact_refs"][0]["path"], "apps/demo/lifecycle/01-intent/artifacts/intent-final.md")
             self.assertFalse(turns[0]["secret_payload_allowed"])
 
-    def test_stage_derivation_uses_lifecycle_artifacts_and_refs(self) -> None:
+    def test_stage_derivation_uses_lifecycle_artifacts_not_refs(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "weave-root"
             runtime.create_app(root, "demo", "Demo")
@@ -512,9 +531,33 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
+            self.assertEqual(runtime.derive_stage(root, "demo")["stage"], "selection")
+            qa_artifact = root / "apps" / "demo" / "lifecycle" / "07-qa" / "artifacts" / "qa.md"
+            qa_artifact.parent.mkdir(parents=True, exist_ok=True)
+            qa_artifact.write_text("# QA\n", encoding="utf-8")
             self.assertEqual(runtime.derive_stage(root, "demo")["stage"], "qa")
             artifacts = runtime.list_artifacts(root, "demo")
             self.assertEqual({item["kind"] for item in artifacts}, {"artifact", "ref"})
+
+    def test_stage_contracts_are_reviewable_but_do_not_replace_proof_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            contract = runtime.stage_contract("selection")
+            self.assertEqual(contract["schema"], "weave-lifecycle-stage-contract/v0.1")
+            self.assertIn("selection matrix", " ".join(contract["output_artifacts"]))
+            markdown = runtime.stage_contract_markdown("research")
+            self.assertIn("Research Stage Contract", markdown)
+            self.assertIn("research source log", markdown)
+            ref_path = root / "apps" / "demo" / "lifecycle" / "01-intent" / "refs" / "stage-contract.md"
+            ref_path.write_text(runtime.stage_contract_markdown("intent"), encoding="utf-8")
+
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+
+            self.assertIn("intent artifact", gate["missing"])
+            self.assertEqual(gate["proof_artifact_refs"], [])
+            self.assertEqual(gate["artifact_refs"][0]["kind"], "ref")
 
     def test_rest_dispatch_exposes_local_skeleton_without_real_hermes_claim(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

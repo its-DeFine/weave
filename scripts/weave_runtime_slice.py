@@ -1836,11 +1836,13 @@ def setup_foundation_onboarding(
 
 
 def stage_has_artifacts(stage_root: Path) -> bool:
-    for child in ("artifacts", "refs"):
-        directory = stage_root / child
-        if directory.exists() and any(path.is_file() for path in directory.iterdir()):
-            return True
-    return False
+    """Return true only when a stage has proof artifacts.
+
+    Reference material such as stage contracts under refs/ is reviewable, but it
+    must not derive or advance lifecycle state by itself.
+    """
+    directory = stage_root / "artifacts"
+    return directory.exists() and any(path.is_file() for path in directory.iterdir())
 
 
 def stage_roots(base: Path, stage: Stage) -> list[Path]:
@@ -1982,6 +1984,131 @@ STAGE_REQUIREMENTS = {
     ],
 }
 
+STAGE_CONTRACTS = {
+    "intent": {
+        "purpose": "Define the owner intent, target user, success definition, authority boundaries, and first proof shape.",
+        "required_inputs": ["owner intent", "target user", "success definition", "hard non-goals"],
+        "output_artifacts": ["intent artifact", "open questions or explicit no-blocker statement"],
+        "exit_criteria": ["owner can recognize the app being built", "launch, credential, and payment boundaries are explicit"],
+        "review_obligations": ["show what the owner asked", "show how Hermes interpreted it", "do not advance without owner-reviewable rationale"],
+    },
+    "research": {
+        "purpose": "Gather and synthesize evidence before choosing a build direction.",
+        "required_inputs": ["research questions", "source policy", "source freshness needs", "candidate opportunities"],
+        "output_artifacts": ["research source log", "source synthesis", "unknowns and risks"],
+        "exit_criteria": ["volatile/current claims have source records", "non-web local-proof assumptions are labeled", "candidate opportunities are grounded in the recorded sources"],
+        "review_obligations": ["link source artifacts", "separate evidence from model preference", "name what was not researched"],
+    },
+    "selection": {
+        "purpose": "Choose one shippable wedge from the intent plus research synthesis.",
+        "required_inputs": ["candidate options", "selection criteria", "research basis", "constraints"],
+        "output_artifacts": ["selection matrix", "selected wedge", "rejected alternatives"],
+        "exit_criteria": ["selected wedge is the smallest credible proof", "rejected options have concrete reasons", "plan can trace back to the selected wedge"],
+        "review_obligations": ["show the matrix", "show the decision basis", "avoid silently selecting implementation details before research"],
+    },
+    "plan": {
+        "purpose": "Translate the selected wedge into scoped implementation work.",
+        "required_inputs": ["selected wedge", "files or systems to touch", "acceptance checks", "stop boundaries"],
+        "output_artifacts": ["implementation plan", "task list", "expected evidence"],
+        "exit_criteria": ["work can begin without inventing scope", "credentials and public effects remain gated", "acceptance checks are runnable or explicitly deferred"],
+        "review_obligations": ["make tasks reviewable", "name file targets", "name what will not be claimed"],
+    },
+    "engineering": {
+        "purpose": "Create or modify the app according to the selected wedge and plan.",
+        "required_inputs": ["repo/worktree target", "implementation packet", "planned files", "verification command expectations"],
+        "output_artifacts": ["implementation notes", "source files", "implementation output index", "local verification evidence"],
+        "exit_criteria": ["actual product files exist", "source files are linked for review", "local verification evidence is recorded"],
+        "review_obligations": ["link generated source, not only summaries", "record checksums", "do not claim deploys, payments, or analytics"],
+    },
+    "qa": {
+        "purpose": "Verify the implemented app and separate proven behavior from unproven claims.",
+        "required_inputs": ["source files", "acceptance checks", "browser or localhost proof target", "known boundaries"],
+        "output_artifacts": ["test results", "localhost proof", "known issues", "owner review request"],
+        "exit_criteria": ["deterministic checks pass", "localhost/browser proof is linked when relevant", "known issues and not-proven items are explicit"],
+        "review_obligations": ["link test artifacts", "link visual or localhost evidence", "do not hide skipped proof"],
+    },
+    "kpi": {
+        "purpose": "Define measurable proof signals without pretending local counters are live-market analytics.",
+        "required_inputs": ["success metrics", "local counters", "future analytics needs"],
+        "output_artifacts": ["KPI plan", "instrumentation boundary", "credential deferral record if needed"],
+        "exit_criteria": ["local proof metrics are distinct from hosted analytics", "credential needs are gated"],
+        "review_obligations": ["separate local and live metrics", "name missing analytics capability"],
+    },
+    "marketing": {
+        "purpose": "Prepare distribution work inside owner-approved boundaries.",
+        "required_inputs": ["marketing goal", "channels", "approval boundaries", "credential needs"],
+        "output_artifacts": ["marketing plan", "launch-readiness boundaries", "credential deferral record if needed"],
+        "exit_criteria": ["no public send or deploy is performed without approval", "credential needs are explicit"],
+        "review_obligations": ["gate public actions", "do not imply launch happened"],
+    },
+    "iteration": {
+        "purpose": "Use feedback and evidence to propose or perform a concrete next change.",
+        "required_inputs": ["feedback", "observed issue", "iteration goal", "review target"],
+        "output_artifacts": ["iteration proposal", "before/after references", "next QA target"],
+        "exit_criteria": ["change or proposal traces to evidence", "review target is clear"],
+        "review_obligations": ["link before/after artifacts", "separate owner feedback from agent preference"],
+    },
+    "analysis": {
+        "purpose": "Read the lifecycle evidence and recommend continue, change, park, or reject.",
+        "required_inputs": ["outcome evidence", "proof boundaries", "credential deferrals", "next decision"],
+        "output_artifacts": ["outcome analysis", "lessons learned", "next decision packet"],
+        "exit_criteria": ["proof claims are separated from live-market claims", "next owner decision is explicit"],
+        "review_obligations": ["cite evidence artifacts", "do not overclaim market validation"],
+    },
+}
+
+
+def stage_contract(stage_id: str) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id)
+    stage_info = stage_by_id(stage)
+    contract = STAGE_CONTRACTS.get(stage, {})
+    return {
+        "schema": "weave-lifecycle-stage-contract/v0.1",
+        "stage": stage,
+        "directory": stage_info.directory,
+        "purpose": contract.get("purpose", "Complete the current lifecycle stage with reviewable evidence."),
+        "required_inputs": list(contract.get("required_inputs", STAGE_REQUIREMENTS.get(stage, []))),
+        "runtime_requirements": STAGE_REQUIREMENTS.get(stage, []),
+        "output_artifacts": list(contract.get("output_artifacts", [STAGE_PROOF_LABELS.get(stage, "stage artifact")])),
+        "exit_criteria": list(contract.get("exit_criteria", [])),
+        "review_obligations": list(contract.get("review_obligations", [])),
+        "owner_review_required": True,
+        "secret_policy": "public-safe artifacts only; secrets, tokens, credentials, and private payloads are not allowed",
+        "state_policy": "stage approval requires a current-stage proof artifact plus a linked transcript turn",
+    }
+
+
+def stage_contract_markdown(stage_id: str) -> str:
+    contract = stage_contract(stage_id)
+    lines = [
+        f"# {contract['stage'].title()} Stage Contract",
+        "",
+        f"Schema: `{contract['schema']}`",
+        f"Stage directory: `{contract['directory']}`",
+        "",
+        "## Purpose",
+        str(contract["purpose"]),
+        "",
+        "## Required Inputs",
+    ]
+    lines.extend(f"- {item}" for item in contract["required_inputs"])
+    lines.extend(["", "## Output Artifacts"])
+    lines.extend(f"- {item}" for item in contract["output_artifacts"])
+    lines.extend(["", "## Exit Criteria"])
+    lines.extend(f"- {item}" for item in contract["exit_criteria"])
+    lines.extend(["", "## Review Obligations"])
+    lines.extend(f"- {item}" for item in contract["review_obligations"])
+    lines.extend(
+        [
+            "",
+            "## Runtime Policies",
+            f"- {contract['secret_policy']}",
+            f"- {contract['state_policy']}",
+            "- Hidden chain-of-thought is not captured; only owner-reviewable rationale summaries are recorded.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
 
 def short_list(values: list[Any], limit: int = 5) -> list[str]:
     items = [str(value) for value in values if str(value).strip()]
@@ -2027,12 +2154,34 @@ def artifacts_for_stage(root: Path, app_id: str, stage_id: str) -> list[dict[str
     return [artifact for artifact in list_artifacts(root, app_id) if artifact["stage"] == clean_stage]
 
 
+def credential_requirement_relevant_to_stage(item: dict[str, Any], stage_id: str) -> bool:
+    stages = item.get("stages")
+    if not stages:
+        return True
+    if isinstance(stages, str):
+        raw_stages = [stages]
+    elif isinstance(stages, list):
+        raw_stages = stages
+    else:
+        return True
+    normalized: set[str] = set()
+    for raw in raw_stages:
+        try:
+            normalized.add(normalize_stage_id(str(raw)))
+        except RuntimeSliceError:
+            continue
+    return normalize_stage_id(stage_id) in normalized
+
+
 def credential_blockers_for_stage(app: dict[str, Any], stage_id: str) -> list[str]:
-    if normalize_stage_id(stage_id) not in {"kpi", "marketing", "analysis"}:
+    stage = normalize_stage_id(stage_id)
+    if stage not in {"kpi", "marketing", "analysis"}:
         return []
     blockers: list[str] = []
     for item in app.get("credential_requirements", []):
         if not isinstance(item, dict):
+            continue
+        if not credential_requirement_relevant_to_stage(item, stage):
             continue
         if item.get("required") is False:
             continue
@@ -2042,43 +2191,39 @@ def credential_blockers_for_stage(app: dict[str, Any], stage_id: str) -> list[st
     return blockers
 
 
-def conversation_turn_linked_to_stage(turn: dict[str, Any], stage_id: str, stage_artifacts: list[dict[str, str]]) -> bool:
+def conversation_turn_linked_to_stage(turn: dict[str, Any], stage_id: str, stage_proof_artifacts: list[dict[str, str]]) -> bool:
     stage = stage_by_id(stage_id)
-    artifact_paths = {artifact["path"] for artifact in stage_artifacts}
+    proof_paths = {artifact["path"] for artifact in stage_proof_artifacts if artifact.get("kind") == "artifact"}
     for ref in turn.get("artifact_refs", []):
         path = str(ref.get("path") or ref.get("canonical_path") or "")
-        if path in artifact_paths or f"/lifecycle/{stage.directory}/" in f"/{path}":
-            return True
-    for ref in turn.get("event_refs", []):
-        if str(ref.get("event_id") or ref.get("type") or "").strip():
-            return True
-    transition = turn.get("state_transition", {})
-    if isinstance(transition, dict) and transition:
-        stages = {
-            str(transition.get("from_stage") or ""),
-            str(transition.get("to_stage") or ""),
-            str(transition.get("stage") or ""),
-        }
-        if stage_id in stages:
+        if path in proof_paths and f"/lifecycle/{stage.directory}/artifacts/" in f"/{path}":
             return True
     return False
+
+
+def conversation_turn_ready_for_review(turn: dict[str, Any]) -> bool:
+    transition = turn.get("state_transition", {})
+    if not isinstance(transition, dict):
+        return False
+    return str(transition.get("to_state") or "").strip() == "ready_for_review"
 
 
 def transcript_capture_status(root: Path, app_id: str, stage_id: str) -> dict[str, Any]:
     stage = normalize_stage_id(stage_id)
     stage_artifacts = artifacts_for_stage(root, app_id, stage)
+    stage_proof_artifacts = [artifact for artifact in stage_artifacts if artifact.get("kind") == "artifact"]
     turns = [turn for turn in read_conversation_turns(root, app_id) if normalize_stage_id(str(turn.get("stage") or stage)) == stage]
     linked_turns = [
         turn
         for turn in turns
-        if conversation_turn_linked_to_stage(turn, stage, stage_artifacts)
+        if conversation_turn_ready_for_review(turn) and conversation_turn_linked_to_stage(turn, stage, stage_proof_artifacts)
     ]
     missing: list[str] = []
     if not turns:
         missing.append("current-stage conversation turn")
-    elif stage_artifacts and not linked_turns:
-        missing.append("conversation turn linked to stage artifact, event, or transition")
-    latest = (linked_turns or turns)[-1] if turns else None
+    elif stage_proof_artifacts and not linked_turns:
+        missing.append("ready-for-review conversation turn linked to current-stage proof artifact")
+    latest = linked_turns[-1] if linked_turns else None
     return {
         "schema": "weave-transcript-capture-gate/v0.1",
         "app_id": slugify(app_id),
@@ -2090,12 +2235,12 @@ def transcript_capture_status(root: Path, app_id: str, stage_id: str) -> dict[st
         "linked_turn_count": len(linked_turns),
         "latest_turn_id": latest.get("turn_id") if latest else "",
         "latest_turn_at": latest.get("created_at") if latest else "",
-        "policy": "Hermes app-work replies must append a current-stage conversation turn before lifecycle approval or advance.",
+        "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
     }
 
 
 def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> dict[str, Any]:
-    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
     app = load_app(root, app_id)
     gate = foundation_gate(root, app_id)
     missing: list[str] = []
@@ -2108,7 +2253,8 @@ def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> d
     if missing_previous:
         missing.append("previous stage approval: " + ", ".join(missing_previous))
     stage_artifacts = artifacts_for_stage(root, app_id, stage)
-    if not stage_artifacts:
+    stage_proof_artifacts = [artifact for artifact in stage_artifacts if artifact.get("kind") == "artifact"]
+    if not stage_proof_artifacts:
         missing.append(STAGE_PROOF_LABELS.get(stage, "stage artifact"))
     transcript_capture = transcript_capture_status(root, app_id, stage)
     if gate["passed"] and not transcript_capture["passed"]:
@@ -2138,6 +2284,7 @@ def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> d
         "approved_previous_stages": sorted(approved.intersection(previous_ids), key=stage_index),
         "missing_previous_stages": missing_previous,
         "artifact_refs": stage_artifacts,
+        "proof_artifact_refs": stage_proof_artifacts,
         "transcript_capture": transcript_capture,
         "credential_blockers": capability_blockers,
         "proof_label": STAGE_PROOF_LABELS.get(stage, "stage artifact"),
@@ -2145,7 +2292,7 @@ def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> d
 
 
 def conversation_capture_form(root: Path, app_id: str, stage_id: str | None = None) -> dict[str, Any]:
-    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
     app = load_app(root, app_id)
     artifacts = artifacts_for_stage(root, app_id, stage)
     events = [event for event in read_events(root, app_id) if event.get("stage") == stage]
@@ -2255,7 +2402,7 @@ def approve_stage(
     defer_capability: bool = False,
     defer_reason: str = "",
 ) -> dict[str, Any]:
-    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
     if defer_capability:
         defer_stage_credentials(root, app_id, stage, defer_reason or note)
     gate = stage_gate_status(root, app_id, stage)
@@ -2631,6 +2778,7 @@ def html_artifact_cards(root: Path, app_id: str, refs: Any) -> str:
         if not raw_path:
             continue
         action = str(ref.get("action") or ref.get("kind") or "referenced")
+        kind = str(ref.get("kind") or "")
         exists = bool(target and target.exists())
         size = target.stat().st_size if target and target.exists() and target.is_file() else 0
         checksum = runtime_checksum = ""
@@ -2643,8 +2791,10 @@ def html_artifact_cards(root: Path, app_id: str, refs: Any) -> str:
         preview = artifact_preview(target) if target else ""
         meta_items = [
             f"<span>{html.escape(action)}</span>",
+            f"<span>{html.escape(kind)}</span>" if kind and kind != action else "",
             f"<span>{'exists' if exists else 'missing'}</span>",
         ]
+        meta_items = [item for item in meta_items if item]
         if size:
             meta_items.append(f"<span>{size} bytes</span>")
         if checksum:
