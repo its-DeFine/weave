@@ -97,6 +97,18 @@ def sha256_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def clip_for_prompt(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    head_chars = max_chars // 2
+    tail_chars = max_chars - head_chars
+    return (
+        text[:head_chars].rstrip()
+        + "\n\n[...draft clipped for follow-up prompt; full draft is preserved in the transcript artifact...]\n\n"
+        + text[-tail_chars:].lstrip()
+    )
+
+
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text.strip() + "\n", encoding="utf-8")
@@ -417,6 +429,7 @@ def build_stage_completion_prompt(
     prior_summary: str,
 ) -> str:
     extra = stage_extra.strip() or "No deterministic side-effect or verification output was needed for this stage."
+    draft_excerpt = clip_for_prompt(draft_reply, 10000)
     return textwrap.dedent(
         f"""
         You are still Hermes working on the same WEAVE lifecycle stage.
@@ -426,8 +439,8 @@ def build_stage_completion_prompt(
         Prior lifecycle summary:
         {prior_summary or "No prior stage summary yet."}
 
-        Your draft response for this stage was:
-        {draft_reply}
+        Your draft response excerpt for this stage was:
+        {draft_excerpt}
 
         Runtime or implementation evidence now available:
         {extra}
