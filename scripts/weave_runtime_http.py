@@ -614,7 +614,15 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         self.state.setup()
         if not self.require_authorized():
             return
-        body = self.read_json_body()
+        try:
+            body = self.read_json_body()
+        except json.JSONDecodeError as exc:
+            self.respond(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "invalid_json", "detail": str(exc)})
+            return
+        except ValueError as exc:
+            status = HTTPStatus.REQUEST_ENTITY_TOO_LARGE if "too large" in str(exc) else HTTPStatus.BAD_REQUEST
+            self.respond(status, {"ok": False, "error": "invalid_request_body", "detail": str(exc)})
+            return
         if path in {"/", "/command", "/runtime-command"}:
             status, payload = self.state.append_legacy_command(body)
             self.respond(HTTPStatus(status), payload)

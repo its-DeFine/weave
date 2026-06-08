@@ -147,5 +147,34 @@ class WeaveEvalTests(unittest.TestCase):
             self.assertIn("decision: advance", text)
 
 
+    def test_kpi_alias_loads_kpi_setup_contract(self) -> None:
+        output = io.StringIO()
+        rc = weave_eval.main(["kpi", "--json"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        payload = json.loads(text)
+        self.assertEqual(payload["slug"], "kpi-setup")
+        self.assertEqual(payload["stage"], "KPI Setup")
+
+    def test_review_stage_must_match_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            review_path = Path(tmpdir) / "wrong-stage-review.json"
+            review_path.write_text(
+                json.dumps(
+                    {
+                        "schema": "weave.eval-review/v0.1",
+                        "stage": "Engineering",
+                        "scores": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output = io.StringIO()
+            rc = weave_eval.main(["release-readiness", "--review-file", str(review_path)], output=output)
+            text = output.getvalue()
+            self.assertEqual(rc, 1)
+            self.assertIn("does not match contract stage", text)
+
+
 if __name__ == "__main__":
     unittest.main()

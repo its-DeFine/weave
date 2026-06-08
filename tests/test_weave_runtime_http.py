@@ -34,6 +34,17 @@ def request(port: int, method: str, path: str, body: dict | None = None, headers
     return response.status, json.loads(raw) if raw else {}
 
 
+def raw_request(port: int, method: str, path: str, payload: bytes, headers: dict[str, str] | None = None) -> tuple[int, dict]:
+    conn = http.client.HTTPConnection(LOOPBACK_HOST, port, timeout=5)
+    request_headers = dict(headers or {})
+    request_headers.setdefault("Content-Type", "application/json")
+    conn.request(method, path, body=payload, headers=request_headers)
+    response = conn.getresponse()
+    raw = response.read().decode("utf-8")
+    conn.close()
+    return response.status, json.loads(raw) if raw else {}
+
+
 def fill(path: Path, title: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -175,6 +186,21 @@ class WeaveRuntimeHttpTests(unittest.TestCase):
                 status, created = request(port, "POST", "/apps", {"app_id": "allowed", "name": "Allowed"}, headers=headers)
                 self.assertEqual(status, 201)
                 self.assertEqual(created["result"]["app"]["app_id"], "allowed")
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+
+
+    def test_malformed_post_returns_json_400(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            server, thread = self.run_server(root)
+            port = int(server.server_address[1])
+            try:
+                status, payload = raw_request(port, "POST", "/apps", b"{not-json")
+                self.assertEqual(status, 400)
+                self.assertEqual(payload["error"], "invalid_json")
             finally:
                 server.shutdown()
                 server.server_close()

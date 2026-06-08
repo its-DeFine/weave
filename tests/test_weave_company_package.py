@@ -41,6 +41,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(summary.skill_count, 13)
         self.assertEqual(summary.primitive_count, 9)
         self.assertEqual(summary.prompt_pack_count, 1)
+        self.assertEqual(summary.eval_contract_count, 11)
 
     def test_hermes_is_the_default_ceo(self) -> None:
         agents = validator.validate_agents(PACKAGE_ROOT)
@@ -281,6 +282,9 @@ class WeaveCompanyPackageTests(unittest.TestCase):
 
     def test_hermes_prompt_pack_is_shipped_and_valid(self) -> None:
         self.assertEqual(validator.validate_prompt_packs(PACKAGE_ROOT), 1)
+
+    def test_lifecycle_eval_contracts_are_shipped_and_valid(self) -> None:
+        self.assertEqual(validator.validate_eval_contracts(PACKAGE_ROOT), 11)
 
     def test_lifecycle_dependencies_are_ordered(self) -> None:
         tasks = {task["slug"]: task for task in validator.validate_tasks(PACKAGE_ROOT)}

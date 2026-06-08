@@ -23,6 +23,20 @@
       "timeout_seconds": 300
     },
     {
+      "command": "python3 scripts/lifecycle_rehearsal_smoke.py",
+      "description": "Lifecycle rehearsal proof passes.",
+      "id": "lifecycle_rehearsal_smoke_pass",
+      "kind": "command",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "python3 scripts/month1_product_app_qa.py --report-out runs/month1-product-qa-release-gate.json",
+      "description": "Month 1 product app QA passes from the repository root.",
+      "id": "month1_product_app_qa_pass",
+      "kind": "command",
+      "timeout_seconds": 300
+    },
+    {
       "command": "python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool",
       "description": "Public package validates.",
       "id": "package_validation_pass",

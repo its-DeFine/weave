@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -66,14 +67,21 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
     def test_setup_creates_root_registry_templates_and_token(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "weave-root"
-            result = runtime.setup_weave_root(root)
+            old_umask = os.umask(0o022)
+            try:
+                result = runtime.setup_weave_root(root)
+            finally:
+                os.umask(old_umask)
 
             self.assertEqual(result["schema"], runtime.ROOT_SCHEMA)
             self.assertTrue((root / "apps" / "registry.json").exists())
             self.assertTrue((root / "artifacts" / "general" / "soul.md").exists())
             self.assertTrue((root / "artifacts" / "general" / "owner-profile.md").exists())
             self.assertTrue((root / "ledger" / "events.jsonl").exists())
-            self.assertTrue((root / "runtime" / "tokens" / "local-api-token").exists())
+            token_path = root / "runtime" / "tokens" / "local-api-token"
+            self.assertTrue(token_path.exists())
+            self.assertEqual(oct(token_path.stat().st_mode & 0o777), "0o600")
+            self.assertEqual(oct(token_path.parent.stat().st_mode & 0o777), "0o700")
             self.assertTrue((root / "runtime" / "profiles" / "autonomy-policy.json").exists())
             self.assertTrue((root / "runtime" / "profiles" / "agent-profile.json").exists())
             self.assertTrue((root / "runtime" / "source-map.json").exists())

@@ -330,10 +330,15 @@ def ensure_git_repo(root: Path) -> bool:
 
 def ensure_runtime_token(root: Path, created: list[str]) -> Path:
     token_path = root / "runtime" / "tokens" / "local-api-token"
+    token_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    token_path.parent.chmod(0o700)
     if token_path.exists():
+        token_path.chmod(0o600)
         return token_path
-    token_path.parent.mkdir(parents=True, exist_ok=True)
-    token_path.write_text(secrets.token_urlsafe(32) + "\n", encoding="utf-8")
+    fd = os.open(token_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(secrets.token_urlsafe(32) + "\n")
+    token_path.chmod(0o600)
     created.append(relative(token_path, root))
     return token_path
 

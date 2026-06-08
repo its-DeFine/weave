@@ -27,6 +27,9 @@ STAGE_ORDER = [
     "iteration",
     "analysis",
 ]
+STAGE_ALIASES = {
+    "kpi": "kpi-setup",
+}
 SPECIAL_CONTRACTS = {
     "release": "release_readiness.yaml",
     "release-readiness": "release_readiness.yaml",
@@ -55,8 +58,12 @@ def normalize_stage(value: str) -> str:
     return value.strip().lower().replace("_", "-")
 
 
+def canonical_stage(value: Any) -> str:
+    return STAGE_ALIASES.get(normalize_stage(str(value or "")), normalize_stage(str(value or "")))
+
+
 def contract_path_for_stage(stage: str) -> Path:
-    normalized = normalize_stage(stage)
+    normalized = canonical_stage(stage)
     special = SPECIAL_CONTRACTS.get(normalized)
     if special:
         return CONTRACT_ROOT / special
@@ -230,6 +237,27 @@ def load_review(path: Path | None) -> dict[str, Any] | None:
     if path is None:
         return None
     return load_mapping(path)
+
+
+def validate_review_binding(contract: dict[str, Any], review: dict[str, Any] | None, *, artifact: str) -> None:
+    if review is None:
+        return
+    if review.get("schema") != "weave.eval-review/v0.1":
+        raise EvalError("review schema must be weave.eval-review/v0.1")
+    review_stage = str(review.get("stage") or "").strip()
+    if not review_stage:
+        raise EvalError("review stage is required")
+    allowed_stages = {
+        canonical_stage(contract.get("stage")),
+        canonical_stage(contract.get("slug")),
+    }
+    if canonical_stage(review_stage) not in allowed_stages:
+        expected = contract.get("stage") or contract.get("slug") or "unknown"
+        raise EvalError(f"review stage {review_stage!r} does not match contract stage {expected!r}")
+    review_artifact = str(review.get("artifact") or "").strip()
+    placeholder_artifacts = {"", "describe artifact or path"}
+    if artifact and artifact != "current" and review_artifact not in placeholder_artifacts and review_artifact != artifact:
+        raise EvalError(f"review artifact {review_artifact!r} does not match evaluated artifact {artifact!r}")
 
 
 def rubric_dimensions(contract: dict[str, Any]) -> list[dict[str, Any]]:
@@ -529,6 +557,7 @@ def main(argv: list[str] | None = None, *, output: TextIO = sys.stdout) -> int:
             print(json.dumps(review_template(contract), indent=2, sort_keys=True), file=output)
             return 0
         review = load_review(args.review_file)
+        validate_review_binding(contract, review, artifact=args.artifact)
         gates = evaluate_gates(contract, run_gates=args.run_gates, repo_root=REPO_ROOT)
         score = score_review(contract, review)
         decision, blockers, next_actions = decide(contract, gates, score)

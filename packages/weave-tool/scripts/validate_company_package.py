@@ -53,6 +53,20 @@ REQUIRED_SKILLS = {
     "gestalt-runtime",
 }
 
+REQUIRED_EVAL_CONTRACTS = [
+    "lifecycle/intent.yaml",
+    "lifecycle/research.yaml",
+    "lifecycle/selection.yaml",
+    "lifecycle/plan.yaml",
+    "lifecycle/engineering.yaml",
+    "lifecycle/qa.yaml",
+    "lifecycle/kpi-setup.yaml",
+    "lifecycle/marketing.yaml",
+    "lifecycle/iteration.yaml",
+    "lifecycle/analysis.yaml",
+    "release_readiness.yaml",
+]
+
 EXPECTED_VERSION = "2026.05.13-console"
 EXPECTED_RELEASE_DATE = "2026-05-13"
 EXPECTED_RELEASE_TAG = "v2026.05.13-console"
@@ -92,6 +106,7 @@ class PackageSummary:
     skill_count: int
     primitive_count: int
     prompt_pack_count: int
+    eval_contract_count: int
 
 
 def parse_frontmatter(path: Path) -> dict[str, str]:
@@ -364,6 +379,40 @@ def validate_primitives(package_root: Path) -> int:
     return len(primitives)
 
 
+def validate_eval_contracts(package_root: Path) -> int:
+    eval_root = package_root / "evals"
+    seen_slugs: set[str] = set()
+    for relative_name in REQUIRED_EVAL_CONTRACTS:
+        path = eval_root / relative_name
+        if not path.exists():
+            raise PackageValidationError(f"missing eval contract: evals/{relative_name}")
+        try:
+            contract = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise PackageValidationError(f"evals/{relative_name}: invalid JSON-compatible contract: {exc}") from exc
+        if contract.get("schema") not in {"weave.lifecycle-eval/v0.1", "weave.release-eval/v0.1"}:
+            raise PackageValidationError(f"evals/{relative_name}: schema must be weave.lifecycle-eval/v0.1 or weave.release-eval/v0.1")
+        slug = contract.get("slug")
+        if not isinstance(slug, str) or not slug:
+            raise PackageValidationError(f"evals/{relative_name}: slug is required")
+        if slug in seen_slugs:
+            raise PackageValidationError(f"duplicate eval contract slug: {slug}")
+        seen_slugs.add(slug)
+        if not contract.get("stage"):
+            raise PackageValidationError(f"evals/{relative_name}: stage is required")
+        if not isinstance(contract.get("hard_gates"), list):
+            raise PackageValidationError(f"evals/{relative_name}: hard_gates must be a list")
+        if not isinstance(contract.get("rubric"), list) or not contract["rubric"]:
+            raise PackageValidationError(f"evals/{relative_name}: rubric must be a non-empty list")
+        for gate in contract["hard_gates"]:
+            if not isinstance(gate, dict) or not gate.get("id") or not gate.get("kind"):
+                raise PackageValidationError(f"evals/{relative_name}: every hard gate needs id and kind")
+        for dimension in contract["rubric"]:
+            if not isinstance(dimension, dict) or not dimension.get("id") or not dimension.get("max_score"):
+                raise PackageValidationError(f"evals/{relative_name}: every rubric dimension needs id and max_score")
+    return len(REQUIRED_EVAL_CONTRACTS)
+
+
 def validate_package(package_root: Path) -> PackageSummary:
     root = package_root.resolve()
     if not root.exists():
@@ -375,6 +424,7 @@ def validate_package(package_root: Path) -> PackageSummary:
     agents = validate_agents(root, skill_slugs)
     tasks = validate_tasks(root)
     primitive_count = validate_primitives(root)
+    eval_contract_count = validate_eval_contracts(root)
     return PackageSummary(
         slug=company["slug"],
         version=company["version"],
@@ -383,6 +433,7 @@ def validate_package(package_root: Path) -> PackageSummary:
         skill_count=len(skill_slugs),
         primitive_count=primitive_count,
         prompt_pack_count=prompt_pack_count,
+        eval_contract_count=eval_contract_count,
     )
 
 
@@ -402,6 +453,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"skills: {summary.skill_count}")
     print(f"primitives: {summary.primitive_count}")
     print(f"prompt_packs: {summary.prompt_pack_count}")
+    print(f"eval_contracts: {summary.eval_contract_count}")
     return 0
 
 

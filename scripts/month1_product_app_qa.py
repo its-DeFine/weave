@@ -79,6 +79,24 @@ def run_command(command: list[str], cwd: Path) -> dict[str, Any]:
     }
 
 
+def node_command(app_dir: Path, args: list[str]) -> dict[str, Any]:
+    primary_command = ["node", *args]
+    check = run_command(primary_command, app_dir)
+    empty_abort = check["returncode"] in {-6, 134} and not check["stderr"]
+    if check["passed"] or not empty_abort:
+        return check
+
+    fallback = run_command(["npm", "exec", "--", "node", *args], app_dir)
+    fallback["fallback_for_empty_node_abort"] = True
+    fallback["primary_command"] = primary_command
+    fallback["primary_returncode"] = check["returncode"]
+    return fallback
+
+
+def node_syntax_check(app_dir: Path, source_path: str) -> dict[str, Any]:
+    return node_command(app_dir, ["--check", source_path])
+
+
 def assert_pass(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
@@ -114,8 +132,8 @@ def static_checks(app_dir: Path) -> list[dict[str, Any]]:
 
 def node_checks(app_dir: Path) -> list[dict[str, Any]]:
     checks = [
-        run_command(["node", "--check", "src/app.js"], app_dir),
-        run_command(["node", "--check", "src/story-engine.mjs"], app_dir),
+        node_syntax_check(app_dir, "src/app.js"),
+        node_syntax_check(app_dir, "src/story-engine.mjs"),
     ]
     engine_script = """
 import { createStory, applyFeedback, exportStory, monetizationState } from './src/story-engine.mjs';
@@ -143,7 +161,7 @@ console.log(JSON.stringify({
   checkoutDefault: monetizationState({ checkoutUrl: '' }).status
 }));
 """
-    checks.append(run_command(["node", "--input-type=module", "-e", engine_script], app_dir))
+    checks.append(node_command(app_dir, ["--input-type=module", "-e", engine_script]))
     for check in checks:
         assert_pass(check["passed"], f"node check failed: {check}")
     return checks
@@ -170,6 +188,50 @@ def http_checks(app_dir: Path) -> tuple[list[dict[str, Any]], str]:
         server.server_close()
         thread.join(timeout=2)
     return checks, base_url
+
+
+def record_stage_review_turn(root: Path, app_id: str, stage_id: str, artifact_path: Path, title: str) -> dict[str, Any]:
+    stage_label = runtime.owner_stage_label(stage_id)
+    artifact_ref = {"path": runtime.relative(artifact_path, root), "action": "created"}
+    turn = runtime.new_conversation_turn(
+        app_id,
+        stage_id,
+        {
+            "role": "owner",
+            "source": "qa_rehearsal",
+            "text": f"Review the {stage_label} proof for the Month 1 product QA rehearsal.",
+        },
+        {
+            "role": "hermes",
+            "source": "qa_rehearsal",
+            "text": f"{title} proof is ready for review and linked to its lifecycle artifact.",
+        },
+        channel="local-qa",
+        created_by="execution-agent",
+        agent_rationale={
+            "summary": f"The {stage_label} stage has an owner-reviewable artifact and can be checked by deterministic gates.",
+            "gate_questions": [f"Does the {stage_label} artifact satisfy the stage proof contract?"],
+            "missing_information": [],
+            "decision_basis": ["stage artifact exists", "foundation context exists", "local QA rehearsal captured this turn"],
+            "chain_of_thought_captured": False,
+        },
+        gate_checks={
+            "foundation_gate_passed": True,
+            "stage_artifact_present": True,
+            "owner_approval_required": True,
+        },
+        artifact_refs=[artifact_ref],
+        state_transition={
+            "from_stage": stage_id,
+            "from_state": "collecting",
+            "to_stage": stage_id,
+            "to_state": "ready_for_review",
+            "initiated_by": "local-qa",
+            "reason": f"{stage_label} artifact was generated for deterministic lifecycle rehearsal.",
+        },
+        next_action=f"Approve {stage_label} if the linked artifact is acceptable.",
+    )
+    return runtime.append_conversation_turn(root, app_id, turn)
 
 
 def approve_and_advance(root: Path, app_id: str, stage_id: str, *, defer_capability: bool = False) -> dict[str, Any]:
@@ -206,7 +268,7 @@ def lifecycle_rehearsal(app_dir: Path, qa_summary: dict[str, Any]) -> dict[str, 
             "iteration": ("Iteration", f"Mocked feedback applied: {mocked_feedback}."),
         }
         for stage_id, (title, body) in stage_artifacts.items():
-            write_stage_artifact(root, app_id, stage_id, title, body)
+            artifact_path = write_stage_artifact(root, app_id, stage_id, title, body)
             if stage_id == "marketing":
                 app = runtime.load_app(root, app_id)
                 app.setdefault("credential_requirements", []).append(
@@ -218,14 +280,17 @@ def lifecycle_rehearsal(app_dir: Path, qa_summary: dict[str, Any]) -> dict[str, 
                     }
                 )
                 runtime.write_app(root, app)
+                record_stage_review_turn(root, app_id, stage_id, artifact_path, title)
                 completed.append(approve_and_advance(root, app_id, stage_id, defer_capability=True))
             elif stage_id == "iteration":
+                record_stage_review_turn(root, app_id, stage_id, artifact_path, title)
                 approval = runtime.approve_stage(root, app_id, stage_id)
                 assert_pass(approval["approved"], "iteration approval failed")
                 advanced = runtime.advance_stage(root, app_id)
                 assert_pass(advanced["advanced"], "advance into analysis failed")
                 completed.append({"approval": approval["stage"], "advanced_to": advanced.get("stage"), "advanced": True})
             else:
+                record_stage_review_turn(root, app_id, stage_id, artifact_path, title)
                 completed.append(approve_and_advance(root, app_id, stage_id))
 
         state = runtime.app_state(root, app_id)
