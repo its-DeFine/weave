@@ -33,6 +33,7 @@ bin/weave doctor
 bin/weave eval --list
 bin/weave onboard --dry-run
 bin/weave command /status
+python3 scripts/full_conversation_app_dogfood.py --help
 ```
 
 ## Version
@@ -100,6 +101,38 @@ bin/weave eval release-readiness --run-gates --review-file release-review.json
 See [docs/lifecycle-evals.md](docs/lifecycle-evals.md) for the stage contract
 model: deterministic hard gates, rubric scoring, evidence requirements, and
 explicit advance/block decisions.
+
+## Try the conversation-to-app workflow locally
+
+The fastest way to try the full app-production loop without Telegram, provider
+keys, hosting, analytics, payments, or public side effects is the dedicated
+scripted dogfood runner:
+
+```bash
+mkdir -p runs/full-conversation-app-dogfood
+python3 scripts/full_conversation_app_dogfood.py \
+  --report-out runs/full-conversation-app-dogfood/report.json \
+  --output-dir runs/full-conversation-app-dogfood/artifacts \
+  --transcript-out runs/full-conversation-app-dogfood/transcript.md
+```
+
+What it does:
+
+- creates an isolated local WEAVE root;
+- creates the `Pocket Orchard` app workspace;
+- walks Intent, Research, Selection, Plan, Engineering, QA, KPI Setup,
+  Marketing, Iteration, and Analysis;
+- generates a dependency-free static app under
+  `runs/full-conversation-app-dogfood/artifacts/generated-app/`;
+- exports conversation review artifacts and a JSON run report;
+- records explicit non-claims so local scripted proof is not mistaken for live
+  Hermes/Telegram proof.
+
+Inspect the generated app by opening
+`runs/full-conversation-app-dogfood/artifacts/generated-app/index.html` in a
+browser, or serve that generated-app directory with any local static-file server.
+For the committed review artifact and proof boundary, see
+[docs/month1/full-conversation-app-dogfood.md](docs/month1/full-conversation-app-dogfood.md).
 
 Run guided onboarding:
 
@@ -205,6 +238,7 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
+eval_contracts: 11
 ```
 
 ## Runtime Model

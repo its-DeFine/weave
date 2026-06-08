@@ -9,16 +9,35 @@ result honestly from multiple angles?
 
 ## What It Runs
 
-Run:
+From a fresh clone, validate the package and inspect the runner:
 
 ```bash
-python3 scripts/full_conversation_app_dogfood.py
+git clone https://github.com/its-DeFine/weave.git
+cd weave
+python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
+python3 scripts/full_conversation_app_dogfood.py --help
+```
+
+Run the dedicated conversation-to-app dogfood into ignored local `runs/` output:
+
+```bash
+mkdir -p runs/full-conversation-app-dogfood
+python3 scripts/full_conversation_app_dogfood.py \
+  --report-out runs/full-conversation-app-dogfood/report.json \
+  --output-dir runs/full-conversation-app-dogfood/artifacts \
+  --transcript-out runs/full-conversation-app-dogfood/transcript.md
 ```
 
 The script uses an isolated local WEAVE root and does not call live Hermes,
 Telegram, external providers, hosting, analytics, payments, or public channels.
 It generates a proof app called **Pocket Orchard** from a scripted owner/Hermes
 conversation.
+
+Inspect the generated app at
+`runs/full-conversation-app-dogfood/artifacts/generated-app/index.html`. The
+run report, transcript, conversation export, lifecycle artifacts, generated app,
+and holistic review stay under `runs/full-conversation-app-dogfood/` unless you
+pass different output paths.
 
 The current GitHub-reviewable artifact bundle is committed at
 [`artifacts/full-conversation-app-dogfood/`](artifacts/full-conversation-app-dogfood/).
