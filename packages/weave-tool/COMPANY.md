@@ -14,7 +14,8 @@ runtime: hermes-default
 runtimeFallback: local-fallback
 goals:
   - Build commercially viable WEAVE applications through the lifecycle.
-  - Start with Askuno Runtime Proof using lifecycle evidence primitives.
+  - Use Month 1 product proof and conversation-to-app dogfood surfaces as the current review anchors.
+  - Keep Askuno Runtime Proof as a historical worked example, not the current deliverable-review anchor.
   - Preserve a clean future swap path to Livepeer-native pipelines.
 requirements:
   secrets:
@@ -22,9 +23,9 @@ requirements:
     - livepeer_gateway_credentials
 metadata:
   lifecycle: weave-eight-stage-plus-growth-loop
-    primaryRuntime: hermes-default
-    fallbackRuntime: local-fallback
-    ceoAgent: ceo-hermes
+  primaryRuntime: hermes-default
+  fallbackRuntime: local-fallback
+  ceoAgent: ceo-hermes
 ---
 
 # WEAVE
@@ -54,11 +55,17 @@ selection, evidence contracts, agent skill contracts, command-bus boundaries,
 and future Livepeer adapter boundaries. Local Fallback remains the explicit fallback
 runtime for legacy or owner-directed recovery runs.
 
-## Current Mission
+## Current Review Anchor
 
-Replay the first controlled WEAVE application proof through the lifecycle:
-Askuno Runtime Proof.
+Review the Month 1 WEAVE surfaces as a lifecycle/runtime package, not as an
+Askuno-specific launch review. The current reviewer-facing anchors are:
 
-The first implementation is a lifecycle wrapper and review surface around
-Askuno. Future Livepeer gateway, payment, or compute-warrant adapters must be
+- FableFrame Studio local product proof.
+- The full conversation-to-app dogfood artifact bundle.
+- The deterministic lifecycle, command, evidence, and prompt-pack contracts.
+
+Askuno Runtime Proof remains a starter project and historical worked example in
+this package. It should not be used as the acceptance surface for the current
+Month 1 deliverable review unless a separate Askuno review packet is explicitly
+requested. Future Livepeer gateway, payment, or compute-warrant adapters must be
 connected only after a separate approval and evidence gate.

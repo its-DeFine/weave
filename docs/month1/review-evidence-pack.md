@@ -46,15 +46,16 @@ not the local lifecycle state-machine behavior.
 | WEAVE wraps the runtime with lifecycle, evidence, gates, and status | `docs/month1/weave-lifecycle-contract-v0.md`, `docs/telegram-slash-commands.md`, `scripts/lifecycle_rehearsal_smoke.py` | `proved` |
 | Full conversation-to-app dogfood can generate and review a local product artifact bundle | `scripts/full_conversation_app_dogfood.py`, `docs/month1/full-conversation-app-dogfood.md`, `docs/month1/full-conversation-app-dogfood-transcript.md`, `docs/month1/artifacts/full-conversation-app-dogfood/` | `proved` |
 | FableFrame Studio is a concrete Month 1 proof app | `apps/fableframe-studio/`, `docs/month1/fableframe-product-proof.md`, `scripts/month1_product_app_qa.py` | `proved` |
-| Askuno is the first proof application | `packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md`, `docs/month1/README.md` | `proved` |
-| The initial app is publicly accessible | `docs/month1/README.md` records the Askuno URL | `partial` |
-| QA evidence exists for the app/runtime path | `packages/weave-tool/projects/askuno-runtime-proof/tasks/qa-runtime-readiness/TASK.md` | `partial` |
+| Askuno remains a historical/starter worked example | `packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md`, `docs/month1/README.md` | `partial` |
+| Askuno URL state is separately recorded but is not the current Month 1 acceptance surface | `docs/month1/README.md` records the Askuno URL state | `partial` |
+| QA evidence exists for the historical Askuno task graph | `packages/weave-tool/projects/askuno-runtime-proof/tasks/qa-runtime-readiness/TASK.md` | `partial` |
 | QA evidence exists for the FableFrame local product path | `scripts/month1_product_app_qa.py` | `proved` |
 | Runtime setup and provider route are owner-visible | `docs/hermes-setup.md`, `docs/telegram-slash-commands.md` | `partial` |
 
 M1-D2 review note: repository evidence now includes the runtime shape, a
 full scripted conversation-to-app local dogfood, and a concrete local product
-proof app. It is still not proof of a live Vercel deployment,
+proof app. Askuno is retained as a worked example, not as the current Month 1
+acceptance surface. This packet is still not proof of a live Vercel deployment,
 provider-authenticated Hermes chat, real payment, public marketing, or hosted
 app-workflow checks.
 
@@ -119,7 +120,8 @@ Research, Selection, Engineering, QA, Marketing, or Iteration.
 - Deploy FableFrame Studio to Vercel after owner approval and record the URL.
 - Connect or explicitly defer a real checkout/payment path for FableFrame.
 - Verify the live deterministic command surface against the active runtime.
-- Verify current Askuno hosted state and KPI output.
+- If an Askuno-specific review is requested, verify its hosted state and KPI
+  output separately instead of mixing it into the Month 1 package review.
 - Create the separate public context repository and publish the real
   `context-index.json`.
 - Replace sample context entries with current source snapshots from primary

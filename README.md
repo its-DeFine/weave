@@ -290,13 +290,15 @@ reviewable contract for moving a user from raw app idea to Gestalt Kernel,
 Gestaltian Contract, Premortem, Build-Ready Handoff Packet, bounded
 implementation, validation, and Contract Update.
 
-Use `bin/weave onboard` for the human setup flow. It builds a local Docker
-image from `container/hermes/Dockerfile` at pinned upstream Hermes commit
+Use `bin/weave onboard` for the human setup flow. In managed-container mode
+after Hermes readiness is confirmed, it builds a local Docker image from
+`container/hermes/Dockerfile` at pinned upstream Hermes commit
 `5921d667855880b0aa2083a50f001748aed52f3e`, then records the image in
-`runs/runtime-home/runtime-profile.json`. Use `scripts/setup_runtime.py` for
-automation, CI, and non-interactive runtime profiles. Add
-`--local --install-hermes` to clone the real upstream Nous Hermes Agent into an
-isolated venv under
+`runs/runtime-home/runtime-profile.json`. Existing-Hermes attach, slash-only
+deterministic mode, and host-local fallback do not require that image. Use
+`scripts/setup_runtime.py` for automation, CI, and non-interactive runtime
+profiles. Add `--local --install-hermes` to clone the real upstream Nous Hermes
+Agent into an isolated venv under
 `runs/hermes-agent/`, install the CLI package there, and attach that proof to
 the runtime profile. These install paths use outbound network access, but they
 do not install services, read secrets outside the explicit Telegram token flow,

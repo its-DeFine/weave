@@ -283,6 +283,14 @@ class WeaveCompanyPackageTests(unittest.TestCase):
     def test_hermes_prompt_pack_is_shipped_and_valid(self) -> None:
         self.assertEqual(validator.validate_prompt_packs(PACKAGE_ROOT), 1)
 
+    def test_primitive_registry_is_cross_application_not_askuno_manifest(self) -> None:
+        registry = json.loads((PACKAGE_ROOT / "primitives" / "registry.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(validator.validate_primitives(PACKAGE_ROOT), 9)
+        self.assertEqual(registry["application"], "weave-lifecycle-runtime")
+        self.assertEqual(registry["registryScope"], "cross-application-lifecycle-primitives")
+        self.assertNotEqual(registry["application"], "askuno-runtime-proof")
+
     def test_lifecycle_eval_contracts_are_shipped_and_valid(self) -> None:
         self.assertEqual(validator.validate_eval_contracts(PACKAGE_ROOT), 11)
 

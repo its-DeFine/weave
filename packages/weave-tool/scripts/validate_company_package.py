@@ -79,6 +79,8 @@ FALLBACK_AGENT_SLUG = "ceo-fallback"
 FALLBACK_ADAPTER = "local_fallback_gateway"
 GESTALT_PROMPT_PACK = "hermes-gestalt-runtime-pack"
 PROMPT_PACK_SCHEMA = "weave-hermes-gestalt-runtime-pack/v0.1"
+PRIMITIVE_REGISTRY_APPLICATION = "weave-lifecycle-runtime"
+PRIMITIVE_REGISTRY_SCOPE = "cross-application-lifecycle-primitives"
 
 ABSOLUTE_PATH_PATTERN = r"(?:/" + "Users/|/" + "home/|/" + "var/lib/|/" + "tmp/)"
 LOOPBACK_PATTERN = r"\b(?:" + r"127\.0\.0\.1|" + "local" + "host|" + "host" + r"\.docker\.internal)\b"
@@ -374,8 +376,10 @@ def validate_primitives(package_root: Path) -> int:
     ids = [item.get("id") for item in primitives if isinstance(item, dict)]
     if len(ids) != len(set(ids)):
         raise PackageValidationError("primitive ids must be unique")
-    if data.get("application") != "askuno-runtime-proof":
-        raise PackageValidationError("primitive registry must target askuno-runtime-proof")
+    if data.get("application") != PRIMITIVE_REGISTRY_APPLICATION:
+        raise PackageValidationError(f"primitive registry must target {PRIMITIVE_REGISTRY_APPLICATION}")
+    if data.get("registryScope") != PRIMITIVE_REGISTRY_SCOPE:
+        raise PackageValidationError(f"primitive registry must declare scope {PRIMITIVE_REGISTRY_SCOPE}")
     return len(primitives)
 
 

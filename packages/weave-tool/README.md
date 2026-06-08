@@ -112,14 +112,20 @@ prompt_packs: 1
 - `agents/ceo-hermes/AGENTS.md`: Hermes CEO identity and operating rules.
 - `agents/ceo-fallback/AGENTS.md`: Local Fallback fallback identity and operating rules.
 - `agents/*/AGENTS.md`: lifecycle role shells that report to the CEO.
-- `projects/askuno-runtime-proof/PROJECT.md`: first admitted application project.
-- `projects/askuno-runtime-proof/tasks/*/TASK.md`: starter lifecycle task graph.
+- `projects/askuno-runtime-proof/PROJECT.md`: historical/starter worked
+  example. It is not the current Month 1 deliverable-review anchor.
+- `projects/askuno-runtime-proof/tasks/*/TASK.md`: starter lifecycle task
+  graph kept for package-shape continuity, not a claim that Askuno mirrors every
+  current review artifact.
 - `skills/*/SKILL.md`: portable development and lifecycle skill contracts
   referenced by agents and tasks.
 - `prompts/hermes-gestalt-runtime-pack/*`: Hermes prompt/spec package for
   raw idea to contract, handoff, implementation, validation, and contract
   update.
-- `primitives/registry.json`: local primitive catalog and future adapter mapping.
+- `primitives/registry.json`: cross-application lifecycle primitive catalog and
+  future adapter mapping. It is consumed by package validation and review docs;
+  it is not an Askuno app manifest and should not be expected to mirror Askuno's
+  product surface.
 - Repository `bin/weave`: human-facing CLI launcher.
 - Repository `scripts/weave_cli.py`: guided onboarding CLI backed by the
   public-safe runtime setup scripts.
@@ -141,6 +147,11 @@ prompt_packs: 1
   derivation, REST dispatch, and Telegram slash-command status.
 - Repository `scripts/weave_runtime_api.py`: loopback-only REST skeleton that
   requires the ignored generated local token.
+
+The repository-level `container/hermes/Dockerfile` is used only by the managed
+container setup path (`bin/weave onboard --hermes-ready`, then
+`bin/weave start`). Existing-Hermes attach, slash-only deterministic mode, and
+host-local fallback do not build or require that image.
 
 ## Runtime Boundary
 
