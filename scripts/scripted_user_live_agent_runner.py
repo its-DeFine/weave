@@ -43,14 +43,27 @@ FIXTURE_AGENT_SOURCES = {
     "fake_agent",
     "replay",
     "full-conversation-dogfood",
+    "full_conversation_dogfood",
 }
 DEFAULT_OUTPUT_DIR = Path("artifacts") / "scripted-user-live-agent-runs"
-DEFAULT_NON_CLAIMS = [
+COMMON_NON_CLAIMS = [
     "scripted user prompts only; user messages are not live human input",
     "fixture mode is not live Hermes or deployed-agent proof",
     "Hermes CLI mode is live agent generation but not Telegram/deployed gateway proof",
-    "no deploy, analytics, payments, provider credentials, public posts, or external sends are performed by this runner",
+    "the runner itself does not deploy apps, call analytics, handle payments, or post publicly",
 ]
+HERMES_CLI_NON_CLAIMS = [
+    "Hermes CLI adapter invokes a live local Hermes process; absence of agent/tool external side effects is not proven by this runner unless Hermes is separately sandboxed or tool-gated",
+]
+
+
+def explicit_non_claims_for_adapter(adapter_name: str) -> list[str]:
+    claims = list(COMMON_NON_CLAIMS)
+    if adapter_name == "hermes-cli":
+        claims.extend(HERMES_CLI_NON_CLAIMS)
+    else:
+        claims.append("fixture adapter performs no live external sends")
+    return claims
 
 
 class ScenarioError(RuntimeError):
@@ -59,6 +72,10 @@ class ScenarioError(RuntimeError):
 
 class StepTimeout(ScenarioError):
     """The selected adapter did not return a reply within the step timeout."""
+
+
+class SourceModeError(ScenarioError):
+    """The observed reply source violated the declared proof mode."""
 
 
 @dataclass
@@ -135,6 +152,16 @@ def load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def validate_scenario_schema(scenario: dict[str, Any], path: Path) -> None:
+    schema = str(scenario.get("schema") or "").strip()
+    if schema != SCENARIO_SCHEMA:
+        raise ScenarioError(f"Scenario {path} requires schema={SCENARIO_SCHEMA!r}; got {schema!r}")
+
+
+def canonical_source_label(source: str) -> str:
+    return re.sub(r"[\s-]+", "_", str(source or "").strip().lower())
+
+
 def scenario_id(scenario: dict[str, Any]) -> str:
     raw = str(scenario.get("scenario_id") or scenario.get("id") or "").strip()
     if not raw:
@@ -187,18 +214,25 @@ def fixture_replies_by_label(scenario: dict[str, Any]) -> dict[str, list[dict[st
 
 def validate_agent_reply_source_for_mode(mode: str, source: str) -> None:
     clean = str(source or "").strip()
+    canonical = canonical_source_label(clean)
     if not clean:
         raise ScenarioError("Agent reply source is required")
-    if mode == "live" and clean not in LIVE_AGENT_SOURCES:
-        raise ScenarioError(
+    if mode == "live" and canonical not in LIVE_AGENT_SOURCES:
+        raise SourceModeError(
             "Declared live mode cannot use fixture/replay/deterministic agent replies: "
-            f"source={clean!r}"
+            f"source={clean!r} canonical={canonical!r}"
         )
-    if mode == "fixture" and clean in LIVE_AGENT_SOURCES:
-        raise ScenarioError(
-            "Fixture mode cannot impersonate a live agent reply source: "
-            f"source={clean!r}"
-        )
+    if mode == "fixture":
+        if canonical in LIVE_AGENT_SOURCES:
+            raise SourceModeError(
+                "Fixture mode cannot impersonate a live agent reply source: "
+                f"source={clean!r} canonical={canonical!r}"
+            )
+        if canonical not in FIXTURE_AGENT_SOURCES:
+            raise SourceModeError(
+                "Fixture mode requires deterministic fixture/replay source labels: "
+                f"source={clean!r} canonical={canonical!r}"
+            )
 
 
 def parse_hermes_stdout(stdout: str) -> dict[str, str]:
@@ -448,6 +482,7 @@ def write_step_artifact(
     step: dict[str, Any],
     reply: AgentReply,
     expectations: list[dict[str, Any]],
+    artifact_slug: str = "agent-reply",
 ) -> dict[str, Any]:
     stage = runtime.stage_by_id(step["stage"])
     path = (
@@ -455,7 +490,7 @@ def write_step_artifact(
         / "lifecycle"
         / stage.directory
         / "artifacts"
-        / f"{step_index:02d}-{safe_label(step['label'])}-agent-reply.md"
+        / f"{step_index:02d}-{safe_label(step['label'])}-{safe_label(artifact_slug)}.md"
     )
     body = [
         f"# {step['label']} Agent Reply Proof",
@@ -622,25 +657,21 @@ def run_step(
     prompt = build_prompt(scenario=scenario, app_id=app_id, app_name=app_name, step=step, root=root, app_repo=app_repo)
     reply = adapter.reply(scenario=scenario, step=step, prompt=prompt, cwd=cwd, timeout=timeout)
     validate_agent_reply_source_for_mode(mode, reply.source)
-
-    predicted_after_turn_count = len(before_turns) + 1
-    predicted_after_stage_count = before_stage_count + 1
-    expectations = evaluate_expectations(
-        step=step,
-        reply=reply,
-        before_turn_count=len(before_turns),
-        after_turn_count=predicted_after_turn_count,
-        after_state=before_state,
-        stage_message_count=predicted_after_stage_count,
-    )
     artifact_ref = write_step_artifact(
         root=root,
         app_id=app_id,
         step_index=step_index,
         step=step,
         reply=reply,
-        expectations=expectations,
+        expectations=[
+            {
+                "name": "pending_post_turn_expectation_evaluation",
+                "passed": True,
+                "detail": "final expectation results are written after the conversation turn is appended",
+            }
+        ],
     )
+
     gate_before_turn = runtime.stage_gate_status(root, app_id, step["stage"])
     turn = runtime.new_conversation_turn(
         app_id,
@@ -672,7 +703,7 @@ def run_step(
             "from_stage": before_state["stage_status"]["stage"],
             "from_state": before_state["stage_status"].get("stage_state"),
             "to_stage": step["stage"],
-            "to_state": "agent_reply_captured",
+            "to_state": "ready_for_review",
             "reason": "scripted user turn received a generated/captured agent reply",
         },
         next_action=str(step.get("next_action") or "Evaluate scenario predicates and branch."),
@@ -680,8 +711,36 @@ def run_step(
     appended = runtime.append_conversation_turn(root, app_id, turn)
     after_turns = runtime.read_conversation_turns(root, app_id)
     after_stage_count = stage_turn_count(root, app_id, step["stage"])
-    post_actions = apply_post_actions(root, app_id, step) if all(item["passed"] for item in expectations) else []
+    post_turn_state = runtime.app_state(root, app_id)
+    pre_post_expectations = evaluate_expectations(
+        step=step,
+        reply=reply,
+        before_turn_count=len(before_turns),
+        after_turn_count=len(after_turns),
+        after_state=post_turn_state,
+        stage_message_count=after_stage_count,
+    )
+    state_expectation_names = {"stage_in", "stage_state_in"}
+    non_state_passed = all(item["passed"] for item in pre_post_expectations if item["name"] not in state_expectation_names)
+    post_actions = apply_post_actions(root, app_id, step) if non_state_passed else []
     final_state = runtime.app_state(root, app_id)
+    expectations = evaluate_expectations(
+        step=step,
+        reply=reply,
+        before_turn_count=len(before_turns),
+        after_turn_count=len(after_turns),
+        after_state=final_state,
+        stage_message_count=after_stage_count,
+    )
+    artifact_ref = write_step_artifact(
+        root=root,
+        app_id=app_id,
+        step_index=step_index,
+        step=step,
+        reply=reply,
+        expectations=expectations,
+        artifact_slug="expectations",
+    )
     return {
         "label": step["label"],
         "stage": step["stage"],
@@ -728,7 +787,8 @@ def run_scenario_instance(
     sid = scenario_id(scenario)
     steps = scenario_steps(scenario)
     adapter = build_adapter(args, scenario)
-    app_config = scenario.get("app") if isinstance(scenario.get("app"), dict) else {}
+    raw_app_config = scenario.get("app")
+    app_config: dict[str, Any] = raw_app_config if isinstance(raw_app_config, dict) else {}
     app_id_template = str(app_config.get("id_template") or f"{sid}-{{run_index}}")
     app_name_template = str(app_config.get("name_template") or scenario.get("app_name") or sid.replace("-", " ").title())
     app_id = runtime.slugify(render_template(app_id_template, scenario_id=sid, run_id=run_id, run_index=run_index))
@@ -752,9 +812,11 @@ def run_scenario_instance(
     index = 0
     executed = 0
     passed = True
+    pending_failure: dict[str, Any] | None = None
     terminal_reason = "completed"
     step_results: list[dict[str, Any]] = []
     branch_history: list[dict[str, Any]] = []
+    next_step_is_recovery = False
 
     while index < len(steps):
         if executed >= max_executed_steps:
@@ -762,6 +824,8 @@ def run_scenario_instance(
             terminal_reason = f"max_executed_steps exceeded: {max_executed_steps}"
             break
         step = steps[index]
+        entered_as_recovery = next_step_is_recovery
+        next_step_is_recovery = False
         executed += 1
         try:
             result = run_step(
@@ -776,6 +840,14 @@ def run_scenario_instance(
                 step=step,
                 default_timeout=args.timeout,
             )
+        except SourceModeError as exc:
+            result = {
+                "label": step["label"],
+                "stage": step["stage"],
+                "status": "source_mode_violation",
+                "error": str(exc),
+            }
+            action = "abort"
         except StepTimeout as exc:
             result = {"label": step["label"], "stage": step["stage"], "status": "timeout", "error": str(exc)}
             action = str(step.get("on_timeout") or "abort")
@@ -792,17 +864,34 @@ def run_scenario_instance(
                 action = str(step.get("on_fail") or "abort")
         step_results.append(result)
         branch_history.append({"from": step["label"], "status": result["status"], "action": action})
+        if result["status"] == "passed":
+            if pending_failure is None or entered_as_recovery:
+                pending_failure = None
+        else:
+            pending_failure = result
         branch_kind, target = resolve_action(action, labels=labels, current_index=index)
         if branch_kind == "abort":
             passed = False
             terminal_reason = f"aborted at {step['label']}: {result['status']}"
             break
         if branch_kind == "stop":
-            terminal_reason = f"stopped at {step['label']}"
+            if pending_failure is not None:
+                passed = False
+                terminal_reason = (
+                    f"stopped after unrecovered {pending_failure['status']} at {pending_failure['label']}"
+                )
+            else:
+                terminal_reason = f"stopped at {step['label']}"
             break
         if target is None:
             raise ScenarioError(f"Branch action produced no target: {action}")
+        if result["status"] != "passed" and str(action).strip().startswith("goto:"):
+            next_step_is_recovery = True
         index = target
+
+    if passed and pending_failure is not None:
+        passed = False
+        terminal_reason = f"completed with unrecovered {pending_failure['status']} at {pending_failure['label']}"
 
     export = runtime.export_conversation_review(root, app_id)
     final_state = runtime.app_state(root, app_id)
@@ -832,7 +921,7 @@ def run_scenario_instance(
         "source_summary": source_summary,
         "final_stage": final_state["stage_status"],
         "app_source_snapshot": app_snapshot,
-        "explicit_non_claims": DEFAULT_NON_CLAIMS,
+        "explicit_non_claims": explicit_non_claims_for_adapter(adapter.name),
     }
     write_json(report_path, report)
     return {
@@ -852,7 +941,12 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
     run_id = args.run_id or f"{utc_stamp()}-scripted-user-live-agent"
     output_root = Path(args.output_dir).expanduser() / run_id
     output_root.mkdir(parents=True, exist_ok=True)
-    scenarios = [(Path(path), load_json(Path(path))) for path in args.scenario]
+    scenarios: list[tuple[Path, dict[str, Any]]] = []
+    for raw_path in args.scenario:
+        path = Path(raw_path)
+        scenario = load_json(path)
+        validate_scenario_schema(scenario, path)
+        scenarios.append((path, scenario))
     tasks: list[tuple[Path, dict[str, Any], int]] = []
     run_index = 1
     for path, scenario in scenarios:
@@ -884,7 +978,7 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
         "instance_count": len(results),
         "results": results,
         "output_root": str(output_root),
-        "explicit_non_claims": DEFAULT_NON_CLAIMS,
+        "explicit_non_claims": explicit_non_claims_for_adapter(args.agent),
     }
     write_json(output_root / "aggregate-report.json", aggregate)
     return aggregate
@@ -921,6 +1015,8 @@ def main(argv: list[str] | None = None) -> int:
         # Keep this as an early, explicit failure; runtime source validation is
         # still present for mocked adapters and future adapter additions.
         parser.error("--mode live cannot use --agent fixture")
+    if args.mode == "fixture" and args.agent != "fixture":
+        parser.error("--mode fixture requires --agent fixture")
     try:
         report = run_all(args)
     except Exception as exc:

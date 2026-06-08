@@ -1,6 +1,6 @@
 # Scripted-User / Live-Agent Runner
 
-Status: MVP runner for local WEAVE scenario execution. Fixture mode is deterministic CI proof; live mode requires a live agent adapter and refuses fixture/replay reply sources.
+Status: MVP runner for local WEAVE scenario execution. Fixture mode is deterministic CI proof; live mode requires a live agent adapter and refuses fixture/replay reply sources as a hard proof-boundary failure.
 
 ## Purpose
 
@@ -14,10 +14,13 @@ This runner covers the next surface:
 - multiple scenario instances can run in parallel against isolated WEAVE roots
 - every turn is recorded as a runtime conversation turn with source labels
 - reports separate live proof from fixture proof
+- proof-boundary violations are hard failures: fixture mode cannot impersonate
+  live sources, and live mode cannot accept fixture/replay/deterministic sources
 
 ## Command Shape
 
-Fixture CI mode:
+Fixture CI mode uses the fixture adapter only. The runner rejects `--mode fixture`
+with any live adapter before an adapter can execute.
 
 ```bash
 python3 scripts/scripted_user_live_agent_runner.py \
@@ -87,9 +90,16 @@ Each step supports:
 Branch actions:
 
 - `next`: continue to the next step
-- `stop`: end the scenario successfully if no previous hard failure occurred
+- `stop`: end the scenario successfully only if the latest executed path has no
+  unrecovered non-passing result
 - `abort`: end the scenario as failed
 - `goto:<label>`: jump to another step
+
+`goto:<label>` can model explicit recovery paths. A later passing recovery step
+clears a previous timeout/expectation failure only when the failing branch used
+`goto:<label>`; a plain `next` path does not erase a prior non-passing result.
+Source-mode violations do not use scenario recovery branches; they abort because
+they would corrupt the proof boundary.
 
 Expectation predicates currently include:
 
@@ -104,6 +114,11 @@ Expectation predicates currently include:
 - `stage_state_in`
 - `stage_message_count_at_most`
 
+Runtime-state predicates such as `stage_in` and `stage_state_in` are evaluated
+after successful non-state checks and after `post_actions`, so a step can assert
+that an `approve_stage`/`advance_stage` action actually moved the app to the
+expected stage.
+
 ## Output
 
 Each scenario instance writes an isolated bundle:
@@ -113,6 +128,12 @@ Each scenario instance writes an isolated bundle:
 - `conversation-review/`: runtime conversation export
 - `app-source-snapshot/`: generated/local app repo snapshot
 
+Each executed agent turn records two reviewable artifacts when expectations are
+evaluated: the conversation turn links to a stable `*-agent-reply.md` proof
+artifact, and the scenario step result links to a final `*-expectations.md`
+artifact. This avoids stale conversation checksums while still allowing final
+predicate results to include post-action runtime state.
+
 The run root also writes:
 
 - `aggregate-report.json`: pass/fail summary across all scenario instances
@@ -121,10 +142,10 @@ The run root also writes:
 
 Fixture mode proves:
 
-- scenario parsing
-- timeout and branch behavior
+- scenario parsing with explicit schema declaration
+- timeout and branch behavior, including explicit `goto` recovery only
 - runtime conversation capture
-- source labeling
+- deterministic source labeling with live-source impersonation rejected
 - isolated parallel instance execution
 - report generation
 
