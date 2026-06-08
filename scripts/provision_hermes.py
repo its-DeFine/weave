@@ -22,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import shlex
 import stat
 import subprocess
 import sys
@@ -234,7 +235,7 @@ def write_wrapper(*, install_root: Path, binary: Path) -> Path:
     wrapper.write_text(
         "#!/usr/bin/env sh\n"
         "set -eu\n"
-        f'exec "{binary}" "$@"\n',
+        f"exec {shlex.quote(str(binary))} \"$@\"\n",
         encoding="utf-8",
     )
     current_mode = wrapper.stat().st_mode

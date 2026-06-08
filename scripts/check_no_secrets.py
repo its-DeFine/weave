@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -62,7 +63,9 @@ SECRET_VALUE_RE = re.compile(
 # ENV-style assignments: FOO_SECRET=actual_value (not a placeholder).
 SECRET_ASSIGNMENT_RE = re.compile(
     r"\b([A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSCODE|CREDENTIAL"
-    r"|PRIVATE[_-]?KEY|SEED|2FA|OTP)[A-Z0-9_]*)\s*=\s*(?!<|\"<|\"|'<|'|\$|\{|your|example|placeholder|xxx|todo|changeme|redacted|true|false|1|0|none|null|empty|\s)([^\s\"']{8,})",
+    r"|PRIVATE[_-]?KEY|SEED|2FA|OTP)[A-Z0-9_]*)\s*=\s*(?!\$|\{)([\"']?)"
+    r"(?!(?:<|your|example|placeholder|xxx|todo|changeme|redacted|true|false|1|0|none|null|empty)\b)"
+    r"([^\s\"']{8,})\2",
     re.IGNORECASE,
 )
 
@@ -107,6 +110,20 @@ def should_scan(path: Path) -> bool:
     return path.suffix in SCAN_EXTENSIONS or path.name in SCAN_FILENAMES
 
 
+def candidate_files() -> list[Path]:
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return sorted(path.relative_to(REPO_ROOT) for path in REPO_ROOT.rglob("*") if path.is_file())
+    return [Path(line) for line in result.stdout.splitlines() if line]
+
+
 def scan_file(path: Path) -> list[str]:
     hits: list[str] = []
     try:
@@ -126,6 +143,8 @@ def scan_file(path: Path) -> list[str]:
                 # SECRET_VALUE_RE above.
                 if lhs != lhs.upper():
                     continue
+                if lhs.endswith("_RE") and "re.compile" in line:
+                    continue
             hits.append(f"{path}:{lineno}:{label}:{m.group(0)[:60]!r}")
             break  # one hit per line is enough
     return hits
@@ -133,10 +152,11 @@ def scan_file(path: Path) -> list[str]:
 
 def main() -> int:
     all_hits: list[str] = []
-    for path in sorted(REPO_ROOT.rglob("*")):
-        if not path.is_file():
+    for relative in candidate_files():
+        if any(part in SKIP_DIRS for part in relative.parts):
             continue
-        if any(part in SKIP_DIRS for part in path.parts):
+        path = REPO_ROOT / relative
+        if not path.is_file():
             continue
         if not should_scan(path):
             continue

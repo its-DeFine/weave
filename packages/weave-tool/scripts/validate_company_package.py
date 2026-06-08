@@ -27,6 +27,35 @@ REQUIRED_STAGES = [
     "iteration",
 ]
 
+CANONICAL_LIFECYCLE_STAGES = {
+    "intent": "Intent",
+    "research": "Research",
+    "selection": "Selection",
+    "plan": "Plan",
+    "engineering": "Engineering",
+    "qa": "QA",
+    "kpi-setup": "KPI Setup",
+    "marketing": "Marketing",
+    "iteration": "Iteration",
+    "analysis": "Analysis",
+}
+LIFECYCLE_STAGE_ALIASES = {
+    "intent": "intent",
+    "research": "research",
+    "research-analysis": "research",
+    "selection": "selection",
+    "plan": "plan",
+    "engineering": "engineering",
+    "engineering-integration": "engineering",
+    "qa": "qa",
+    "qa-readiness": "qa",
+    "kpi-setup": "kpi-setup",
+    "marketing": "marketing",
+    "iteration": "iteration",
+    "analysis": "analysis",
+}
+REQUIRED_EVAL_LIFECYCLE_SLUGS = set(CANONICAL_LIFECYCLE_STAGES)
+
 REQUIRED_DEPENDENCIES = {
     "research-gate": "intent-contract",
     "selection-gate": "research-gate",
@@ -329,6 +358,13 @@ def validate_prompt_packs(package_root: Path) -> int:
     return 1
 
 
+def canonical_lifecycle_slug(stage: str, *, context: str) -> str:
+    canonical = LIFECYCLE_STAGE_ALIASES.get(stage)
+    if canonical is None:
+        raise PackageValidationError(f"{context}: invalid lifecycle stage {stage}")
+    return canonical
+
+
 def validate_tasks(package_root: Path) -> list[dict[str, str]]:
     task_paths = sorted((package_root / "projects").glob("*/tasks/*/TASK.md"))
     if not task_paths:
@@ -347,6 +383,7 @@ def validate_tasks(package_root: Path) -> list[dict[str, str]]:
             raise PackageValidationError(f"duplicate task slug: {slug}")
         if stage not in REQUIRED_STAGES:
             raise PackageValidationError(f"{path}: invalid lifecycleStage {stage}")
+        canonical_lifecycle_slug(stage, context=str(path))
         slugs.add(slug)
         stages[stage] = slug
         tasks.append(fields)

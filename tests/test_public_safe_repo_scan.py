@@ -49,6 +49,14 @@ class PublicSafeRepoScanTests(unittest.TestCase):
             "private-runtime-host",
         )
 
+    def test_allowlisted_fixture_file_still_flags_non_fixture_private_text(self) -> None:
+        private_path = "/home/" + "example/secret"
+        hits = public_safe_repo_scan.scan_text(
+            f"runtime path {private_path}",
+            path="tests/test_public_safe_repo_scan.py",
+        )
+        self.assertEqual(hits[0].label, "home-path")
+
 
 if __name__ == "__main__":
     unittest.main()

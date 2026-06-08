@@ -38,6 +38,31 @@ class CheckNoSecretsTests(unittest.TestCase):
             self.assertEqual(len(hits), 1)
             self.assertIn("secret-assignment", hits[0])
 
+    def test_quoted_env_style_secret_assignment_is_flagged(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "sample.env"
+            key = "SERVICE_" + "TOKEN"
+            path.write_text(f'{key}="supersecretvalue"\n', encoding="utf-8")
+            hits = check_no_secrets.scan_file(path)
+            self.assertEqual(len(hits), 1)
+            self.assertIn("secret-assignment", hits[0])
+
+    def test_quoted_placeholder_secret_assignment_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "sample.env"
+            key = "SERVICE_" + "TOKEN"
+            path.write_text(f'{key}="<redacted>"\n', encoding="utf-8")
+            self.assertEqual(check_no_secrets.scan_file(path), [])
+
+    def test_python_secret_regex_constant_is_not_env_secret_assignment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "sample.py"
+            path.write_text(
+                'SECRET_EXPORT_CONTENT_RE = re.compile(r"TOKEN=[^\\s]{8,}")\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(check_no_secrets.scan_file(path), [])
+
 
 if __name__ == "__main__":
     unittest.main()

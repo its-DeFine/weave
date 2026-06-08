@@ -250,6 +250,38 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertIn("WEAVE Transcript", transcript)
             self.assertIn("turns: 0", transcript)
 
+    def test_weave_runtime_plugin_returns_generic_runtime_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            setup_runtime.weave_runtime_slice.setup_weave_root(root)
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "WEAVE_RUNTIME_REPO": str(REPO_ROOT),
+                    "WEAVE_RUNTIME_ROOT": str(root),
+                },
+                clear=False,
+            ), mock.patch.object(
+                weave_runtime_plugin,
+                "_load_runtime_module",
+                side_effect=RuntimeError("SECRET_" + "TO" + "KEN=super-" + "secret-value"),
+            ):
+                result = weave_runtime_plugin._dispatch("/status")
+
+            self.assertEqual(result, "WEAVE runtime command failed. Check local runtime logs.")
+            self.assertNotIn("SECRET_TOKEN", result)
+            self.assertNotIn("super-secret-value", result)
+
+    def test_weave_runtime_plugin_loader_does_not_leak_scripts_path(self) -> None:
+        scripts_dir = str((REPO_ROOT / "scripts").resolve())
+        original_path = list(sys.path)
+        try:
+            sys.path[:] = [item for item in sys.path if item != scripts_dir]
+            weave_runtime_plugin._load_runtime_module(REPO_ROOT)
+            self.assertNotIn(scripts_dir, sys.path)
+        finally:
+            sys.path[:] = original_path
+
     def test_status_hook_handles_builtin_status(self) -> None:
         with mock.patch.object(weave_runtime_plugin, "_dispatch", return_value="ok"):
             result = weave_runtime_plugin._status_hook("command:status", {})

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import http.client
+import io
 import json
 import socketserver
 import sys
@@ -205,6 +206,21 @@ class WeaveRuntimeHttpTests(unittest.TestCase):
                 server.shutdown()
                 server.server_close()
                 thread.join(timeout=5)
+
+    def test_negative_content_length_is_rejected_before_read(self) -> None:
+        class FakeHandler:
+            headers = {"content-length": "-1"}
+            rfile = io.BytesIO(b"")
+
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            weave_runtime_http.RuntimeHandler.read_json_body(FakeHandler())  # type: ignore[arg-type]
+
+    def test_unauthenticated_mode_requires_loopback_bind(self) -> None:
+        self.assertTrue(weave_runtime_http.is_loopback_bind_host(LOOPBACK_HOST))
+        self.assertTrue(weave_runtime_http.is_loopback_bind_host("localhost"))
+        self.assertTrue(weave_runtime_http.is_loopback_bind_host("::1"))
+        self.assertFalse(weave_runtime_http.is_loopback_bind_host("0.0.0.0"))
+        self.assertFalse(weave_runtime_http.is_loopback_bind_host("192.168." + "1.25"))
 
 
 if __name__ == "__main__":

@@ -102,6 +102,30 @@ class HermesProvisionerTests(unittest.TestCase):
             self.assertFalse(profile["authority"]["gateway_paired"])
             self.assertFalse(profile["authority"]["setup_wizard_ran"])
 
+    def test_write_wrapper_quotes_hostile_binary_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            install_root = root / "install root"
+            bin_dir = root / "venv '$(touch exploited)'" / "bin"
+            bin_dir.mkdir(parents=True)
+            binary = bin_dir / "hermes"
+            output = root / "wrapper-output.json"
+            binary.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json, pathlib, sys\n"
+                f"pathlib.Path({str(output)!r}).write_text(json.dumps(sys.argv[1:]))\n",
+                encoding="utf-8",
+            )
+            binary.chmod(0o755)
+
+            wrapper = provision_hermes.write_wrapper(install_root=install_root, binary=binary)
+            wrapper_text = wrapper.read_text(encoding="utf-8")
+            self.assertNotIn('exec "' + str(binary), wrapper_text)
+
+            subprocess.run([str(wrapper), "alpha beta", "gamma"], check=True)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8")), ["alpha beta", "gamma"])
+            self.assertFalse((root / "exploited").exists())
+
     def test_setup_runtime_can_provision_hermes_source_and_record_profile(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

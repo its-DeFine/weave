@@ -19,10 +19,14 @@ function buildPlan() {
 
 function renderPlan() {
   const plan = buildPlan();
-  planList.innerHTML = '';
+  planList.replaceChildren();
   plan.forEach((item) => {
     const row = document.createElement('li');
-    row.innerHTML = `<strong>${item.nextAction}</strong><br><span>Effort: ${item.effort}</span>`;
+    const action = document.createElement('strong');
+    action.textContent = item.nextAction;
+    const effort = document.createElement('span');
+    effort.textContent = `Effort: ${item.effort}`;
+    row.append(action, document.createElement('br'), effort);
     planList.appendChild(row);
   });
   return plan;

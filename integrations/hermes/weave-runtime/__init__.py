@@ -6,7 +6,7 @@ Hermes config under ``weave_runtime`` or from environment variables.
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
 import json
 import logging
 import os
@@ -72,11 +72,51 @@ def _runtime_paths() -> tuple[Path | None, Path | None]:
     return repo, root
 
 
+def _module_path_from_runtime_repo(repo: Path, module_name: str) -> Path:
+    try:
+        repo_root = repo.resolve(strict=True)
+        scripts_dir = (repo_root / "scripts").resolve(strict=True)
+        module_path = (scripts_dir / f"{module_name}.py").resolve(strict=True)
+    except OSError as exc:
+        raise RuntimeError("configured WEAVE runtime repo is unavailable") from exc
+    if not module_path.is_relative_to(scripts_dir):
+        raise RuntimeError("configured WEAVE runtime module path is outside the scripts directory")
+    return module_path
+
+
+def _load_runtime_script_module(repo: Path, module_name: str):
+    module_path = _module_path_from_runtime_repo(repo, module_name)
+    scripts_dir = str(module_path.parent)
+    added_to_path = scripts_dir not in sys.path
+    if added_to_path:
+        # Keep the trusted runtime scripts directory available only for sibling
+        # imports during this load, and never put it at the front of sys.path.
+        sys.path.append(scripts_dir)
+    try:
+        spec = importlib.util.spec_from_file_location(f"_weave_runtime_plugin_{module_name}", module_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("could not load WEAVE runtime module")
+        module = importlib.util.module_from_spec(spec)
+        previous_module = sys.modules.get(spec.name)
+        sys.modules[spec.name] = module
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            if previous_module is None:
+                sys.modules.pop(spec.name, None)
+            else:
+                sys.modules[spec.name] = previous_module
+        return module
+    finally:
+        if added_to_path:
+            try:
+                sys.path.remove(scripts_dir)
+            except ValueError:  # pragma: no cover - defensive cleanup
+                pass
+
+
 def _load_runtime_module(repo: Path):
-    scripts_dir = repo / "scripts"
-    if str(scripts_dir) not in sys.path:
-        sys.path.insert(0, str(scripts_dir))
-    return importlib.import_module("weave_runtime_slice")
+    return _load_runtime_script_module(repo, "weave_runtime_slice")
 
 
 def _dispatch(command_text: str) -> str:
@@ -88,9 +128,9 @@ def _dispatch(command_text: str) -> str:
     try:
         runtime = _load_runtime_module(repo)
         payload = runtime.dispatch_telegram_command(root, command_text)
-    except Exception as exc:
-        logger.debug("WEAVE runtime command failed: %s", exc)
-        return f"WEAVE runtime command failed: {exc}"
+    except Exception:
+        logger.exception("WEAVE runtime command failed")
+        return "WEAVE runtime command failed. Check local runtime logs."
     text = payload.get("text") if isinstance(payload, dict) else None
     return str(text) if text else "WEAVE runtime command returned no output."
 
@@ -115,12 +155,10 @@ def _hermes_setup_gate_message() -> str | None:
     if not hermes_home:
         return None
     repo, _root = _runtime_paths()
-    if repo is not None:
-        scripts_dir = repo / "scripts"
-        if str(scripts_dir) not in sys.path:
-            sys.path.insert(0, str(scripts_dir))
+    if repo is None:
+        return None
     try:
-        hermes_setup = importlib.import_module("weave_hermes_setup")
+        hermes_setup = _load_runtime_script_module(repo, "weave_hermes_setup")
         status = hermes_setup.hermes_setup_status(Path(hermes_home))
     except Exception as exc:
         logger.debug("could not inspect WEAVE Hermes setup status: %s", exc)

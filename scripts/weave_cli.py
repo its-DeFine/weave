@@ -9,6 +9,7 @@ import getpass
 import io
 import json
 import os
+import re
 import shutil
 import sys
 import tarfile
@@ -43,6 +44,16 @@ CONTAINER_DOCKERFILE = REPO_ROOT / "container" / "hermes" / "Dockerfile"
 EXPORT_SCHEMA = "weave-runtime-export/v0.1"
 SECRET_EXPORT_NAMES = {
     ".env",
+    ".env.local",
+    ".envrc",
+    ".netrc",
+    ".npmrc",
+    "credentials",
+    "credentials.json",
+    "id_dsa",
+    "id_ecdsa",
+    "id_ed25519",
+    "id_rsa",
     "local-api-token",
     "telegram.secret",
 }
@@ -54,8 +65,23 @@ SECRET_EXPORT_SUFFIXES = {
     ".secret",
 }
 SECRET_EXPORT_DIRS = {
+    ".ssh",
+    "secrets",
     "tokens",
 }
+SECRET_EXPORT_CONTENT_RE = re.compile(
+    r"("
+    r"sk-[A-Za-z0-9_-]{20,}"
+    r"|sk-or-v1-[A-Za-z0-9_-]{16,}"
+    r"|gh[pousr]_[A-Za-z0-9_]{20,}"
+    r"|Bearer\s+[A-Za-z0-9._-]{20,}"
+    r"|\b[0-9]{8,12}:[A-Za-z0-9_-]{24,}\b"
+    r"|\b[A-Z0-9_]*(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSCODE|CREDENTIAL|PRIVATE[_-]?KEY|SEED|2FA|OTP)[A-Z0-9_]*"
+    r"\s*=\s*['\"]?(?!<|\$|\{|your|example|placeholder|xxx|todo|changeme|redacted|true|false|1|0|none|null|empty|\s)"
+    r"[^\s'\"]{8,}"
+    r")",
+    re.IGNORECASE,
+)
 
 
 class CliError(Exception):
@@ -690,6 +716,18 @@ def should_exclude_export(path: Path) -> bool:
     return False
 
 
+def export_file_contains_secret(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    try:
+        if path.stat().st_size > 1_000_000:
+            return False
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return True
+    return bool(SECRET_EXPORT_CONTENT_RE.search(text))
+
+
 def add_json_to_tar(tar: tarfile.TarFile, arcname: str, payload: dict[str, object]) -> None:
     encoded = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
     info = tarfile.TarInfo(arcname)
@@ -709,7 +747,7 @@ def export_runtime(args: argparse.Namespace, output: TextIO) -> int:
             if path.resolve() == args.export_out:
                 continue
             rel = path.relative_to(args.runtime_home)
-            if should_exclude_export(rel):
+            if should_exclude_export(rel) or export_file_contains_secret(path):
                 if path.is_file():
                     excluded.append(rel.as_posix())
                 continue

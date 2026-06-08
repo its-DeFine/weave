@@ -10,12 +10,14 @@ conversation transcript requests to the current runtime slice.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import re
 import socket
 import subprocess
 import sys
+import threading
 import uuid
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -23,6 +25,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX fallback
+    fcntl = None  # type: ignore[assignment]
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 RUNTIME_REPO = os.environ.get("WEAVE_RUNTIME_REPO")
@@ -109,6 +116,8 @@ SENSITIVE_ASSIGNMENT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_JSONL_APPEND_LOCK = threading.Lock()
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -116,8 +125,18 @@ def utc_now() -> str:
 
 def append_jsonl(path: Path, event: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(event, sort_keys=True) + "\n")
+    encoded = json.dumps(event, sort_keys=True) + "\n"
+    with _JSONL_APPEND_LOCK:
+        with path.open("a", encoding="utf-8") as handle:
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                handle.write(encoded)
+                handle.flush()
+                os.fsync(handle.fileno())
+            finally:
+                if fcntl is not None:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
     try:
         path.chmod(0o600)
     except PermissionError:
@@ -669,7 +688,12 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         self.respond(HTTPStatus(status), payload)
 
     def read_json_body(self) -> dict[str, Any]:
-        length = int(self.headers.get("content-length", "0") or "0")
+        try:
+            length = int(self.headers.get("content-length", "0") or "0")
+        except (TypeError, ValueError) as exc:
+            raise ValueError("content-length must be an integer") from exc
+        if length < 0:
+            raise ValueError("content-length must be non-negative")
         if length > 256_000:
             raise ValueError("request too large")
         if length == 0:
@@ -703,6 +727,16 @@ class RuntimeHTTPServer(ThreadingHTTPServer):
     runtime_state: RuntimeState
 
 
+def is_loopback_bind_host(host: str) -> bool:
+    clean = str(host or "").strip().lower()
+    if clean in {"", "localhost"}:
+        return True
+    try:
+        return ipaddress.ip_address(clean).is_loopback
+    except ValueError:
+        return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default=os.environ.get("WEAVE_RUNTIME_HOST", DEFAULT_HOST))
@@ -715,6 +749,9 @@ def main() -> int:
     parser.add_argument("--auth-token-file", type=Path, default=None, help="bearer token file; defaults to <root>/runtime/tokens/local-api-token")
     parser.add_argument("--allow-unauthenticated-local", action="store_true", help="test/dev only: disable bearer auth for this local service")
     args = parser.parse_args()
+
+    if args.allow_unauthenticated_local and not is_loopback_bind_host(args.host):
+        raise SystemExit("--allow-unauthenticated-local may only bind to a loopback host")
 
     root = args.root.expanduser().resolve()
     state = RuntimeState(

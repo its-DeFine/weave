@@ -31,6 +31,22 @@ class ValidateContextIndexTests(unittest.TestCase):
         with self.assertRaises(validate_context_index.ValidationError):
             validate_context_index.validate_index(index)
 
+    def test_rejects_schema_enum_and_pattern_violations(self) -> None:
+        index = validate_context_index.load_index(REPO_ROOT / "docs/context-sources/livepeer-context-index.sample.json")
+        index["sources"][0]["id"] = "Bad_ID"
+        index["sources"][0]["stage_use"] = ["research", "invalid-stage"]
+        index["sources"][0]["freshness"] = "eventually"
+
+        with self.assertRaises(validate_context_index.ValidationError):
+            validate_context_index.validate_index(index)
+
+    def test_rejects_invalid_application_path_enum(self) -> None:
+        index = validate_context_index.load_index(REPO_ROOT / "docs/context-sources/livepeer-context-index.sample.json")
+        index["sources"][0]["application_paths"] = ["existing_api", "private_runtime"]
+
+        with self.assertRaises(validate_context_index.ValidationError):
+            validate_context_index.validate_index(index)
+
 
 if __name__ == "__main__":
     unittest.main()
