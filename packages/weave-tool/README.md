@@ -39,6 +39,20 @@ contract and deterministic Telegram slash-command output:
 python3 scripts/runtime_smoke.py
 ```
 
+To try the full local conversation-to-app workflow that creates a concrete app
+artifact, use the repository-level dogfood runner:
+
+```bash
+mkdir -p runs/full-conversation-app-dogfood
+python3 scripts/full_conversation_app_dogfood.py \
+  --report-out runs/full-conversation-app-dogfood/report.json \
+  --output-dir runs/full-conversation-app-dogfood/artifacts \
+  --transcript-out runs/full-conversation-app-dogfood/transcript.md
+```
+
+It generates the `Pocket Orchard` static app and review artifacts locally. This
+is scripted local proof, not live Hermes/Telegram proof.
+
 To run the guided local onboarding flow from the repository root:
 
 ```bash
@@ -104,6 +118,7 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
+eval_contracts: 11
 ```
 
 ## Current Package Contents

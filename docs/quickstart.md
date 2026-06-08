@@ -29,6 +29,7 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
+eval_contracts: 11
 ```
 
 If you see an error, the package is malformed or a required file is missing.
@@ -62,7 +63,51 @@ bin/weave eval release-readiness --run-gates --review-file release-review.json
 Hard gates can veto high rubric scores. Release readiness remains owner-gated
 even when all checks pass. See [Lifecycle Evals](lifecycle-evals.md).
 
-## 5. Choose a setup mode
+## 5. Try the full conversation-to-app workflow
+
+To try the end-to-end app-production loop without live Hermes, Telegram, model
+provider keys, hosting, analytics, payments, or public side effects, run the
+dedicated local dogfood script:
+
+```bash
+mkdir -p runs/full-conversation-app-dogfood
+python3 scripts/full_conversation_app_dogfood.py \
+  --report-out runs/full-conversation-app-dogfood/report.json \
+  --output-dir runs/full-conversation-app-dogfood/artifacts \
+  --transcript-out runs/full-conversation-app-dogfood/transcript.md
+```
+
+Expected output shape:
+
+```text
+full conversation app dogfood: ok (runs/full-conversation-app-dogfood/report.json)
+```
+
+The script creates an isolated local WEAVE root, creates the `Pocket Orchard`
+app, walks all 10 lifecycle stages, generates a dependency-free static app, runs
+QA checks, exports conversation review artifacts, and writes a holistic review.
+The generated app is at:
+
+```text
+runs/full-conversation-app-dogfood/artifacts/generated-app/index.html
+```
+
+Review outputs:
+
+```text
+runs/full-conversation-app-dogfood/report.json
+runs/full-conversation-app-dogfood/transcript.md
+runs/full-conversation-app-dogfood/artifacts/conversation-review/
+runs/full-conversation-app-dogfood/artifacts/lifecycle-artifacts/
+runs/full-conversation-app-dogfood/artifacts/holistic-review.json
+```
+
+Boundary: this proves local scripted conversation-to-app mechanics. It does not
+prove live Hermes autonomy, Telegram operation, deployment, analytics, payments,
+real users, or market demand. For the committed proof bundle, see
+[Month 1 Full Conversation-To-App Dogfood](month1/full-conversation-app-dogfood.md).
+
+## 6. Choose a setup mode
 
 Use the doctor and dry-run commands before writing runtime state:
 
@@ -95,7 +140,7 @@ You can feel the deterministic command surface locally before Telegram pairing:
 bin/weave command /status
 ```
 
-## 6. Run guided onboarding
+## 7. Run guided onboarding
 
 ```bash
 bin/weave onboard
@@ -264,7 +309,7 @@ confirmation prompts for non-gated local work. Hermes must still ask the owner
 through the Telegram LLM conversation before secrets, auth changes, public
 sends, paid or metered work, production/service changes, or destructive work.
 
-## 7. Run the runtime smoke
+## 8. Run the runtime smoke
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -282,9 +327,8 @@ WEAVE lifecycle stages:
   6. QA
   7. KPI Setup
   8. Marketing
-Parallel growth loop:
-  A. Iteration
-  B. Analysis
+  9. Iteration
+  10. Analysis
 
 valid WEAVE company package: weave
 version: 2026.05.13-console
@@ -293,12 +337,14 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
+eval_contracts: 11
 runtime setup check: ok
 container runtime profile check: ok
 Hermes provisioner check: ok
 runtime first-slice check: ok
 telegram command smoke: ok
 runtime migration CLI check: ok
+context index runtime smoke: ok
 smoke: ok
 ```
 
@@ -308,7 +354,7 @@ provisioner contract, first-slice root/app/ledger contract, REST dispatch
 skeleton, and deterministic Telegram slash-command output. It imports nothing
 outside the standard library and makes no network calls.
 
-## 8. Inspect status from Telegram commands
+## 9. Inspect status from Telegram commands
 
 Optional: start the local REST skeleton first:
 
@@ -346,7 +392,7 @@ The response contract is `schema: weave-telegram-command/v0.1`,
 [Telegram Slash Commands](telegram-slash-commands.md) for the full command
 list and examples.
 
-## 9. Mission format
+## 10. Mission format
 
 A WEAVE mission is a markdown file with YAML front-matter. The required fields
 are:
@@ -365,19 +411,16 @@ are:
 A full worked example with body text lives at
 [docs/missions/MISSION_TEMPLATE.md](missions/MISSION_TEMPLATE.md).
 
-## 10. Lifecycle dry-run
+## 11. Lifecycle dry-run
 
 The main lifecycle stages a mission passes through, in order:
 
 ```text
-Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing
+Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing -> Iteration -> Analysis
 ```
 
-After KPI Setup, the growth loop runs under Marketing:
-
-```text
-Iteration <-> Analysis
-```
+Iteration and Analysis are explicit lifecycle stages for local proof and review,
+while production growth work remains owner-approval-gated.
 
 Stage rules enforced by the package:
 
@@ -413,7 +456,7 @@ for t in tasks:
 EOF
 ```
 
-## 11. Security check
+## 12. Security check
 
 Before committing any changes, scan for accidental secrets:
 
