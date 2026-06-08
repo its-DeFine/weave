@@ -23,7 +23,7 @@ verified hosted surface, it is marked as partial, blocked, or owner-gated.
 | WEAVE has a public tool/method repo | `README.md`, `packages/weave-tool/COMPANY.md`, `docs/month1/README.md` | `proved` |
 | WEAVE defines lifecycle stages and gates | `docs/month1/weave-lifecycle-contract-v0.md`, `packages/weave-tool/skills/weave-lifecycle/SKILL.md` | `proved` |
 | WEAVE can keep app state visible through deterministic commands | `docs/telegram-slash-commands.md`, `scripts/runtime_smoke.py`, `scripts/lifecycle_rehearsal_smoke.py` | `proved` |
-| WEAVE can run a full scripted conversation-to-app local dogfood and produce a reviewable app artifact | `scripts/full_conversation_app_dogfood.py`, `docs/month1/full-conversation-app-dogfood.md` | `proved` |
+| WEAVE can run a full scripted conversation-to-app local dogfood and produce a reviewable app artifact | `scripts/full_conversation_app_dogfood.py`, `docs/month1/full-conversation-app-dogfood.md`, `docs/month1/full-conversation-app-dogfood-transcript.md` | `proved` |
 | WEAVE can study Livepeer pipelines, APIs, gateways, and source context | `docs/capability-context.md`, `docs/context-sources/livepeer-context-index.sample.json` | `partial` |
 | WEAVE can synthesize reusable primitives where useful | `packages/weave-tool/primitives/registry.json` | `partial` |
 | WEAVE can identify viable applications from primitives or direct API/gateway paths | `packages/weave-tool/skills/primitive-market-research/SKILL.md`, `packages/weave-tool/projects/askuno-runtime-proof/tasks/research-gate/TASK.md` | `partial` |
@@ -44,7 +44,7 @@ not the local lifecycle state-machine behavior.
 |---|---|---|
 | Hermes is the default execution runtime | `packages/weave-tool/COMPANY.md`, `docs/hermes-setup.md` | `partial` |
 | WEAVE wraps the runtime with lifecycle, evidence, gates, and status | `docs/month1/weave-lifecycle-contract-v0.md`, `docs/telegram-slash-commands.md`, `scripts/lifecycle_rehearsal_smoke.py` | `proved` |
-| Full conversation-to-app dogfood can generate and review a local product artifact | `scripts/full_conversation_app_dogfood.py`, `docs/month1/full-conversation-app-dogfood.md` | `proved` |
+| Full conversation-to-app dogfood can generate and review a local product artifact | `scripts/full_conversation_app_dogfood.py`, `docs/month1/full-conversation-app-dogfood.md`, `docs/month1/full-conversation-app-dogfood-transcript.md` | `proved` |
 | FableFrame Studio is a concrete Month 1 proof app | `apps/fableframe-studio/`, `docs/month1/fableframe-product-proof.md`, `scripts/month1_product_app_qa.py` | `proved` |
 | Askuno is the first proof application | `packages/weave-tool/projects/askuno-runtime-proof/PROJECT.md`, `docs/month1/README.md` | `proved` |
 | The initial app is publicly accessible | `docs/month1/README.md` records the Askuno URL | `partial` |

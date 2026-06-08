@@ -51,7 +51,10 @@ Each stage requires a stage artifact and transcript turn before approval. KPI,
 Marketing, and Analysis deliberately introduce missing external credential
 requirements and pass only through owner credential deferral.
 
-The transcript is exported as reviewable conversation artifacts:
+The GitHub-reviewable scripted transcript is committed at
+[`full-conversation-app-dogfood-transcript.md`](full-conversation-app-dogfood-transcript.md).
+
+Each run also exports local runtime conversation artifacts:
 
 - `conversation-review.html`
 - `conversation.events.jsonl`
@@ -65,7 +68,8 @@ Command used during review:
 python3 -m py_compile scripts/full_conversation_app_dogfood.py \
   && python3 scripts/full_conversation_app_dogfood.py \
     --report-out /tmp/weave-full-conversation-app-dogfood.json \
-    --output-dir /tmp/weave-full-conversation-app-dogfood-artifacts
+    --output-dir /tmp/weave-full-conversation-app-dogfood-artifacts \
+    --transcript-out docs/month1/full-conversation-app-dogfood-transcript.md
 ```
 
 Observed result:
