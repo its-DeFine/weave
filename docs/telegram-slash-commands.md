@@ -23,28 +23,28 @@ the runtime command handler before Hermes sees it.
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `/start` | Show the deterministic WEAVE command surface. |
-| `/help` | List deterministic WEAVE commands. |
-| `/autonomy` | Show autonomy mode and hard approval gates. |
-| `/status` | Show the WEAVE wall: agent profile, active app, product app portfolio, attention items, runtime source state, and next action. |
-| `/status <app_id>` | Show the app wall: summary, lifecycle, current-stage requirements, missing inputs, tasks, decisions, recent work, blockers, agent profile, and next action. |
-| `/sources` | Show the runtime source map: canonical root, history surfaces, active/stale/missing state, and next unification action. |
-| `/apps` | List product apps, lifecycle stage per app, and attention state. System/tooling apps are hidden by default. |
-| `/apps --all` | Include system/tooling apps for maintenance review. |
-| `/app <app_id>` | Show one app wall. |
-| `/create_app <name>` | Create and select a product app workspace after Hermes/user confirmation. |
-| `/switch_app <app_id>` | Select the active product app for the Telegram UX. |
-| `/lifecycle [app_id]` | Show lifecycle rows, current-stage gate state, missing evidence, and next action. Defaults to the active app. |
-| `/stage [app_id]` | Show the current lifecycle stage and lifecycle row state. Defaults to the active app. |
-| `/requirements [app_id]` | Show current-stage requirements, missing inputs, questions, and credential blockers. Defaults to the active app. |
-| `/approve_stage [app_id] [stage] [--defer-credentials]` | Record owner approval for a lifecycle stage after foundation, prior-stage, artifact, blocker, and credential gates pass. |
-| `/advance [app_id]` | Advance to the next lifecycle stage after the current stage is owner-approved. |
-| `/blockers` | Show apps that need owner or Hermes action. |
-| `/changes [app_id]` | Show latest recorded changes for one app or all apps. |
-| `/transcript [app_id]` | Show recent raw app conversation turns: owner message, Hermes reply, rationale summary, artifact refs, event refs, lifecycle transition, and next action. Defaults to the active app. |
-| `/next` | Show the next deterministic owner-visible action. |
+| Command | Side effect | Purpose |
+|---|---|---|
+| `/start` | Read-only | Show the deterministic WEAVE command surface. |
+| `/help` | Read-only | List deterministic WEAVE commands. |
+| `/autonomy` | Read-only | Show autonomy mode and hard approval gates. |
+| `/status` | Read-only | Show the WEAVE wall: agent profile, active app, product app portfolio, attention items, runtime source state, and next action. |
+| `/status <app_id>` | Read-only | Show the app wall: summary, lifecycle, current-stage requirements, missing inputs, tasks, decisions, recent work, blockers, agent profile, and next action. |
+| `/sources` | Read-only | Show the runtime source map: canonical root, history surfaces, active/stale/missing state, and next unification action. |
+| `/apps` | Read-only | List product apps, lifecycle stage per app, and attention state. System/tooling apps are hidden by default. |
+| `/apps --all` | Read-only | Include system/tooling apps for maintenance review. |
+| `/app <app_id>` | Read-only | Show one app wall. |
+| `/create_app <name>` | Local state-changing | Create and select a product app workspace. |
+| `/switch_app <app_id>` | Local state-changing | Select the active product app for the Telegram UX. |
+| `/lifecycle [app_id]` | Read-only | Show lifecycle rows, current-stage gate state, missing evidence, and next action. Defaults to the active app. |
+| `/stage [app_id]` | Read-only | Show the current lifecycle stage and lifecycle row state. Defaults to the active app. |
+| `/requirements [app_id]` | Read-only | Show current-stage requirements, missing inputs, questions, and credential blockers. Defaults to the active app. |
+| `/approve_stage [app_id] [stage] [--defer-credentials]` | Local state-changing | Record owner approval for a lifecycle stage after foundation, prior-stage, artifact, blocker, and credential gates pass. |
+| `/advance [app_id]` | Local state-changing | Advance to the next lifecycle stage after the current stage is owner-approved. |
+| `/blockers` | Read-only | Show apps that need owner or Hermes action. |
+| `/changes [app_id]` | Read-only | Show latest recorded changes for one app or all apps. |
+| `/transcript [app_id]` | Read-only | Show recent raw app conversation turns: owner message, Hermes reply, rationale summary, artifact refs, event refs, lifecycle transition, and next action. Defaults to the active app. |
+| `/next` | Read-only | Show the next deterministic owner-visible action. |
 
 ## Accessing App Status
 

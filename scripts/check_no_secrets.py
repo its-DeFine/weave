@@ -116,9 +116,18 @@ def scan_file(path: Path) -> list[str]:
     for lineno, line in enumerate(text.splitlines(), 1):
         for pattern, label in PATTERNS:
             m = pattern.search(line)
-            if m:
-                hits.append(f"{path}:{lineno}:{label}:{m.group(0)[:60]!r}")
-                break  # one hit per line is enough
+            if not m:
+                continue
+            if label == "secret-assignment" and path.suffix == ".py":
+                lhs = m.group(1)
+                # The assignment pattern is for ENV-style keys. Lowercase Python
+                # locals such as token_configured/auth_token are not secret
+                # material; actual provider-shaped values are still caught by
+                # SECRET_VALUE_RE above.
+                if lhs != lhs.upper():
+                    continue
+            hits.append(f"{path}:{lineno}:{label}:{m.group(0)[:60]!r}")
+            break  # one hit per line is enough
     return hits
 
 

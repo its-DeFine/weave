@@ -237,6 +237,106 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("route_verification_owner: hermes", text)
             self.assertIn("secret_value_printed: false", text)
 
+    def test_help_alias_supports_top_level_and_command_topics(self) -> None:
+        output = io.StringIO()
+        rc = weave_cli.main(["help"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        self.assertIn("WEAVE command line", text)
+        self.assertIn("weave help [command]", text)
+        self.assertIn("weave eval --list", text)
+
+        output = io.StringIO()
+        rc = weave_cli.main(["help", "onboard"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        self.assertIn("--existing-hermes", text)
+        self.assertIn("--slash-only", text)
+
+    def test_eval_command_lists_contracts(self) -> None:
+        output = io.StringIO()
+        rc = weave_cli.main(["eval", "--list"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        self.assertIn("engineering", text)
+        self.assertIn("release-readiness", text)
+
+    def test_eval_command_prints_review_template(self) -> None:
+        output = io.StringIO()
+        rc = weave_cli.main(["eval", "engineering", "--review-template"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        template = json.loads(text)
+        self.assertEqual(template["stage"], "Engineering")
+        self.assertIn("correctness", template["scores"])
+
+    def test_existing_hermes_dry_run_is_mode_aware(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "onboard",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--existing-hermes",
+                    "--runtime-binary",
+                    "/usr/bin/hermes",
+                    "--dry-run",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("mode: existing Hermes attach", text)
+            self.assertIn("WEAVE will not install Hermes", text)
+            self.assertIn("would attach WEAVE plugin/config", text)
+            self.assertIn("bin/weave onboard --existing-hermes", text)
+            self.assertFalse((runtime_home / "runtime-profile.json").exists())
+
+    def test_attach_hermes_alias_reuses_existing_hermes_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "attach-hermes",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--runtime-binary",
+                    "/usr/bin/hermes",
+                    "--dry-run",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("mode: existing Hermes attach", text)
+            self.assertIn("bin/weave onboard --existing-hermes", text)
+
+    def test_doctor_reports_next_action_without_printing_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(["doctor", "--runtime-home", str(runtime_home)], output=output)
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Doctor", text)
+            self.assertIn("deterministic_layer_ready: false", text)
+            self.assertIn("secret_value_printed: false", text)
+            self.assertIn("bin/weave onboard", text)
+
+    def test_command_runs_deterministic_slash_command_locally(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(["command", "--runtime-home", str(runtime_home), "/status"], output=output)
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Status", text)
+            self.assertIn("deterministic", text.lower())
+            self.assertTrue((runtime_home / "weave-state" / "apps" / "registry.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

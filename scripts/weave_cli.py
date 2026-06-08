@@ -23,6 +23,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 
 import setup_gateway
 import setup_runtime
+import weave_eval
 import weave_hermes_setup
 
 
@@ -103,6 +104,9 @@ def resolve_runtime_paths(args: argparse.Namespace) -> argparse.Namespace:
         args.export_out = args.export_out.expanduser().resolve()
     if hasattr(args, "archive") and args.archive:
         args.archive = args.archive.expanduser().resolve()
+    if getattr(args, "existing_hermes", False):
+        args.local = True
+        args.install_hermes = False
     return args
 
 
@@ -180,9 +184,9 @@ def container_start_command(args: argparse.Namespace) -> list[str]:
     gateway_workdir = args.weave_root / "runtime" / "hermes-gateway"
     env_file = args.hermes_home / ".env"
     if not env_file.exists():
-        raise CliError("gateway env is missing; run weave onboard before weave start")
+        raise CliError("gateway env is missing; run bin/weave onboard before bin/weave start")
     if not gateway_workdir.exists():
-        raise CliError("gateway workdir is missing; run weave onboard before weave start")
+        raise CliError("gateway workdir is missing; run bin/weave onboard before bin/weave start")
     volume_flags: list[str] = []
     seen_mounts: set[str] = set()
     mount_specs = [
@@ -307,8 +311,96 @@ def status_container_runtime(args: argparse.Namespace, output: TextIO) -> int:
         print_line(output, f"- next: {payload.get('next_action', '')}")
     else:
         print_line(output, "- root_ready: false")
-        print_line(output, "- next: run weave onboard")
+        if hermes_setup["state"] == "needs_hermes_setup":
+            print_line(output, "- next: choose a setup mode")
+            print_line(output, "  - normal chat: finish Hermes setup, then run bin/weave onboard --hermes-ready")
+            print_line(output, "  - existing Hermes: run bin/weave onboard --existing-hermes --hermes-ready")
+            print_line(output, "  - deterministic only: run bin/weave onboard --slash-only")
+        else:
+            print_line(output, "- next: run bin/weave onboard")
     return 0
+
+
+def docker_status(container_name: str) -> str:
+    docker = shutil.which("docker")
+    if not docker:
+        return "unknown; docker unavailable"
+    result = run_process(
+        [
+            docker,
+            "ps",
+            "-a",
+            "--filter",
+            f"name={container_name}",
+            "--format",
+            "{{.Names}}\t{{.Status}}\t{{.Image}}",
+        ]
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        return f"error; {detail}"
+    text = result.stdout.strip()
+    return text or f"not_found; name={container_name}"
+
+
+def doctor(args: argparse.Namespace, output: TextIO) -> int:
+    hermes_setup = weave_hermes_setup.hermes_setup_status(args.hermes_home)
+    root_ready = setup_runtime.weave_runtime_slice.root_ready(args.weave_root)
+    plugin_path = args.hermes_home / "plugins" / setup_runtime.HERMES_PLUGIN_NAME / "plugin.yaml"
+    env_file = args.hermes_home / ".env"
+    token_configured = env_file.exists() and "TELEGRAM_BOT_TOKEN=" in env_file.read_text(encoding="utf-8", errors="ignore")
+
+    print_line(output, "WEAVE Doctor")
+    print_line(output, "")
+    print_line(output, "Runtime")
+    print_line(output, f"- runtime_home: {args.runtime_home} ({path_state(args.runtime_home)})")
+    print_line(output, f"- weave_root: {args.weave_root} ({path_state(args.weave_root)})")
+    print_line(output, f"- hermes_home: {args.hermes_home} ({path_state(args.hermes_home)})")
+    print_line(output, f"- runtime_profile: {args.profile_out} ({path_state(args.profile_out)})")
+    print_line(output, f"- deterministic_layer_ready: {str(root_ready).lower()}")
+    print_line(output, "")
+    print_line(output, "Hermes")
+    print_line(output, f"- setup_state: {hermes_setup['state']}")
+    print_line(output, f"- normal_chat_assumed_ready: {str(hermes_setup['normal_chat_assumed_ready']).lower()}")
+    print_line(output, f"- binary_found: {str(hermes_setup['binary']['found']).lower()}")
+    if hermes_setup["binary"].get("path"):
+        print_line(output, f"- binary_path: {hermes_setup['binary']['path']}")
+    print_line(output, f"- weave_plugin: {path_state(plugin_path)}")
+    print_line(output, "")
+    print_line(output, "Telegram/Gateway")
+    print_line(output, f"- gateway_env: {env_status(env_file)}")
+    print_line(output, f"- telegram_token_configured: {str(token_configured).lower()}")
+    print_line(output, f"- container: {docker_status(args.container_name)}")
+    print_line(output, "")
+    print_line(output, "Next")
+    if not root_ready:
+        if hermes_setup["state"] == "needs_hermes_setup":
+            print_line(output, "- normal chat: bin/weave onboard --hermes-ready after Hermes works")
+            print_line(output, "- existing Hermes attach: bin/weave onboard --existing-hermes --hermes-ready")
+            print_line(output, "- deterministic only: bin/weave onboard --slash-only")
+        else:
+            print_line(output, "- run bin/weave onboard")
+    elif not token_configured:
+        print_line(output, "- pair Telegram: bin/weave onboard --slash-only or bin/weave onboard --hermes-ready")
+    else:
+        print_line(output, "- inspect deterministic wall: bin/weave command /status")
+    print_line(output, "- secret_value_printed: false")
+    return 0
+
+
+def command_runtime(args: argparse.Namespace, output: TextIO) -> int:
+    text = " ".join(args.telegram_command).strip()
+    if not text:
+        raise CliError("command requires a deterministic WEAVE command, e.g. bin/weave command /status")
+    setup_runtime.weave_runtime_slice.setup_weave_root(args.weave_root)
+    response = setup_runtime.weave_runtime_slice.dispatch_telegram_command(args.weave_root, text)
+    if args.json:
+        print_line(output, json.dumps(response, indent=2, sort_keys=True))
+    else:
+        print_line(output, f"deterministic: {str(response.get('deterministic', False)).lower()}; llm_used: {str(response.get('llm_used', True)).lower()}")
+        print_line(output, "")
+        print_line(output, str(response.get("text", "")))
+    return 0 if response.get("handled") else 1
 
 
 def path_state(path: Path) -> str:
@@ -400,11 +492,11 @@ def print_hermes_setup_guidance(output: TextIO, hermes_home: Path) -> None:
     print_line(output, f"    HERMES_HOME={hermes_home} hermes setup --portal")
     print_line(output, f"    HERMES_HOME={hermes_home} hermes model")
     print_line(output, "  Confirm Hermes itself can chat, then rerun:")
-    print_line(output, "    weave onboard --hermes-ready")
+    print_line(output, "    bin/weave onboard --hermes-ready")
     print_line(output, "  Or record readiness directly:")
-    print_line(output, "    weave hermes confirm-ready")
+    print_line(output, "    bin/weave hermes confirm-ready")
     print_line(output, "  For deterministic Telegram commands only, rerun:")
-    print_line(output, "    weave onboard --slash-only")
+    print_line(output, "    bin/weave onboard --slash-only")
 
 
 def require_or_mark_hermes(args: argparse.Namespace, output: TextIO) -> dict[str, object]:
@@ -441,13 +533,33 @@ def onboard(
 
     print_step(output, 1, 6, "Hermes Setup", "Confirm normal Hermes setup before WEAVE normal chat.")
     if args.dry_run:
-        print_hermes_setup_guidance(output, args.hermes_home)
-        print_line(output, "  would require normal Hermes setup confirmation or explicit --slash-only")
+        if args.slash_only:
+            warn(output, "slash-only dry run: normal Hermes chat will remain blocked")
+            print_line(output, "  deterministic Telegram commands will be configured without normal-chat readiness")
+        elif args.existing_hermes:
+            print_line(output, "  mode: existing Hermes attach")
+            print_line(output, "  WEAVE will not install Hermes, mutate provider auth, start a service, or change autostart")
+            print_line(output, "  would require --hermes-ready once the selected Hermes profile can chat")
+        elif args.hermes_ready:
+            print_line(output, "  would record operator-confirmed Hermes readiness for this runtime home")
+        else:
+            print_hermes_setup_guidance(output, args.hermes_home)
+            print_line(output, "  would require normal Hermes setup confirmation or explicit --slash-only")
         print_step(output, 2, 6, "Runtime", "Create a local WEAVE root and Hermes gateway context.")
         warn(output, "dry run: no Telegram token will be requested or written")
-        if args.local:
+        if args.existing_hermes:
+            print_line(output, "  mode: existing Hermes attach")
+            print_line(output, "  would attach WEAVE plugin/config to the selected Hermes home")
+            if args.runtime_binary:
+                print_line(output, f"  would use Hermes binary: {args.runtime_binary}")
+            else:
+                print_line(output, "  would discover Hermes binary from PATH")
+        elif args.local:
             print_line(output, "  mode: local host install")
-            print_line(output, "  would check or install pinned Hermes on the host")
+            if args.install_hermes:
+                print_line(output, "  would install pinned Hermes into ignored local state")
+            else:
+                print_line(output, "  would use an existing host Hermes binary")
         else:
             print_line(output, "  mode: container")
             print_line(output, f"  would verify Docker and build image: {args.container_image}")
@@ -459,7 +571,18 @@ def onboard(
         warn(output, "stopped before token entry")
         print_line(output)
         print_line(output, "Continue later with:")
-        print_line(output, "  weave onboard")
+        continue_flags = []
+        if args.existing_hermes:
+            continue_flags.append("--existing-hermes")
+        if args.slash_only:
+            continue_flags.append("--slash-only")
+        elif args.hermes_ready:
+            continue_flags.append("--hermes-ready")
+        if args.local and not args.existing_hermes:
+            continue_flags.append("--local")
+        if args.install_hermes:
+            continue_flags.append("--install-hermes")
+        print_line(output, "  bin/weave onboard" + (" " + " ".join(continue_flags) if continue_flags else ""))
         return 0
 
     hermes_setup = require_or_mark_hermes(args, output)
@@ -468,7 +591,10 @@ def onboard(
 
     print_step(output, 2, 6, "Runtime", "Create a local WEAVE root and Hermes gateway context.")
     if args.local:
-        success(output, "local mode selected")
+        if getattr(args, "existing_hermes", False):
+            success(output, "existing Hermes attach selected; WEAVE will not install Hermes")
+        else:
+            success(output, "local mode selected")
     else:
         docker_binary()
         success(output, "Docker available")
@@ -536,9 +662,9 @@ def onboard(
         print_line(output, "    hermes gateway run")
     else:
         print_line(output, "  Start the containerized gateway:")
-        print_line(output, "    weave start")
+        print_line(output, "    bin/weave start")
         print_line(output, "  Inspect it:")
-        print_line(output, "    weave status")
+        print_line(output, "    bin/weave status")
 
     print_step(output, 6, 6, "Telegram Commands", "Use deterministic status before app work.")
     print_line(output, "  /start")
@@ -574,7 +700,7 @@ def add_json_to_tar(tar: tarfile.TarFile, arcname: str, payload: dict[str, objec
 
 def export_runtime(args: argparse.Namespace, output: TextIO) -> int:
     if not args.runtime_home.exists():
-        raise CliError("runtime home is missing; run weave onboard before exporting")
+        raise CliError("runtime home is missing; run bin/weave onboard before exporting")
     args.export_out.parent.mkdir(parents=True, exist_ok=True)
     excluded: list[str] = []
     included = 0
@@ -687,6 +813,29 @@ def verify_runtime(args: argparse.Namespace, output: TextIO) -> int:
     return 0 if required_ready else 1
 
 
+def eval_contract(args: argparse.Namespace, output: TextIO) -> int:
+    eval_args: list[str] = []
+    if args.eval_stage:
+        eval_args.append(args.eval_stage)
+    if args.list_eval_contracts:
+        eval_args.append("--list")
+    if args.contract_file:
+        eval_args.extend(["--contract-file", str(args.contract_file)])
+    if args.review_file:
+        eval_args.extend(["--review-file", str(args.review_file)])
+    if args.review_template:
+        eval_args.append("--review-template")
+    if args.artifact:
+        eval_args.extend(["--artifact", args.artifact])
+    if args.run_gates:
+        eval_args.append("--run-gates")
+    if args.strict:
+        eval_args.append("--strict")
+    if args.json:
+        eval_args.append("--json")
+    return weave_eval.main(eval_args, output=output)
+
+
 def hermes_command(args: argparse.Namespace, output: TextIO) -> int:
     if args.hermes_command_name in {None, "status"}:
         weave_hermes_setup.print_status(
@@ -723,6 +872,11 @@ def build_parser() -> argparse.ArgumentParser:
     onboard_parser.add_argument("--foundation-app-id", default=DEFAULT_APP_ID)
     onboard_parser.add_argument("--foundation-app-name", default=DEFAULT_APP_NAME)
     onboard_parser.add_argument("--runtime-binary", type=Path)
+    onboard_parser.add_argument(
+        "--existing-hermes",
+        action="store_true",
+        help="attach WEAVE deterministic state/plugin to an already working Hermes install; do not install Hermes",
+    )
     onboard_parser.add_argument("--local", action="store_true", help="install and run Hermes on the host instead of in a container")
     onboard_parser.add_argument("--install-hermes", action="store_true", help="with --local, install pinned Hermes into ignored local state")
     onboard_parser.add_argument("--hermes-extras", default="cli,messaging")
@@ -755,6 +909,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("start", "start the containerized Hermes gateway"),
         ("stop", "stop the containerized Hermes gateway"),
         ("status", "show containerized Hermes gateway status"),
+        ("doctor", "diagnose WEAVE setup and print the next exact action"),
     ):
         runtime_parser = subparsers.add_parser(name, help=help_text)
         runtime_parser.add_argument("--runtime-home", type=Path, default=None)
@@ -763,6 +918,25 @@ def build_parser() -> argparse.ArgumentParser:
         runtime_parser.add_argument("--profile-out", type=Path, default=None)
         runtime_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
         runtime_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
+
+    command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
+    command_parser.add_argument("--runtime-home", type=Path, default=None)
+    command_parser.add_argument("--weave-root", type=Path, default=None)
+    command_parser.add_argument("--hermes-home", type=Path, default=None)
+    command_parser.add_argument("--profile-out", type=Path, default=None)
+    command_parser.add_argument("--json", action="store_true", help="print the full deterministic response JSON")
+    command_parser.add_argument("telegram_command", nargs=argparse.REMAINDER, help="slash command, e.g. /status or /apps --all")
+
+    eval_parser = subparsers.add_parser("eval", help="run evidence-bound lifecycle or release-readiness evals")
+    eval_parser.add_argument("eval_stage", nargs="?", help="lifecycle stage or release-readiness")
+    eval_parser.add_argument("--list", dest="list_eval_contracts", action="store_true", help="list available eval contracts")
+    eval_parser.add_argument("--contract-file", type=Path, help="load an explicit eval contract file")
+    eval_parser.add_argument("--review-file", type=Path, help="JSON/YAML review with rubric scores and evidence")
+    eval_parser.add_argument("--review-template", action="store_true", help="print a review template for this contract")
+    eval_parser.add_argument("--artifact", default="current", help="artifact label/path being evaluated")
+    eval_parser.add_argument("--run-gates", action="store_true", help="execute command hard gates")
+    eval_parser.add_argument("--strict", action="store_true", help="exit non-zero unless decision can advance")
+    eval_parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
 
     export_parser = subparsers.add_parser("export-runtime", help="export reviewable runtime state without secrets")
     export_parser.add_argument("--runtime-home", type=Path, default=None)
@@ -800,6 +974,41 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def subparser_choices(parser: argparse.ArgumentParser) -> dict[str, argparse.ArgumentParser]:
+    for action in parser._actions:  # argparse exposes no public lookup for subcommands.
+        if isinstance(action, argparse._SubParsersAction):
+            return dict(action.choices)
+    return {}
+
+
+def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: TextIO) -> int:
+    if len(argv) == 1:
+        parser.print_help(output)
+        print_line(output, "")
+        print_line(output, "Convenience aliases:")
+        print_line(output, "  weave help [command]")
+        print_line(output, "  weave attach-hermes [onboard flags]  # alias for weave onboard --existing-hermes")
+        print_line(output, "  weave eval --list")
+        return 0
+    topic = argv[1]
+    if topic == "attach-hermes":
+        topic = "onboard"
+        print_line(output, "Alias: weave attach-hermes is weave onboard --existing-hermes")
+        print_line(output, "")
+    choices = subparser_choices(parser)
+    command_parser = choices.get(topic)
+    if command_parser is None:
+        raise CliError(f"unknown help topic: {argv[1]}")
+    command_parser.print_help(output)
+    return 0
+
+
+def normalize_alias_argv(argv: list[str]) -> list[str]:
+    if argv and argv[0] == "attach-hermes":
+        return ["onboard", "--existing-hermes", *argv[1:]]
+    return argv
+
+
 def main(
     argv: list[str] | None = None,
     *,
@@ -808,10 +1017,14 @@ def main(
     hidden_reader: Callable[[str], str] | None = None,
 ) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
-    if args.command:
-        args = resolve_runtime_paths(args)
+    argv_list = sys.argv[1:] if argv is None else list(argv)
     try:
+        if argv_list and argv_list[0] == "help":
+            return print_help_alias(parser, argv_list, output)
+        argv_list = normalize_alias_argv(argv_list)
+        args = parser.parse_args(argv_list)
+        if args.command:
+            args = resolve_runtime_paths(args)
         if args.command == "onboard":
             return onboard(args, input_stream=input_stream, output=output, hidden_reader=hidden_reader)
         if args.command == "start":
@@ -820,6 +1033,12 @@ def main(
             return stop_container_runtime(args, output)
         if args.command == "status":
             return status_container_runtime(args, output)
+        if args.command == "doctor":
+            return doctor(args, output)
+        if args.command == "command":
+            return command_runtime(args, output)
+        if args.command == "eval":
+            return eval_contract(args, output)
         if args.command == "export-runtime":
             return export_runtime(args, output)
         if args.command == "import-runtime":

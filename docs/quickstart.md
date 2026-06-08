@@ -1,9 +1,10 @@
 # WEAVE Quickstart
 
 The base validation path runs locally with no API keys and no network calls.
-Guided onboarding uses Docker to build a pinned Hermes runtime container from
-the public repository Dockerfile. Requires Python 3.9+, git, and Docker for the
-default runtime path.
+Guided onboarding supports four operator modes: managed container,
+existing-Hermes attach, slash-only deterministic commands, and host-local
+fallback. Requires Python 3.9+ and git; Docker is required only for the managed
+container path.
 
 ## 1. Clone
 
@@ -42,7 +43,59 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 All tests should pass. The suite exercises the package validator and the
 lifecycle dependency rules.
 
-## 4. Run guided onboarding
+## 4. Inspect lifecycle evals
+
+WEAVE uses evidence-bound eval contracts for every lifecycle stage. List them
+and generate an agent/human review template:
+
+```bash
+bin/weave eval --list
+bin/weave eval engineering --review-template
+```
+
+For release readiness, run hard gates and attach a completed review file:
+
+```bash
+bin/weave eval release-readiness --run-gates --review-file release-review.json
+```
+
+Hard gates can veto high rubric scores. Release readiness remains owner-gated
+even when all checks pass. See [Lifecycle Evals](lifecycle-evals.md).
+
+## 5. Choose a setup mode
+
+Use the doctor and dry-run commands before writing runtime state:
+
+```bash
+bin/weave help
+bin/weave doctor
+bin/weave onboard --dry-run
+```
+
+Pick one mode:
+
+- **Managed container:** `bin/weave onboard --hermes-ready` after Hermes normal
+  chat is verified. WEAVE builds and runs the pinned container gateway.
+- **Existing Hermes attach:** `bin/weave onboard --existing-hermes --hermes-ready`
+  or `bin/weave attach-hermes --hermes-ready`. WEAVE does not install Hermes or
+  mutate provider credentials; it creates deterministic WEAVE state and attaches
+  the `weave-runtime` plugin/config to the selected Hermes home.
+- **Slash-only deterministic:** `bin/weave onboard --slash-only`. Normal Hermes
+  chat remains blocked; deterministic Telegram commands work.
+- **Host-local fallback:** `bin/weave onboard --local --install-hermes` when you
+  want a pinned host-local Hermes checkout instead of a container.
+
+All normal setup modes create the deterministic WEAVE layer unless you call a
+script-level CI/testing flag such as `--check`, `--dry-run`, or
+`--skip-weave-root`.
+
+You can feel the deterministic command surface locally before Telegram pairing:
+
+```bash
+bin/weave command /status
+```
+
+## 6. Run guided onboarding
 
 ```bash
 bin/weave onboard
@@ -63,11 +116,11 @@ Step 1/6  Hermes Setup
     HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
     HERMES_HOME=runs/runtime-home/hermes-home hermes model
   Confirm Hermes itself can chat, then rerun:
-    weave onboard --hermes-ready
+    bin/weave onboard --hermes-ready
   Or record readiness directly:
-    weave hermes confirm-ready
+    bin/weave hermes confirm-ready
   For deterministic Telegram commands only, rerun:
-    weave onboard --slash-only
+    bin/weave onboard --slash-only
 ```
 
 After Hermes itself can chat, resume WEAVE setup:
@@ -140,7 +193,7 @@ bin/weave status
 bin/weave stop
 ```
 
-`weave start` launches a Docker container with the local WEAVE root, Hermes
+`bin/weave start` launches a Docker container with the local WEAVE root, Hermes
 home, and repository mounted in. Docker's `unless-stopped` restart policy makes
 the gateway restartable without installing host startup services.
 
@@ -211,7 +264,7 @@ confirmation prompts for non-gated local work. Hermes must still ask the owner
 through the Telegram LLM conversation before secrets, auth changes, public
 sends, paid or metered work, production/service changes, or destructive work.
 
-## 5. Run the runtime smoke
+## 7. Run the runtime smoke
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -255,7 +308,7 @@ provisioner contract, first-slice root/app/ledger contract, REST dispatch
 skeleton, and deterministic Telegram slash-command output. It imports nothing
 outside the standard library and makes no network calls.
 
-## 6. Inspect status from Telegram commands
+## 8. Inspect status from Telegram commands
 
 Optional: start the local REST skeleton first:
 
@@ -267,6 +320,12 @@ It binds to loopback, reads the ignored local WEAVE root, and requires the
 generated local bearer token. It exposes health, runtime status, apps, app
 state, events, artifacts, contract diff, and procedure feedback endpoints. It
 does not claim real Hermes execution.
+
+For the operational HTTP wrapper, run `python3 scripts/weave_runtime_http.py`.
+It also binds to the loopback interface by default and requires bearer auth from
+`<weave-root>/runtime/tokens/local-api-token`. Use
+`--allow-unauthenticated-local` only for explicit tests/dev runs; `/health`
+reports the active `transport.auth_policy`.
 
 Telegram is the status surface for this release. Normal messages go to Hermes.
 Slash commands are intercepted by the gateway and answered from deterministic
@@ -287,7 +346,7 @@ The response contract is `schema: weave-telegram-command/v0.1`,
 [Telegram Slash Commands](telegram-slash-commands.md) for the full command
 list and examples.
 
-## 7. Mission format
+## 9. Mission format
 
 A WEAVE mission is a markdown file with YAML front-matter. The required fields
 are:
@@ -306,7 +365,7 @@ are:
 A full worked example with body text lives at
 [docs/missions/MISSION_TEMPLATE.md](missions/MISSION_TEMPLATE.md).
 
-## 8. Lifecycle dry-run
+## 10. Lifecycle dry-run
 
 The main lifecycle stages a mission passes through, in order:
 
@@ -354,7 +413,7 @@ for t in tasks:
 EOF
 ```
 
-## Security check
+## 11. Security check
 
 Before committing any changes, scan for accidental secrets:
 

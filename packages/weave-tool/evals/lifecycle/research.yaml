@@ -1,0 +1,54 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "uncited claims",
+    "stale or irrelevant sources",
+    "unlabeled assumptions"
+  ],
+  "description": "Evaluate whether research evidence is credible enough to support a selection decision.",
+  "hard_gates": [
+    {
+      "description": "Research packet cites source references or explicit observed evidence.",
+      "id": "source_refs_present",
+      "kind": "manual"
+    },
+    {
+      "description": "Facts, assumptions, and opinions are labeled separately.",
+      "id": "facts_assumptions_split",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "source list",
+    "findings",
+    "assumptions",
+    "risk notes"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "source_quality",
+      "max_score": 4,
+      "question": "Are sources credible, current, and relevant?"
+    },
+    {
+      "id": "coverage",
+      "max_score": 4,
+      "question": "Does research cover the key alternatives, users, competitors, and constraints?"
+    },
+    {
+      "id": "risk_identification",
+      "max_score": 4,
+      "question": "Are major risks, unknowns, and disconfirming evidence named?"
+    },
+    {
+      "id": "decision_readiness",
+      "max_score": 4,
+      "question": "Is there enough evidence to choose or reject a direction?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "research",
+  "stage": "Research"
+}

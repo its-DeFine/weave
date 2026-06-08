@@ -55,8 +55,8 @@ def setup_commands(hermes_home: Path) -> list[str]:
     return [
         f"HERMES_HOME={home} hermes setup --portal",
         f"HERMES_HOME={home} hermes model",
-        "weave hermes confirm-ready",
-        "weave onboard --slash-only",
+        "bin/weave hermes confirm-ready",
+        "bin/weave onboard --slash-only",
     ]
 
 

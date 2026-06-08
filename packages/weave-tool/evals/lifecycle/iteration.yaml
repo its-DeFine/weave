@@ -1,0 +1,54 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "feedback not traceable",
+    "regression proof missing",
+    "iteration expands scope without approval"
+  ],
+  "description": "Evaluate whether feedback was converted into bounded improvements without regressions.",
+  "hard_gates": [
+    {
+      "description": "Each accepted change traces to feedback, KPI, or explicit owner request.",
+      "id": "feedback_trace_present",
+      "kind": "manual"
+    },
+    {
+      "description": "Iteration includes a regression check appropriate to the changed surface.",
+      "id": "regression_check_present",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "feedback source",
+    "change list",
+    "rejected requests",
+    "regression proof"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "feedback_mapping",
+      "max_score": 4,
+      "question": "Are changes tied to concrete feedback or metrics?"
+    },
+    {
+      "id": "change_focus",
+      "max_score": 4,
+      "question": "Is the iteration narrow rather than scope creep?"
+    },
+    {
+      "id": "regression_control",
+      "max_score": 4,
+      "question": "Were regressions checked?"
+    },
+    {
+      "id": "learning_capture",
+      "max_score": 4,
+      "question": "Were reusable lessons captured in docs/skills/memory as appropriate?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "iteration",
+  "stage": "Iteration"
+}

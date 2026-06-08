@@ -22,6 +22,7 @@ class PublicSafeRepoScanTests(unittest.TestCase):
 
     def test_allows_loopback_terms_in_explicit_local_proof_surfaces_only(self) -> None:
         for path in (
+            "scripts/weave_runtime_http.py",
             "scripts/live_hermes_lifecycle_qa.py",
             "scripts/weave_runtime_slice.py",
             "tests/test_live_hermes_lifecycle_qa.py",

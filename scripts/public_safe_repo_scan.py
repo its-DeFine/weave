@@ -37,6 +37,7 @@ SCAN_EXTENSIONS = {
 
 ALLOWLIST = {
     ("scripts/weave_runtime_api.py", "loopback-host"),
+    ("scripts/weave_runtime_http.py", "loopback-host"),
     ("scripts/live_hermes_lifecycle_qa.py", "loopback-host"),
     ("scripts/weave_runtime_slice.py", "loopback-host"),
     ("tests/test_live_hermes_lifecycle_qa.py", "loopback-host"),

@@ -45,12 +45,28 @@ To run the guided local onboarding flow from the repository root:
 bin/weave onboard
 ```
 
-This builds the pinned Hermes container image, writes a generated Hermes
+Recommended first inspection commands:
+
+```bash
+bin/weave help
+bin/weave doctor
+bin/weave eval --list
+bin/weave onboard --dry-run
+bin/weave command /status
+```
+
+WEAVE now has four explicit setup modes: managed container, existing-Hermes
+attach, slash-only deterministic commands, and host-local fallback. The default
+managed-container path builds the pinned Hermes image, writes a generated Hermes
 gateway workdir under ignored local state, and configures the deterministic
-Telegram command plugin. Start the live Telegram gateway with `bin/weave start`
-so Hermes loads the unskippable foundation onboarding gate before app work.
-Gateway setup also writes Hermes `terminal.cwd` and a runtime system prompt
-when gateway flags are supplied.
+Telegram command plugin. If Hermes already exists and can chat, use
+`bin/weave onboard --existing-hermes --hermes-ready` or
+`bin/weave attach-hermes --hermes-ready` to attach only the deterministic WEAVE
+state/plugin/config without installing Hermes or mutating provider auth. Start
+the live Telegram gateway with `bin/weave start` so Hermes loads the
+unskippable foundation onboarding gate before app work. Gateway setup also
+writes Hermes `terminal.cwd` and a runtime system prompt when gateway flags are
+supplied.
 
 To inspect or stop the containerized gateway:
 
@@ -107,6 +123,10 @@ prompt_packs: 1
 - Repository `bin/weave`: human-facing CLI launcher.
 - Repository `scripts/weave_cli.py`: guided onboarding CLI backed by the
   public-safe runtime setup scripts.
+- Repository `scripts/weave_eval.py`: evidence-bound lifecycle and
+  release-readiness eval runner.
+- `evals/lifecycle/*.yaml` and `evals/release_readiness.yaml`: stage-specific
+  hard gates, rubric dimensions, and decision contracts.
 - `scripts/validate_company_package.py`: local package validator.
 - Repository `scripts/setup_runtime.py`: local runtime profile and ignored
   WEAVE root setup, generated Hermes foundation onboarding workdir, and opt-in

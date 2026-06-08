@@ -50,6 +50,9 @@ DEFAULT_COMMAND_LEDGER = DEFAULT_STATE_DIR / "command-bus.jsonl"
 DEFAULT_CONVERSATION_LEDGER = DEFAULT_STATE_DIR / "conversation.jsonl"
 DEFAULT_EVENTS_LEDGER = DEFAULT_STATE_DIR / "events.jsonl"
 DEFAULT_LANE_CLAIMS_LEDGER = DEFAULT_STATE_DIR / "project-lane-claims.json"
+DEFAULT_HOST = "127.0.0.1"
+AUTH_POLICY_LOOPBACK_BEARER = "loopback_bearer"
+AUTH_POLICY_TEST_ONLY_NONE = "test_only_none"
 
 ALLOWED_COMMAND_TYPES = {
     "brief_stage_context",
@@ -308,12 +311,19 @@ class RuntimeState:
         conversation_ledger: Path,
         events_ledger: Path,
         lane_claims_ledger: Path,
+        *,
+        bind_host: str = DEFAULT_HOST,
+        auth_policy: str = AUTH_POLICY_TEST_ONLY_NONE,
+        auth_token: str | None = None,
     ) -> None:
         self.root = root
         self.command_ledger = command_ledger
         self.conversation_ledger = conversation_ledger
         self.events_ledger = events_ledger
         self.lane_claims_ledger = lane_claims_ledger
+        self.bind_host = bind_host
+        self.auth_policy = auth_policy
+        self.auth_token = auth_token
 
     def setup(self) -> None:
         weave_runtime_slice.setup_weave_root(self.root)
@@ -353,6 +363,12 @@ class RuntimeState:
                 "secrets": "rejected",
                 "payments": "blocked",
                 "paperclip": "excluded",
+            },
+            "transport": {
+                "bind_host": self.bind_host,
+                "auth_policy": self.auth_policy,
+                "auth_required": self.auth_policy != AUTH_POLICY_TEST_ONLY_NONE,
+                "cors_origin": "none" if self.auth_policy != AUTH_POLICY_TEST_ONLY_NONE else "*",
             },
             "execution": {
                 "executor_lane": "external_executor_required_for_mutating_work",
@@ -525,6 +541,20 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     def state(self) -> RuntimeState:
         return self.server.runtime_state  # type: ignore[attr-defined]
 
+    def authorized(self) -> bool:
+        if self.state.auth_policy == AUTH_POLICY_TEST_ONLY_NONE:
+            return True
+        if self.state.auth_policy == AUTH_POLICY_LOOPBACK_BEARER:
+            expected = f"Bearer {self.state.auth_token or ''}"
+            return bool(self.state.auth_token) and self.headers.get("Authorization") == expected
+        return False
+
+    def require_authorized(self) -> bool:
+        if self.authorized():
+            return True
+        self.respond(HTTPStatus.UNAUTHORIZED, {"ok": False, "error": "unauthorized", "auth_policy": self.state.auth_policy})
+        return False
+
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         return
 
@@ -536,6 +566,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         path = parsed.path
         params = parse_qs(parsed.query)
         self.state.setup()
+        if not self.require_authorized():
+            return
         if path == "/health":
             self.respond(HTTPStatus.OK, self.state.health())
             return
@@ -579,6 +611,9 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         path = parsed.path
+        self.state.setup()
+        if not self.require_authorized():
+            return
         body = self.read_json_body()
         if path in {"/", "/command", "/runtime-command"}:
             status, payload = self.state.append_legacy_command(body)
@@ -641,9 +676,10 @@ class RuntimeHandler(BaseHTTPRequestHandler):
 
     def respond(self, status: HTTPStatus, payload: dict[str, Any] | None) -> None:
         self.send_response(int(status))
-        self.send_header("access-control-allow-origin", "*")
+        if self.state.auth_policy == AUTH_POLICY_TEST_ONLY_NONE:
+            self.send_header("access-control-allow-origin", "*")
         self.send_header("access-control-allow-methods", "GET,POST,OPTIONS")
-        self.send_header("access-control-allow-headers", "content-type")
+        self.send_header("access-control-allow-headers", "content-type,authorization")
         self.send_header("cache-control", "no-store")
         if payload is None:
             self.end_headers()
@@ -661,23 +697,33 @@ class RuntimeHTTPServer(ThreadingHTTPServer):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--host", default=os.environ.get("WEAVE_RUNTIME_HOST", "0.0.0.0"))
+    parser.add_argument("--host", default=os.environ.get("WEAVE_RUNTIME_HOST", DEFAULT_HOST))
     parser.add_argument("--port", type=int, default=int(os.environ.get("WEAVE_RUNTIME_PORT", "18788")))
     parser.add_argument("--root", type=Path, default=DEFAULT_STATE_DIR)
     parser.add_argument("--command-ledger", type=Path, default=DEFAULT_COMMAND_LEDGER)
     parser.add_argument("--conversation-ledger", type=Path, default=DEFAULT_CONVERSATION_LEDGER)
     parser.add_argument("--events-ledger", type=Path, default=DEFAULT_EVENTS_LEDGER)
     parser.add_argument("--lane-claims-ledger", type=Path, default=DEFAULT_LANE_CLAIMS_LEDGER)
+    parser.add_argument("--auth-token-file", type=Path, default=None, help="bearer token file; defaults to <root>/runtime/tokens/local-api-token")
+    parser.add_argument("--allow-unauthenticated-local", action="store_true", help="test/dev only: disable bearer auth for this local service")
     args = parser.parse_args()
 
+    root = args.root.expanduser().resolve()
     state = RuntimeState(
-        root=args.root.expanduser().resolve(),
+        root=root,
         command_ledger=args.command_ledger.expanduser().resolve(),
         conversation_ledger=args.conversation_ledger.expanduser().resolve(),
         events_ledger=args.events_ledger.expanduser().resolve(),
         lane_claims_ledger=args.lane_claims_ledger.expanduser().resolve(),
+        bind_host=args.host,
+        auth_policy=AUTH_POLICY_TEST_ONLY_NONE if args.allow_unauthenticated_local else AUTH_POLICY_LOOPBACK_BEARER,
     )
     state.setup()
+    if state.auth_policy == AUTH_POLICY_LOOPBACK_BEARER:
+        token_file = (args.auth_token_file or (root / "runtime" / "tokens" / "local-api-token")).expanduser().resolve()
+        state.auth_token = token_file.read_text(encoding="utf-8").strip() if token_file.exists() else ""
+        if not state.auth_token:
+            raise SystemExit(f"auth token missing at {token_file}; rerun setup or use --allow-unauthenticated-local for tests")
     server = RuntimeHTTPServer((args.host, args.port), RuntimeHandler)
     server.runtime_state = state
     print(json.dumps({"schema": SERVICE_SCHEMA, "event": "started", "host": args.host, "port": args.port, "root": str(state.root)}, sort_keys=True))

@@ -5,6 +5,10 @@ This `docs/` tree is the public documentation subset for WEAVE.
 ## Current public docs
 
 - [Replication Architecture](replication-architecture.md)
+- [WEAVE Quickstart](quickstart.md)
+- [Telegram Slash Commands](telegram-slash-commands.md)
+- [Lifecycle Evals](lifecycle-evals.md)
+- [Runtime Home Contract](runtime-home.md)
 - [Hermes Runtime Setup](hermes-setup.md)
 - [Hermes Runtime Handover](hermes-runtime-handover-2026-05-30.md)
 - [WEAVE Runtime Architecture Contract v0.1](weave-runtime-architecture-contract-v0.1.md)
