@@ -13,7 +13,8 @@ Important boundary: this proves transcript capture for a scripted run; it does n
 ### 1. Intent
 
 - Stage ID: `intent`
-- Proof artifact: `apps/pocket-orchard/lifecycle/01-intent/artifacts/intent-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/01-intent/artifacts/intent-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/01-intent/artifacts/intent-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/01-intent/artifacts/intent-proof.md)
 
 **Owner:**
 
@@ -27,14 +28,15 @@ I will treat this as a real app-production run, not a demo of folders. The first
 
 - Rationale summary: Intent Contract is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/01-intent/artifacts/intent-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/01-intent/artifacts/intent-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/01-intent/artifacts/intent-proof.md`.
 - State transition: `intent` collecting -> ready_for_review.
 - Next action: Owner reviews Intent evidence and approves or requests revision.
 
 ### 2. Research
 
 - Stage ID: `research`
-- Proof artifact: `apps/pocket-orchard/lifecycle/02-research/artifacts/research-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/02-research/artifacts/research-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/02-research/artifacts/research-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/02-research/artifacts/research-proof.md)
 
 **Owner:**
 
@@ -48,14 +50,15 @@ The useful core is conversion from vague ideas into ranked actions. The garden m
 
 - Rationale summary: Research Notes is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/02-research/artifacts/research-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/02-research/artifacts/research-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/02-research/artifacts/research-proof.md`.
 - State transition: `research` collecting -> ready_for_review.
 - Next action: Owner reviews Research evidence and approves or requests revision.
 
 ### 3. Selection / Selected Approach
 
 - Stage ID: `selection`
-- Proof artifact: `apps/pocket-orchard/lifecycle/03-selection/artifacts/selection-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/03-selection/artifacts/selection-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/03-selection/artifacts/selection-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/03-selection/artifacts/selection-proof.md)
 
 **Owner:**
 
@@ -69,14 +72,15 @@ I choose a dependency-free static app: one HTML file, one JS file, one CSS file,
 
 - Rationale summary: Selection Matrix is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/03-selection/artifacts/selection-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/03-selection/artifacts/selection-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/03-selection/artifacts/selection-proof.md`.
 - State transition: `selection` collecting -> ready_for_review.
 - Next action: Owner reviews Selection / Selected Approach evidence and approves or requests revision.
 
 ### 4. Plan
 
 - Stage ID: `plan`
-- Proof artifact: `apps/pocket-orchard/lifecycle/04-plan/artifacts/plan-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/04-plan/artifacts/plan-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/04-plan/artifacts/plan-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/04-plan/artifacts/plan-proof.md)
 
 **Owner:**
 
@@ -90,14 +94,15 @@ I will create index.html, src/app.js, src/styles.css, public/config.json, and RE
 
 - Rationale summary: Implementation Plan is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/04-plan/artifacts/plan-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/04-plan/artifacts/plan-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/04-plan/artifacts/plan-proof.md`.
 - State transition: `plan` collecting -> ready_for_review.
 - Next action: Owner reviews Plan evidence and approves or requests revision.
 
 ### 5. Engineering
 
 - Stage ID: `engineering`
-- Proof artifact: `apps/pocket-orchard/lifecycle/05-engineering/artifacts/engineering-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/05-engineering/artifacts/engineering-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/05-engineering/artifacts/engineering-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/05-engineering/artifacts/engineering-proof.md)
 
 **Owner:**
 
@@ -111,7 +116,7 @@ I generated Pocket Orchard as a static app with editable seeds, a prioritized ac
 
 - Rationale summary: Engineering Output Index is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/05-engineering/artifacts/engineering-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/05-engineering/artifacts/engineering-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/05-engineering/artifacts/engineering-proof.md`.
 - State transition: `engineering` collecting -> ready_for_review.
 - Next action: Owner reviews Engineering evidence and approves or requests revision.
 - Generated source refs: `index.html`, `src/app.js`, `src/styles.css`, `public/config.json`, `README.md`.
@@ -119,7 +124,8 @@ I generated Pocket Orchard as a static app with editable seeds, a prioritized ac
 ### 6. QA
 
 - Stage ID: `qa`
-- Proof artifact: `apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/06-qa/artifacts/qa-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/06-qa/artifacts/qa-proof.md)
 
 **Owner:**
 
@@ -133,15 +139,16 @@ Local QA verifies required files, JavaScript syntax, export schema, disabled ext
 
 - Rationale summary: QA Proof is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/06-qa/artifacts/qa-proof.md`.
 - State transition: `qa` collecting -> ready_for_review.
 - Next action: Owner reviews QA evidence and approves or requests revision.
-- QA proof ref: `apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-checks.json`.
+- QA proof ref: `apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-checks.json`; committed mirror [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/06-qa/artifacts/qa-checks.json`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/06-qa/artifacts/qa-checks.json).
 
 ### 7. KPI Setup
 
 - Stage ID: `kpi`
-- Proof artifact: `apps/pocket-orchard/lifecycle/07-kpi/artifacts/kpi-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/07-kpi/artifacts/kpi-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/07-kpi/artifacts/kpi-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/07-kpi/artifacts/kpi-proof.md)
 
 **Owner:**
 
@@ -155,7 +162,7 @@ The beta KPI model should measure completed plan exports, number of ideas entere
 
 - Rationale summary: KPI Setup is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/07-kpi/artifacts/kpi-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/07-kpi/artifacts/kpi-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/07-kpi/artifacts/kpi-proof.md`.
 - State transition: `kpi` collecting -> ready_for_review.
 - Next action: Owner reviews KPI Setup evidence and approves or requests revision.
 - Credential gate: real external credentials are absent and explicitly owner-deferred for this local proof.
@@ -163,7 +170,8 @@ The beta KPI model should measure completed plan exports, number of ideas entere
 ### 8. Marketing
 
 - Stage ID: `marketing`
-- Proof artifact: `apps/pocket-orchard/lifecycle/08-marketing/artifacts/marketing-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/08-marketing/artifacts/marketing-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/08-marketing/artifacts/marketing-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/08-marketing/artifacts/marketing-proof.md)
 
 **Owner:**
 
@@ -177,7 +185,7 @@ The promise is: turn three messy ideas into a tiny orchard of prioritized action
 
 - Rationale summary: Marketing Review Draft is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/08-marketing/artifacts/marketing-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/08-marketing/artifacts/marketing-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/08-marketing/artifacts/marketing-proof.md`.
 - State transition: `marketing` collecting -> ready_for_review.
 - Next action: Owner reviews Marketing evidence and approves or requests revision.
 - Credential gate: real external credentials are absent and explicitly owner-deferred for this local proof.
@@ -185,7 +193,8 @@ The promise is: turn three messy ideas into a tiny orchard of prioritized action
 ### 9. Iteration
 
 - Stage ID: `iteration`
-- Proof artifact: `apps/pocket-orchard/lifecycle/09-iteration/artifacts/iteration-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/09-iteration/artifacts/iteration-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/09-iteration/artifacts/iteration-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/09-iteration/artifacts/iteration-proof.md)
 
 **Owner:**
 
@@ -199,14 +208,15 @@ The iteration is to make the plan output more prominent than the garden copy: le
 
 - Rationale summary: Iteration Note is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/09-iteration/artifacts/iteration-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/09-iteration/artifacts/iteration-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/09-iteration/artifacts/iteration-proof.md`.
 - State transition: `iteration` collecting -> ready_for_review.
 - Next action: Owner reviews Iteration evidence and approves or requests revision.
 
 ### 10. Analysis
 
 - Stage ID: `analysis`
-- Proof artifact: `apps/pocket-orchard/lifecycle/10-analysis/artifacts/analysis-proof.md`
+- Runtime proof artifact: `apps/pocket-orchard/lifecycle/10-analysis/artifacts/analysis-proof.md`
+- Committed artifact mirror: [`artifacts/full-conversation-app-dogfood/lifecycle-artifacts/10-analysis/artifacts/analysis-proof.md`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/10-analysis/artifacts/analysis-proof.md)
 
 **Owner:**
 
@@ -220,7 +230,7 @@ WEAVE is good at explicit gates, evidence capture, and local app proof. It still
 
 - Rationale summary: Outcome Analysis is ready for owner review with linked proof artifact.
 - Gate checks: foundation gate passed; stage artifact present; owner approval required.
-- Artifact refs: `apps/pocket-orchard/lifecycle/10-analysis/artifacts/analysis-proof.md`.
+- Artifact refs: `apps/pocket-orchard/lifecycle/10-analysis/artifacts/analysis-proof.md`; committed mirror `artifacts/full-conversation-app-dogfood/lifecycle-artifacts/10-analysis/artifacts/analysis-proof.md`.
 - State transition: `analysis` collecting -> ready_for_review.
 - Next action: Owner reviews Analysis evidence and approves or requests revision.
 - Credential gate: real external credentials are absent and explicitly owner-deferred for this local proof.
@@ -232,6 +242,8 @@ A successful run exports these local runtime artifacts:
 - `conversation-review.html`
 - `conversation.events.jsonl`
 - `conversation-report.json`
+
+The current PR also includes the committed review bundle at [`artifacts/full-conversation-app-dogfood/`](artifacts/full-conversation-app-dogfood/), including the generated app, lifecycle artifacts, conversation review HTML/JSONL, full report JSON, and holistic review JSON.
 
 Those exported files include generated timestamps, turn IDs, event IDs, checksums, and runtime event ordering. They are regenerated by:
 

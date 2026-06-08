@@ -20,7 +20,9 @@ Telegram, external providers, hosting, analytics, payments, or public channels.
 It generates a proof app called **Pocket Orchard** from a scripted owner/Hermes
 conversation.
 
-Generated review artifacts are written under the operator's local Codex artifact
+The current GitHub-reviewable artifact bundle is committed at
+[`artifacts/full-conversation-app-dogfood/`](artifacts/full-conversation-app-dogfood/).
+Fresh runs write review artifacts under the operator's local Codex artifact
 directory unless `--report-out` or `--output-dir` is supplied.
 
 ## Produced App
@@ -60,6 +62,14 @@ Each run also exports local runtime conversation artifacts:
 - `conversation.events.jsonl`
 - `conversation-report.json`
 
+The committed review bundle contains:
+
+- [`full-conversation-app-dogfood-report.json`](artifacts/full-conversation-app-dogfood/full-conversation-app-dogfood-report.json)
+- [`conversation-review/`](artifacts/full-conversation-app-dogfood/conversation-review/)
+- [`generated-app/`](artifacts/full-conversation-app-dogfood/generated-app/)
+- [`lifecycle-artifacts/`](artifacts/full-conversation-app-dogfood/lifecycle-artifacts/)
+- [`holistic-review.json`](artifacts/full-conversation-app-dogfood/holistic-review.json)
+
 ## Latest Verified Local Run
 
 Command used during review:
@@ -82,6 +92,7 @@ Observed result:
 - QA checks: 8
 - Transcript: 10 turns, 80 events
 - Generated app files: 5
+- Lifecycle artifact files: 11
 
 Additional browser inspection served the generated app locally and verified that:
 

@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEAVE Conversation Review - Pocket Orchard</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;margin:0;background:#f7f4ed;color:#1c1b18;line-height:1.45}
+main{max-width:1080px;margin:0 auto;padding:32px 20px 60px}
+header{border-bottom:2px solid #24221f;padding-bottom:18px;margin-bottom:24px}
+h1{font-size:30px;margin:0 0 10px}h2{font-size:22px;margin:0 0 12px}h3{font-size:16px;margin:18px 0 8px}h4{font-size:14px;margin:14px 0 6px}
+.summary,.turn{background:#fff;border:1px solid #d8d0c2;border-radius:8px;padding:18px;margin:16px 0}
+.meta{display:grid;grid-template-columns:150px 1fr;gap:6px 14px}.meta dt{font-weight:700}.meta dd{margin:0}
+.message-meta{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;margin:0 0 8px;font-size:13px;color:#50483e}.message-meta dt{font-weight:700}.message-meta dd{margin:0}
+.review-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0 0}.guide-card{border:1px solid #d8d0c2;border-radius:8px;padding:12px;background:#fbf8f1}.guide-card strong{display:block;margin-bottom:4px}
+.lifecycle-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 12px;margin:12px 0 0;padding-left:18px}.lifecycle-legend li{padding:2px 0}.lifecycle-legend span{margin-left:6px}
+.artifact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.artifact-card{border:1px solid #d8d0c2;border-radius:8px;padding:12px;background:#fbf8f1}.artifact-card h4{font-size:14px;margin:0 0 8px;overflow-wrap:anywhere}.artifact-actions{margin:0 0 8px}.button-link{display:inline-block;border:1px solid #24221f;border-radius:6px;padding:4px 8px;text-decoration:none;color:#24221f;background:#fff}.artifact-meta{display:flex;flex-wrap:wrap;gap:6px;margin:0;color:#5c5348;font-size:12px}.artifact-meta span{background:#eee6d8;border-radius:999px;padding:2px 7px}.artifact-preview{margin-top:10px}
+.gate-summary{display:grid;grid-template-columns:220px 1fr;gap:4px 10px;margin:0 0 10px}.gate-summary dt{font-weight:700}.gate-summary dd{margin:0}.raw-json{margin-top:8px}.raw-json summary,.artifact-preview summary{cursor:pointer;color:#4d3b1f;font-weight:700}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#161614;color:#f7f4ed;border-radius:6px;padding:12px;margin:0;font-size:14px}
+code{background:#eee6d8;padding:1px 4px;border-radius:4px}.empty{color:#6b6256}ul{margin-top:6px}
+a{color:#2f4f8f}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>WEAVE Conversation Review: Pocket Orchard</h1>
+<p>Human-readable projection of the validated transcript. The canonical raw records remain JSONL.</p>
+</header>
+<section class="summary">
+<h2>Review Summary</h2>
+<dl class="meta">
+<dt>App</dt><dd>Pocket Orchard (<code>pocket-orchard</code>)</dd>
+<dt>Generated</dt><dd>2026-06-08T11:25:17Z</dd>
+<dt>Turns</dt><dd>10</dd>
+<dt>Events</dt><dd>80</dd>
+<dt>Turn ledger</dt><dd><code>apps/pocket-orchard/ledger/conversation-turns.jsonl</code></dd>
+<dt>Event ledger</dt><dd><code>apps/pocket-orchard/ledger/conversation-events.jsonl</code></dd>
+<dt>Agent</dt><dd>model=unknown; reasoning=unknown; adapter=unknown; prompt_pack=hermes-gestalt-runtime-pack</dd>
+<dt>Rationale policy</dt><dd>Owner-reviewable summaries only; hidden model chain-of-thought is not captured.</dd>
+</dl>
+<div class="review-guide">
+<p class="guide-card"><strong>Owner questions</strong>Hermes gate questions are for the owner when the agent needs clarification or a decision.</p>
+<p class="guide-card"><strong>Runtime proof</strong>Runtime gate snapshots are deterministic checks. They are evidence, not prose.</p>
+<p class="guide-card"><strong>Artifacts</strong>Use artifact cards to open the exact files created or used by each turn.</p>
+<p class="guide-card"><strong>State movement</strong>State transitions show what changed after the turn and why.</p>
+</div>
+<h3>Lifecycle Legend</h3>
+<ol class="lifecycle-legend"><li><code>intent</code><span>Intent</span></li><li><code>research</code><span>Research</span></li><li><code>selection</code><span>Selection / Selected Approach</span></li><li><code>plan</code><span>Plan</span></li><li><code>engineering</code><span>Engineering</span></li><li><code>qa</code><span>QA</span></li><li><code>kpi</code><span>KPI Setup</span></li><li><code>marketing</code><span>Marketing</span></li><li><code>iteration</code><span>Iteration</span></li><li><code>analysis</code><span>Analysis</span></li></ol>
+</section>
+<section class="turn" id="turn-d52da207dbde1b2e479e8fc8">
+<h2>Turn 1: Intent - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Intent</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:16Z</dd>
+<dt>Turn id</dt><dd><code>d52da207dbde1b2e479e8fc8</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>I want to see if WEAVE can really make an app from conversation. Build something small called Pocket Orchard: I give it three rough ideas, it turns them into a daily action plan, and I can export the result. Keep it local-only; no deploy, no payments, no fake traction.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>I will treat this as a real app-production run, not a demo of folders. The first proof will be a static browser app with three idea seeds, a growth/planning interaction, and exportable JSON. External launch, analytics, and monetization stay blocked until owner approval.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Intent Contract is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Is the app named?</li><li>Is the local-only boundary explicit?</li><li>Is success observable in the product?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>named app</li><li>three-idea input</li><li>local-only/product-proof boundary</li><li>stage artifact: apps/pocket-orchard/lifecycle/01-intent/artifacts/intent-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/01-intent/artifacts/intent-proof.md">apps/pocket-orchard/lifecycle/01-intent/artifacts/intent-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/01-intent/artifacts/intent-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>230 bytes</span><span><code>sha256:5d4bddd020e972f7e80031bfbb08660b48505c81b45883d9317c22315f8f76ca</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Intent Contract
+
+Status: complete
+
+Intent: create Pocket Orchard as a local static product proof. The app must accept three ideas, transform them into an action plan, expose reviewable state, and avoid any external side effect.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;intent&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Intent Contract proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;intent&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Intent evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-5ba47bb3ae983833f0b29c00">
+<h2>Turn 2: Research - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Research</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:16Z</dd>
+<dt>Turn id</dt><dd><code>5ba47bb3ae983833f0b29c00</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Before choosing the shape, check what would make this useful instead of cute. I need a founder to leave with an actual plan, not just a garden metaphor.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>The useful core is conversion from vague ideas into ranked actions. The garden metaphor should be a thin interaction layer over practical outputs: priority, next step, expected effort, and export. A static app is enough for this proof; storage can be in memory for the run.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Research Notes is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>What makes it useful?</li><li>Can static-first prove enough?</li><li>What is the main fake-product risk?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>action-plan utility</li><li>static-first sufficient</li><li>metaphor must not hide weak output</li><li>stage artifact: apps/pocket-orchard/lifecycle/02-research/artifacts/research-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/02-research/artifacts/research-proof.md">apps/pocket-orchard/lifecycle/02-research/artifacts/research-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/02-research/artifacts/research-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>239 bytes</span><span><code>sha256:7256c0e50c7e3eea245e6aad92a0e59dd5f9504171e1f991bebbf4d1ca55357e</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Research Notes
+
+Status: complete
+
+Research conclusion: usefulness depends on practical action-plan output, not visual novelty. A static app can prove the first session if it shows ranking, next actions, and export without backend state.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;research&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Research Notes proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;research&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Research evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-b827d7dc4896ffd653dd6a4a">
+<h2>Turn 3: Selection / Selected Approach - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Selection / Selected Approach</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:16Z</dd>
+<dt>Turn id</dt><dd><code>b827d7dc4896ffd653dd6a4a</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Choose the smallest version that still proves the point. I do not want a giant framework; I want the app to be inspectable and obviously made from the conversation.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>I choose a dependency-free static app: one HTML file, one JS file, one CSS file, and a config JSON. It will include sample seed ideas, allow editing, generate prioritized daily actions, and export the current plan. I reject auth, database, network APIs, and payment for this proof.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Selection Matrix is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Is the chosen stack small enough?</li><li>Were rejected paths explicit?</li><li>Does the app still feel real?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>dependency-free static app</li><li>backend rejected</li><li>external APIs rejected</li><li>stage artifact: apps/pocket-orchard/lifecycle/03-selection/artifacts/selection-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/03-selection/artifacts/selection-proof.md">apps/pocket-orchard/lifecycle/03-selection/artifacts/selection-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/03-selection/artifacts/selection-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>249 bytes</span><span><code>sha256:55468c3958fd3f7284309b8457c54717f85a33e6d4f86afbffd01be9ad96bb55</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Selection Matrix
+
+Status: complete
+
+Selected direction: dependency-free static browser app. Rejected options: backend account system, external LLM calls, live analytics, and checkout. Selection optimizes inspectability and end-to-end local proof.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;selection&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Selection Matrix proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;selection&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Selection / Selected Approach evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-6f673994c23461dc991716e1">
+<h2>Turn 4: Plan - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Plan</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:16Z</dd>
+<dt>Turn id</dt><dd><code>6f673994c23461dc991716e1</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Plan it in files and checks. Tell me what will be created, what will be tested, and where WEAVE should stop.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>I will create index.html, src/app.js, src/styles.css, public/config.json, and README.md. Checks will verify required files, JS syntax, disabled external actions, export schema, and transcript/lifecycle evidence. I stop before deploy, analytics, public marketing, or payments.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Implementation Plan is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Are files named?</li><li>Are checks named?</li><li>Are non-goals explicit?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>file-level plan</li><li>test plan</li><li>hard stop boundaries</li><li>stage artifact: apps/pocket-orchard/lifecycle/04-plan/artifacts/plan-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/04-plan/artifacts/plan-proof.md">apps/pocket-orchard/lifecycle/04-plan/artifacts/plan-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/04-plan/artifacts/plan-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>268 bytes</span><span><code>sha256:b592cf29e78594fd6645c10501b6b56b2a43b359840db1073bc7889ee3d2b3fd</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Implementation Plan
+
+Status: complete
+
+Plan: generate a static app, verify file presence and JavaScript syntax, record lifecycle proof artifacts, export the transcript review, and write a holistic post-run review. Non-goals: deploy, analytics, payment, public send.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;plan&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Implementation Plan proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;plan&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Plan evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-7de86859dbc845531c908a78">
+<h2>Turn 5: Engineering - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Engineering</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:16Z</dd>
+<dt>Turn id</dt><dd><code>7de86859dbc845531c908a78</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Now actually make the app. The output should show the three ideas, turn them into action rows, and let me export the plan.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>I generated Pocket Orchard as a static app with editable seeds, a prioritized action plan, local-only state, and a JSON export button. The source is dependency-free and the config keeps deploy, analytics, and payments disabled.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Engineering Output Index is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Were app files actually generated?</li><li>Does source match the plan?</li><li>Are external actions disabled?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>generated app source</li><li>deterministic plan logic</li><li>external actions disabled</li><li>stage artifact: apps/pocket-orchard/lifecycle/05-engineering/artifacts/engineering-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/05-engineering/artifacts/engineering-proof.md">apps/pocket-orchard/lifecycle/05-engineering/artifacts/engineering-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/05-engineering/artifacts/engineering-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>537 bytes</span><span><code>sha256:3169ab31ce46c643746113ccb36d0469653f9a75505b340d5db757c444a30e7f</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Engineering Output Index
+
+Status: complete
+
+Engineering produced the app source and source index. The generated app contains editable idea seeds, deterministic plan generation, exportable JSON, and disabled external surfaces.
+
+```json
+{
+  &quot;generated_files&quot;: [
+    &quot;apps/pocket-orchard/repo/primary/README.md&quot;,
+    &quot;apps/pocket-orchard/repo/primary/index.html&quot;,
+    &quot;apps/pocket-orchard/repo/primary/public/config.json&quot;,
+    &quot;apps/pocket-orchard/repo/primary/src/app.js&quot;,
+    &quot;apps/pocket-orchard/repo/primary/src/styles.css&quot;
+  ]
+}
+```</pre></details>
+</article><article class="artifact-card">
+<h4><a href="../../repo/primary/README.md">apps/pocket-orchard/repo/primary/README.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../repo/primary/README.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>generated-app-source</span><span>exists</span><span>138 bytes</span><span><code>sha256:6efae16ba9d84af09636cb1780ec0c1b0dfc830051f2e8491b8a5b1ea797ec9b</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Pocket Orchard
+
+Local-only static app generated by the full conversation dogfood.
+
+No deploy, analytics, or payment surface is enabled.</pre></details>
+</article><article class="artifact-card">
+<h4><a href="../../repo/primary/index.html">apps/pocket-orchard/repo/primary/index.html</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../repo/primary/index.html">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>generated-app-source</span><span>exists</span><span>1378 bytes</span><span><code>sha256:6f40a32a6be31df14e11de204421a830e5e54525593c7558082268e9e99dba60</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre>&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;utf-8&quot; /&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot; /&gt;
+  &lt;title&gt;Pocket Orchard&lt;/title&gt;
+  &lt;link rel=&quot;stylesheet&quot; href=&quot;src/styles.css&quot; /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;main class=&quot;shell&quot;&gt;
+    &lt;section class=&quot;hero&quot;&gt;
+      &lt;p class=&quot;eyebrow&quot;&gt;Local product proof&lt;/p&gt;
+      &lt;h1&gt;Pocket Orchard&lt;/h1&gt;
+      &lt;p&gt;Turn three rough ideas into a tiny, prioritized action plan.&lt;/p&gt;
+    &lt;/section&gt;
+    &lt;section class=&quot;panel&quot; aria-labelledby=&quot;seed-heading&quot;&gt;
+      &lt;h2 id=&quot;seed-heading&quot;&gt;Idea seeds&lt;/h2&gt;
+      &lt;label&gt;Seed 1 &lt;input id=&quot;seed-one&quot; value=&quot;Interview three users about onboarding friction&quot; /&gt;&lt;/label&gt;
+      &lt;label&gt;Seed 2 &lt;input id=&quot;seed-two&quot; value=&quot;Prototype a calmer dashboard for daily focus&quot; /&gt;&lt;/label&gt;
+      &lt;label&gt;Seed 3 &lt;input id=&quot;seed-three&quot; value=&quot;Package the best workflow as a paid template later&quot; /&gt;&lt;/label&gt;
+      &lt;button id=&quot;grow-plan&quot; type=&quot;button&quot;&gt;Grow plan&lt;/button&gt;
+      &lt;button id=&quot;export-plan&quot; type=&quot;button&quot;&gt;Export JSON&lt;/button&gt;
+    &lt;/section&gt;
+    &lt;section class=&quot;panel&quot; aria-live=&quot;polite&quot;&gt;
+      &lt;h2&gt;Daily action plan&lt;/h2&gt;
+      &lt;ol id=&quot;plan-list&quot;&gt;&lt;/ol&gt;
+      &lt;pre id=&quot;export-output&quot; aria-label=&quot;Exported plan JSON&quot;&gt;&lt;/pre&gt;
+    &lt;/section&gt;
+    &lt;p class=&quot;boundary&quot;&gt;Local-only proof: analytics, hosting, and payments are disabled.&lt;/p&gt;
+  &lt;/main&gt;
+  &lt;script src=&quot;src/app.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre></details>
+</article><article class="artifact-card">
+<h4><a href="../../repo/primary/public/config.json">apps/pocket-orchard/repo/primary/public/config.json</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../repo/primary/public/config.json">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>generated-app-source</span><span>exists</span><span>135 bytes</span><span><code>sha256:afd34688b70161abeae54413aced12dc5020747235d077d91de0c7ea76c95e66</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre>{
+  &quot;analyticsEnabled&quot;: false,
+  &quot;hostingStatus&quot;: &quot;local-only&quot;,
+  &quot;paymentsEnabled&quot;: false,
+  &quot;schema&quot;: &quot;pocket-orchard-config/v0.1&quot;
+}</pre></details>
+</article><article class="artifact-card">
+<h4><a href="../../repo/primary/src/app.js">apps/pocket-orchard/repo/primary/src/app.js</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../repo/primary/src/app.js">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>generated-app-source</span><span>exists</span><span>1549 bytes</span><span><code>sha256:e98035ac8a36563689b488a73f49b75dd78e3a2a4e32361bf37e26ae02b3385e</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre>const planList = document.querySelector(&#x27;#plan-list&#x27;);
+const exportOutput = document.querySelector(&#x27;#export-output&#x27;);
+const seedInputs = [&#x27;#seed-one&#x27;, &#x27;#seed-two&#x27;, &#x27;#seed-three&#x27;].map((selector) =&gt; document.querySelector(selector));
+
+function seedValue(input, index) {
+  const value = input.value.trim();
+  return value || `Untitled seed ${index + 1}`;
+}
+
+function buildPlan() {
+  return seedInputs.map(seedValue).map((seed, index) =&gt; ({
+    priority: index + 1,
+    seed,
+    nextAction: index === 0 ? `Validate: ${seed}` : index === 1 ? `Prototype: ${seed}` : `Defer safely: ${seed}`,
+    effort: index === 0 ? &#x27;45 minutes&#x27; : index === 1 ? &#x27;90 minutes&#x27; : &#x27;owner-approved future work&#x27;,
+    externalAction: false
+  }));
+}
+
+function renderPlan() {
+  const plan = buildPlan();
+  planList.innerHTML = &#x27;&#x27;;
+  plan.forEach((item) =&gt; {
+    const row = document.createElement(&#x27;li&#x27;);
+    row.innerHTML = `&lt;strong&gt;${item.nextAction}&lt;/strong&gt;&lt;br&gt;&lt;span&gt;Effort: ${item.effort}&lt;/span&gt;`;
+    planList.appendChild(row);
+  });
+  return plan;
+}
+
+function exportPlan() {
+  const payload = {
+    schema: &#x27;pocket-orchard-plan/v0.1&#x27;,
+    generatedBy: &#x27;weave-full-conversation-dogfood&#x27;,
+    localOnly: true,
+    externalActionsEnabled: false,
+    plan: renderPlan()
+  };
+  exportOutput.textContent = JSON.stringify(payload, null, 2);
+  return payload;
+}
+
+document.querySelector(&#x27;#grow-plan&#x27;).addEventListener(&#x27;click&#x27;, renderPlan);
+document.querySelector(&#x27;#export-plan&#x27;).addEventListener(&#x27;click&#x27;, exportPlan);
+renderPlan();
+window.PocketOrchard = { buildPlan, exportPlan };</pre></details>
+</article><article class="artifact-card">
+<h4><a href="../../repo/primary/src/styles.css">apps/pocket-orchard/repo/primary/src/styles.css</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../repo/primary/src/styles.css">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>generated-app-source</span><span>exists</span><span>1099 bytes</span><span><code>sha256:4ecbf9e6937d6980d84a512bddc80d12fd8aec24b63427818b39afab820751bb</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre>body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #11251c; color: #f4ffe8; }
+.shell { max-width: 920px; margin: 0 auto; padding: 48px 20px; }
+.hero { padding: 28px; border-radius: 28px; background: linear-gradient(135deg, #224d35, #1c393d); box-shadow: 0 24px 80px rgba(0,0,0,.28); }
+.eyebrow { color: #b9ff9d; text-transform: uppercase; letter-spacing: .14em; font-size: .78rem; }
+h1 { margin: .1em 0; font-size: clamp(2.4rem, 7vw, 5.2rem); }
+.panel { margin-top: 22px; padding: 24px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 24px; }
+label { display: grid; gap: 8px; margin: 14px 0; font-weight: 700; }
+input { font: inherit; border: 0; border-radius: 14px; padding: 12px 14px; }
+button { margin: 12px 10px 0 0; border: 0; border-radius: 999px; padding: 12px 18px; font-weight: 800; color: #102015; background: #b9ff9d; cursor: pointer; }
+li { margin: 12px 0; padding: 12px; border-radius: 16px; background: rgba(185,255,157,.12); }
+pre { white-space: pre-wrap; color: #d8ffc8; }
+.boundary { color: #c6d8c0; }</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;engineering&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Engineering Output Index proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;engineering&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Engineering evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-d4da815fb39737cd693b55f3">
+<h2>Turn 6: QA - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>QA</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:17Z</dd>
+<dt>Turn id</dt><dd><code>d4da815fb39737cd693b55f3</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>QA it like a skeptical reviewer. What passed, what failed, and what does this still not prove?</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Local QA verifies required files, JavaScript syntax, export schema, disabled external surfaces, and transcript-linked lifecycle gates. It does not prove live Telegram operation, real user value, hosted performance, or revenue.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>QA Proof is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Did checks run?</li><li>Are non-proofs explicit?</li><li>Is evidence reviewable?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>local QA checks</li><li>negative claims withheld</li><li>reviewable proof artifacts</li><li>stage artifact: apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/06-qa/artifacts/qa-proof.md">apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/06-qa/artifacts/qa-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>2015 bytes</span><span><code>sha256:4b92b09fa5e6d355dbc36383afd77d56cebf97c90b9ec4290469711b59ceaf8d</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># QA Proof
+
+Status: complete
+
+QA proof records deterministic checks for generated source, export shape, disabled external configuration, lifecycle stage approvals, and transcript export. Remaining unproven surfaces are explicitly listed.
+
+```json
+{
+  &quot;check_count&quot;: 8,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;file exists: index.html&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: src/app.js&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: src/styles.css&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: public/config.json&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: README.md&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;external actions disabled&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;export schema present&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;command&quot;: {
+        &quot;command&quot;: [
+          &quot;npm&quot;,
+          &quot;exec&quot;,
+          &quot;--&quot;,
+          &quot;node&quot;,
+          &quot;--check&quot;,
+          &quot;src/app.js&quot;
+        ],
+        &quot;cwd&quot;: &quot;primary&quot;,
+        &quot;fallback_for_empty_node_abort&quot;: true,
+        &quot;passed&quot;: true,
+        &quot;primary_command&quot;: [
+          &quot;node&quot;,
+          &quot;--check&quot;,
+          &quot;src/app.js&quot;
+        ],
+        &quot;primary_returncode&quot;: -6,
+        &quot;returncode&quot;: 0,
+        &quot;stderr&quot;: &quot;&quot;,
+        &quot;stdout&quot;: &quot;&quot;
+      },
+      &quot;name&quot;: &quot;node syntax app.js&quot;,
+      &quot;passed&quot;: true
+    }
+  ],
+  &quot;checksums&quot;: {
+    &quot;README.md&quot;: &quot;sha256:6efae16ba9d84af09636cb1780ec0c1b0dfc830051f2e8491b8a5b1ea797ec9b&quot;,
+    &quot;index.html&quot;: &quot;sha256:6f40a32a6be31df14e11de204421a830e5e54525593c7558082268e9e99dba60&quot;,
+    &quot;public/config.json&quot;: &quot;sha256:afd34688b70161abeae54413aced12dc5020747235d077d91de0c7ea76c95e66&quot;,
+    &quot;src/app.js&quot;: &quot;sha256:e98035ac8a36563689b488a73f49b75dd78e3a2a4e32361bf37e26ae02b3385e&quot;,
+    &quot;src/styles.css&quot;: &quot;sha256:4ecbf9e
+
+[preview clipped; open the artifact for full content]</pre></details>
+</article><article class="artifact-card">
+<h4><a href="../../lifecycle/06-qa/artifacts/qa-checks.json">apps/pocket-orchard/lifecycle/06-qa/artifacts/qa-checks.json</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/06-qa/artifacts/qa-checks.json">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>qa-proof</span><span>exists</span><span>1764 bytes</span><span><code>sha256:87e07d665f22a99251eda0cee98c0a85e777db0311952b0d09750e27dd98cedc</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre>{
+  &quot;check_count&quot;: 8,
+  &quot;checks&quot;: [
+    {
+      &quot;name&quot;: &quot;file exists: index.html&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: src/app.js&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: src/styles.css&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: public/config.json&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;file exists: README.md&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;external actions disabled&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;name&quot;: &quot;export schema present&quot;,
+      &quot;passed&quot;: true
+    },
+    {
+      &quot;command&quot;: {
+        &quot;command&quot;: [
+          &quot;npm&quot;,
+          &quot;exec&quot;,
+          &quot;--&quot;,
+          &quot;node&quot;,
+          &quot;--check&quot;,
+          &quot;src/app.js&quot;
+        ],
+        &quot;cwd&quot;: &quot;primary&quot;,
+        &quot;fallback_for_empty_node_abort&quot;: true,
+        &quot;passed&quot;: true,
+        &quot;primary_command&quot;: [
+          &quot;node&quot;,
+          &quot;--check&quot;,
+          &quot;src/app.js&quot;
+        ],
+        &quot;primary_returncode&quot;: -6,
+        &quot;returncode&quot;: 0,
+        &quot;stderr&quot;: &quot;&quot;,
+        &quot;stdout&quot;: &quot;&quot;
+      },
+      &quot;name&quot;: &quot;node syntax app.js&quot;,
+      &quot;passed&quot;: true
+    }
+  ],
+  &quot;checksums&quot;: {
+    &quot;README.md&quot;: &quot;sha256:6efae16ba9d84af09636cb1780ec0c1b0dfc830051f2e8491b8a5b1ea797ec9b&quot;,
+    &quot;index.html&quot;: &quot;sha256:6f40a32a6be31df14e11de204421a830e5e54525593c7558082268e9e99dba60&quot;,
+    &quot;public/config.json&quot;: &quot;sha256:afd34688b70161abeae54413aced12dc5020747235d077d91de0c7ea76c95e66&quot;,
+    &quot;src/app.js&quot;: &quot;sha256:e98035ac8a36563689b488a73f49b75dd78e3a2a4e32361bf37e26ae02b3385e&quot;,
+    &quot;src/styles.css&quot;: &quot;sha256:4ecbf9e6937d6980d84a512bddc80d12fd8aec24b63427818b39afab820751bb&quot;
+  },
+  &quot;generated_files&quot;: [
+    &quot;index.html&quot;,
+    &quot;src/app.js&quot;,
+    &quot;src/styles.css&quot;,
+    &quot;public/config.json&quot;,
+    &quot;README.md&quot;
+  ],
+  &quot;passed&quot;: true
+}</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;qa&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;QA Proof proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;qa&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews QA evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-c4bb79239576e1cee7b492ff">
+<h2>Turn 7: KPI Setup - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>KPI Setup</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:17Z</dd>
+<dt>Turn id</dt><dd><code>c4bb79239576e1cee7b492ff</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Set up what we would measure if this went to beta. Do not pretend we already have users.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>The beta KPI model should measure completed plan exports, number of ideas entered, plan acceptance, return intent, and conversion intent for premium templates. In this proof the metrics are local placeholders only because analytics credentials and real users are absent.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>KPI Setup is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Are KPIs product-specific?</li><li>Is measurement mocked/local?</li><li>Are analytics credentials deferred?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>product-specific KPI model</li><li>real analytics absent</li><li>owner deferral required</li><li>stage artifact: apps/pocket-orchard/lifecycle/07-kpi/artifacts/kpi-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/07-kpi/artifacts/kpi-proof.md">apps/pocket-orchard/lifecycle/07-kpi/artifacts/kpi-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/07-kpi/artifacts/kpi-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>188 bytes</span><span><code>sha256:71faa7cb9feec72d754baf207e4d6b58c9651e8b2de8fd15764442a7746aab68</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># KPI Setup
+
+Status: complete
+
+KPI setup defines export completion, seed count, plan acceptance, return intent, and premium-template intent. Real analytics are blocked and owner-deferred.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;kpi&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;KPI Setup proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;kpi&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews KPI Setup evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-04d42e37e424e46d5b67f566">
+<h2>Turn 8: Marketing - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Marketing</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:17Z</dd>
+<dt>Turn id</dt><dd><code>04d42e37e424e46d5b67f566</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Draft how we would explain it, but do not publish anything. I want to see whether the product has a coherent promise.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>The promise is: turn three messy ideas into a tiny orchard of prioritized actions in under five minutes. Audience: solo founders and creative operators who need momentum without project-management overhead. No public send is made.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Marketing Review Draft is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Is the audience concrete?</li><li>Is the promise product-tied?</li><li>Are public sends blocked?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>solo founder audience</li><li>five-minute action-plan promise</li><li>public send blocked</li><li>stage artifact: apps/pocket-orchard/lifecycle/08-marketing/artifacts/marketing-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/08-marketing/artifacts/marketing-proof.md">apps/pocket-orchard/lifecycle/08-marketing/artifacts/marketing-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/08-marketing/artifacts/marketing-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>243 bytes</span><span><code>sha256:eca9927409b060d0f08c59df800f103c174f08c640948588af985c411f157e33</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Marketing Review Draft
+
+Status: complete
+
+Marketing draft: Pocket Orchard helps solo founders turn three rough ideas into a daily action plan. Public distribution is blocked pending owner approval, hosting, analytics, and feedback evidence.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;marketing&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Marketing Review Draft proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;marketing&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Marketing evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-47cc93d9495169ba0137fd39">
+<h2>Turn 9: Iteration - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Iteration</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:17Z</dd>
+<dt>Turn id</dt><dd><code>47cc93d9495169ba0137fd39</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Imagine the first reviewer says it is useful but too cute. Improve the app direction without expanding scope.</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>The iteration is to make the plan output more prominent than the garden copy: lead with the daily plan, keep the orchard as lightweight feedback, and add a sharper export summary. No backend or new provider is needed.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Iteration Note is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>Is feedback actionable?</li><li>Does iteration preserve scope?</li><li>Does it improve usefulness?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>mock reviewer feedback</li><li>plan-first revision</li><li>scope preserved</li><li>stage artifact: apps/pocket-orchard/lifecycle/09-iteration/artifacts/iteration-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/09-iteration/artifacts/iteration-proof.md">apps/pocket-orchard/lifecycle/09-iteration/artifacts/iteration-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/09-iteration/artifacts/iteration-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>173 bytes</span><span><code>sha256:c118a652d88288bef77298b066b309f8f0f763e9ec28c9be348f825e21403684</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Iteration Note
+
+Status: complete
+
+Iteration: reduce metaphor weight, increase action-plan prominence, and make the export summary more useful. Scope remains static/local.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;iteration&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Iteration Note proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;iteration&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Iteration evidence and approves or requests revision.</pre>
+</section>
+<section class="turn" id="turn-bf50b647067605d6b8b5c1f0">
+<h2>Turn 10: Analysis - Turn</h2>
+<dl class="meta">
+<dt>Lifecycle stage</dt><dd>Analysis</dd>
+<dt>Turn kind</dt><dd>Turn</dd>
+<dt>Time</dt><dd>2026-06-08T11:25:17Z</dd>
+<dt>Turn id</dt><dd><code>bf50b647067605d6b8b5c1f0</code></dd>
+<dt>Channel</dt><dd>local-dogfood</dd>
+</dl>
+<h3>Owner Message Sent To Hermes</h3>
+<dl class="message-meta"><dt>Role</dt><dd>owner</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>Review the whole thing. Where was WEAVE good, where did it fake success, and what should we optimize before trusting it with real app production?</pre>
+<h3>Hermes Reply</h3>
+<dl class="message-meta"><dt>Role</dt><dd>hermes</dd><dt>Source</dt><dd>full-conversation-dogfood</dd></dl>
+<pre>WEAVE is good at explicit gates, evidence capture, and local app proof. It still fakes the hardest part if we call a scripted transcript a live owner conversation. The next optimization is a live Telegram/Hermes run with the same transcript/export gates and human review of the produced app.</pre>
+<h3>Owner-Reviewable Rationale</h3>
+<pre>Outcome Analysis is ready for owner review with linked proof artifact.</pre>
+<h4>Hermes Gate Questions For Owner</h4>
+<ul><li>What was proven?</li><li>What was only simulated?</li><li>What should be optimized next?</li></ul>
+<h4>Missing Information</h4>
+<p class="empty">none recorded</p>
+<h4>Decision Basis</h4>
+<ul><li>local app produced</li><li>scripted transcript limitation</li><li>live run next</li><li>stage artifact: apps/pocket-orchard/lifecycle/10-analysis/artifacts/analysis-proof.md</li></ul>
+<h3>Artifacts Created Or Used</h3>
+<div class="artifact-grid"><article class="artifact-card">
+<h4><a href="../../lifecycle/10-analysis/artifacts/analysis-proof.md">apps/pocket-orchard/lifecycle/10-analysis/artifacts/analysis-proof.md</a></h4>
+<p class="artifact-actions"><a class="button-link" href="../../lifecycle/10-analysis/artifacts/analysis-proof.md">Open artifact</a></p>
+<p class="artifact-meta"><span>created</span><span>stage-proof</span><span>exists</span><span>255 bytes</span><span><code>sha256:ba460a346bf887449565ee02a3650fce9de4edb79bf691dad7f9533f14ba3d60</code></span></p>
+<details class="artifact-preview"><summary>Preview artifact content</summary><pre># Outcome Analysis
+
+Status: complete
+
+Outcome analysis: the local scripted run proves lifecycle mechanics plus app artifact production. It does not prove live conversational autonomy, market fit, deployment, analytics, payment, or real user satisfaction.</pre></details>
+</article></div>
+<h3>Runtime Gate Snapshot</h3>
+<dl class="gate-summary"><dt>foundation gate passed</dt><dd>yes</dd><dt>owner approval required</dt><dd>yes</dd></dl>
+<details class="raw-json"><summary>Raw gate snapshot</summary>
+<pre>{
+  &quot;foundation_gate_passed&quot;: true,
+  &quot;owner_approval_required&quot;: true,
+  &quot;stage_artifact_present&quot;: true
+}</pre>
+</details>
+<h3>Ledger Events Referenced</h3>
+<details class="raw-json"><summary>Show ledger event references</summary><pre>[]</pre></details>
+<h3>State Transition</h3>
+<pre>{
+  &quot;from_stage&quot;: &quot;analysis&quot;,
+  &quot;from_state&quot;: &quot;collecting&quot;,
+  &quot;reason&quot;: &quot;Outcome Analysis proof generated from the dogfood conversation.&quot;,
+  &quot;to_stage&quot;: &quot;analysis&quot;,
+  &quot;to_state&quot;: &quot;ready_for_review&quot;
+}</pre>
+<h3>Next Action</h3>
+<pre>Owner reviews Analysis evidence and approves or requests revision.</pre>
+</section>
+</main>
+</body>
+</html>
