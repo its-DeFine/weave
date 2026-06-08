@@ -22,8 +22,10 @@ Fill these values for your installation. Do not commit secrets.
 |---|---|
 | runtime endpoint | `<WEAVE_RUNTIME_ENDPOINT>` |
 | health check | `GET <WEAVE_RUNTIME_ENDPOINT>/health` |
-| app context read | `GET <WEAVE_RUNTIME_ENDPOINT>/conversation?app_id=<APP_ID>` |
+| app context read | `GET <WEAVE_RUNTIME_ENDPOINT>/apps/<APP_ID>/conversation` |
 | evidence sync | `POST <WEAVE_RUNTIME_ENDPOINT>/command` |
+| conversation form | `GET <WEAVE_RUNTIME_ENDPOINT>/apps/<APP_ID>/conversation/form` |
+| conversation sync | `POST <WEAVE_RUNTIME_ENDPOINT>/apps/<APP_ID>/conversation` |
 | default command types | `record_evidence`, `record_decision` |
 | workspace root | `<WEAVE_WORKSPACE_ROOT>` |
 | private app repo root | `<APP_REPO_ROOT>` |
@@ -87,6 +89,17 @@ installations may fill them with local, non-secret paths and endpoints.
 5. Sync evidence back.
    - Use `record_evidence` for completed, blocked, or advanced work.
    - Use `record_decision` when a product/runtime decision changed.
+   - Use the conversation sync path after each meaningful owner/Hermes
+     exchange so the runtime preserves the raw operator message, Hermes reply,
+     rationale summary, artifact refs, event refs, state transition, and next
+     action.
+   - Fetch the conversation form first when available. Let WEAVE provide
+     deterministic fields such as app id, current lifecycle stage, known
+     artifacts, recent event refs, and gate state; Hermes fills the rationale,
+     missing information, decision basis, transition reason, and next action.
+   - Treat transcript sync as mandatory. Do not claim app-work completion, ask
+     for lifecycle approval, or advance a stage until a current-stage
+     conversation turn exists or sync is explicitly recorded as blocked.
    - Keep `secret_payload_allowed` set to `false`.
    - If sync is blocked, write a local receipt and include the exact future
      sync step in the final answer.
@@ -128,6 +141,63 @@ Use this generic command shape for evidence sync.
   "secret_payload_allowed": false
 }
 ```
+
+## Conversation Turn Shape
+
+Use this shape when syncing the actual app discussion.
+
+```json
+{
+  "schema": "weave-conversation-turn/v0.1",
+  "turn_id": "<generated-id>",
+  "app_id": "<APP_ID>",
+  "created_at": "<ISO-8601 UTC timestamp>",
+  "created_by": "hermes",
+  "stage": "<LIFECYCLE_STAGE>",
+  "channel": "telegram",
+  "operator_message": {
+    "role": "owner",
+    "text": "<WHAT_THE_OWNER_OR_OPERATOR_SENT>"
+  },
+  "agent_reply": {
+    "role": "hermes",
+    "text": "<WHAT_HERMES_REPLIED>"
+  },
+  "agent_rationale": {
+    "summary": "<OWNER_REVIEWABLE_DECISION_TRACE>",
+    "gate_questions": ["<QUESTION_CHECKED>"],
+    "missing_information": ["<MISSING_ITEM>"],
+    "decision_basis": ["<FACT_OR_ARTIFACT_USED>"],
+    "chain_of_thought_captured": false
+  },
+  "gate_checks": {
+    "foundation_gate_passed": true,
+    "stage_gate_passed": false,
+    "owner_approval_required": true
+  },
+  "artifact_refs": [
+    {"path": "apps/<APP_ID>/lifecycle/01-intent/artifacts/intent.md", "action": "created"}
+  ],
+  "event_refs": [
+    {"event_id": "<EVENT_ID>", "type": "artifact.created"}
+  ],
+  "state_transition": {
+    "from_stage": "intent",
+    "from_state": "collecting",
+    "to_stage": "intent",
+    "to_state": "ready_for_review",
+    "initiated_by": "hermes",
+    "reason": "<PUBLIC_SAFE_REASON>"
+  },
+  "next_action": "<NEXT_OWNER_VISIBLE_ACTION>",
+  "public_safe": true,
+  "secret_payload_allowed": false
+}
+```
+
+Do not record hidden model chain-of-thought. Use the `agent_rationale.summary`,
+`gate_questions`, `missing_information`, and `decision_basis` fields for the
+reviewable decision trace.
 
 ## Stop Conditions
 

@@ -13,6 +13,7 @@ Use this skill before selecting or building a WEAVE application.
 
 - target market or app idea
 - capability sources
+- capability context index or source manifest
 - pricing or competitor sources
 - user segment
 - known constraints
@@ -20,6 +21,7 @@ Use this skill before selecting or building a WEAVE application.
 ## Outputs
 
 - capability map
+- context sources checked
 - customer segment
 - competitor/pricing evidence
 - primitive fit mapping
@@ -30,6 +32,8 @@ Use this skill before selecting or building a WEAVE application.
 
 - Use current source evidence when pricing, availability, or competitors may
   have changed.
+- Use the WEAVE capability context index when one is available, then verify
+  volatile claims from primary sources before implementation or public claims.
 - Separate evidence-backed claims from assumptions.
 - Admit exactly one wedge before Planning.
 - Park attractive alternatives explicitly.

@@ -1,0 +1,41 @@
+{
+  "schema": "weave-workstation-context-sync/v0.1",
+  "packet_id": "sync-demo-app-20260518",
+  "app_id": "demo-app",
+  "app_name": "Demo App",
+  "lifecycle_stage": "qa",
+  "summary": "A local workstation completed a demo app QA pass and is recording the result into a WEAVE runtime ledger.",
+  "work_done": [
+    "Local unit tests passed.",
+    "Deterministic Telegram status commands returned local runtime state.",
+    "The app has enough context for the runtime to plan the next maintenance step."
+  ],
+  "evidence_refs": [
+    "docs/month1/app-lifecycle.md",
+    "docs/telegram-slash-commands.md",
+    "scripts/runtime_smoke.py"
+  ],
+  "capabilities": [
+    "Runtime can cite the latest QA result.",
+    "Runtime can show a blocker summary to the operator through Telegram slash commands.",
+    "Runtime can plan the next local-only maintenance command."
+  ],
+  "decisions": [
+    {
+      "label": "Admit QA evidence",
+      "status": "accepted",
+      "note": "The local QA result can be recorded as runtime evidence."
+    }
+  ],
+  "blockers": [
+    "External publication remains approval-gated.",
+    "Production deployment is outside this sync packet."
+  ],
+  "stop_boundaries": [
+    "Do not store secret values.",
+    "Do not deploy or publish.",
+    "Do not change billing, credentials, or runtime services."
+  ],
+  "deadline_or_window": "sample-only",
+  "secret_payload_allowed": false
+}

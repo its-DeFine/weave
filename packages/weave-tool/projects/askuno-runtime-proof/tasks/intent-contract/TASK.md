@@ -3,7 +3,7 @@ schema: agentcompanies/v1
 kind: task
 slug: intent-contract
 name: Intent Contract For Askuno Runtime Proof
-assignee: ceo-openclaw
+assignee: ceo-hermes
 project: askuno-runtime-proof
 lifecycleStage: intent
 priority: high

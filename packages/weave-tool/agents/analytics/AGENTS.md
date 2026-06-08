@@ -5,7 +5,7 @@ slug: analytics
 name: Analytics Lead
 title: KPI And Iteration Lead
 role: analytics
-reportsTo: ceo-openclaw
+reportsTo: ceo-hermes
 skills:
   - runtime-app-attachment
   - weave-lifecycle

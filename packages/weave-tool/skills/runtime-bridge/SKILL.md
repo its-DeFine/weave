@@ -1,13 +1,13 @@
 ---
 name: runtime-bridge
-description: Shape safe command drafts and review notes between an operator-facing UI, workstation agent, and WEAVE runtime.
+description: Shape safe command drafts and review notes between Telegram, workstation agents, and WEAVE runtime.
 ---
 
 # Runtime Bridge
 
 ## Use When
 
-Use this skill when a human operator, local agent, or operator UI needs to send
+Use this skill when a human operator, local agent, or Telegram gateway needs to send
 stage context, a command draft, or a review note into the WEAVE runtime.
 
 ## Inputs
@@ -35,8 +35,8 @@ stage context, a command draft, or a review note into the WEAVE runtime.
 - Keep secrets, credentials, private paths, and host-specific details out of
   bridge events.
 - Owner-gated commands must remain drafts until approval exists.
-- Runtime responses should be visible in the operator surface as state,
-  evidence, blocker, or next action.
+- Runtime responses should be visible through deterministic status commands as
+  state, evidence, blocker, or next action.
 
 ## Stop Conditions
 
@@ -46,6 +46,6 @@ stage context, a command draft, or a review note into the WEAVE runtime.
 
 ## Verification
 
-The bridge output is valid when it can be displayed in the operator UI and
-replayed by a runtime worker without needing private chat context.
-
+The bridge output is valid when it can be rendered by deterministic Telegram
+status commands and replayed by a runtime worker without needing private chat
+context.

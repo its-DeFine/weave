@@ -5,7 +5,7 @@ slug: growth
 name: Growth Lead
 title: Marketing Lead
 role: growth
-reportsTo: ceo-openclaw
+reportsTo: ceo-hermes
 skills:
   - runtime-app-attachment
   - weave-lifecycle

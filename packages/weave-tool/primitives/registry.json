@@ -1,8 +1,37 @@
 {
   "schema": "weave/primitives/v0.1",
-  "application": "askuno-runtime-proof",
-  "runtimeMode": "operator-console-first",
+  "application": "weave-lifecycle-runtime",
+  "registryScope": "cross-application-lifecycle-primitives",
+  "reviewBoundary": "This registry is not an Askuno app manifest. It defines reusable lifecycle evidence primitives used by WEAVE validation, docs, and runtime review surfaces.",
+  "usedBy": [
+    "packages/weave-tool/scripts/validate_company_package.py",
+    "docs/month1/review-evidence-pack.md",
+    "docs/month1/weave-lifecycle-contract-v0.md",
+    "scripts/lifecycle_rehearsal_smoke.py",
+    "scripts/full_conversation_app_dogfood.py",
+    "scripts/live_hermes_lifecycle_qa.py"
+  ],
+  "runtimeMode": "telegram-command-first",
   "futureAdapterTarget": "livepeer-app-lifecycle",
+  "defaultContextIndex": {
+    "schema": "weave/context-index/v0.1",
+    "recommendedRepository": "its-DeFine/weave-context",
+    "sampleIndex": "docs/context-sources/livepeer-context-index.sample.json",
+    "sourceTypes": [
+      "api",
+      "gateway",
+      "pipeline",
+      "documentation",
+      "kpi",
+      "outreach",
+      "orchestrator-capability"
+    ],
+    "applicationPaths": [
+      "existing_api",
+      "gateway_capability",
+      "new_orchestrator_capability"
+    ]
+  },
   "primitives": [
     {
       "id": "intent-contract",
@@ -65,7 +94,7 @@
       "pipelineIntent": "metric-definition",
       "availability": "local-runtime",
       "customerUse": "Defines public and private metrics before marketing starts.",
-      "futureAdapterMapping": "Can later bind aggregate app metrics to a public dashboard."
+      "futureAdapterMapping": "Can later bind aggregate app metrics to public reporting."
     },
     {
       "id": "marketing-plan",

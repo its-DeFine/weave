@@ -1,0 +1,54 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "unverified public claim",
+    "unclear audience",
+    "launch approval missing"
+  ],
+  "description": "Evaluate whether messaging is truthful, audience-specific, and backed by verified product state.",
+  "hard_gates": [
+    {
+      "description": "Every product claim references verified product evidence.",
+      "id": "claims_backed_by_proof",
+      "kind": "manual"
+    },
+    {
+      "description": "Public release/posting approval is explicit.",
+      "id": "public_claim_approval_boundary",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "audience",
+    "claim list",
+    "proof links",
+    "launch surface"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "truthfulness",
+      "max_score": 4,
+      "question": "Are claims constrained to verified product reality?"
+    },
+    {
+      "id": "audience_fit",
+      "max_score": 4,
+      "question": "Is the message written for a specific audience/use case?"
+    },
+    {
+      "id": "specificity",
+      "max_score": 4,
+      "question": "Does messaging avoid generic hype?"
+    },
+    {
+      "id": "risk_of_overpromise",
+      "max_score": 4,
+      "question": "Does it avoid implying unverified capabilities or guarantees?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "marketing",
+  "stage": "Marketing"
+}

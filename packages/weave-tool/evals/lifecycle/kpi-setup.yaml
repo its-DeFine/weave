@@ -1,0 +1,54 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "vanity-only metric",
+    "no data source",
+    "privacy boundary missing"
+  ],
+  "description": "Evaluate whether metrics are meaningful, measurable, and privacy-safe.",
+  "hard_gates": [
+    {
+      "description": "Each KPI has an owner or review role.",
+      "id": "metric_owner_present",
+      "kind": "manual"
+    },
+    {
+      "description": "Data collection is explicitly privacy/safety bounded.",
+      "id": "privacy_boundary_present",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "metric definitions",
+    "data source",
+    "privacy boundary",
+    "review cadence"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "metric_relevance",
+      "max_score": 4,
+      "question": "Do KPIs map directly to intent and product value?"
+    },
+    {
+      "id": "measurability",
+      "max_score": 4,
+      "question": "Can the metrics be collected reliably?"
+    },
+    {
+      "id": "anti_vanity",
+      "max_score": 4,
+      "question": "Do metrics avoid vanity numbers and optimize the right behavior?"
+    },
+    {
+      "id": "privacy_safety",
+      "max_score": 4,
+      "question": "Is collection no-more-invasive-than-needed?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "kpi-setup",
+  "stage": "KPI Setup"
+}

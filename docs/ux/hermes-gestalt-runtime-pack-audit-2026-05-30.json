@@ -1,0 +1,63 @@
+{
+  "blocking_count": 0,
+  "claim_limits": [
+    "Completion requires a validated Hermes Gestalt Runtime Pack.",
+    "Completion requires an idea-to-kernel-to-contract-to-handoff proof.",
+    "Full runtime completion requires a real Hermes runtime proof, not only simulated proof.",
+    "This audit does not authorize production deploy, public send, spend, provider mutation, or secrets access."
+  ],
+  "full_completion_ready": true,
+  "generated_at": "2026-05-30T17:58:08Z",
+  "gestalt_proof_ready": true,
+  "method_pack_ready": true,
+  "passed_count": 6,
+  "real_runtime_ready": true,
+  "remaining_blockers": [],
+  "requirements": [
+    {
+      "detail": "Pack hermes-gestalt-runtime-pack 2026.05.30 validates.",
+      "evidence": "packages/weave-tool/prompts/hermes-gestalt-runtime-pack/manifest.json",
+      "requirement": "Dedicated Hermes Gestalt Runtime Pack exists and validates",
+      "requirement_id": "hermes.prompt_pack",
+      "status": "passed"
+    },
+    {
+      "detail": "simulated Hermes method proof only; no production or live provider claim",
+      "evidence": "docs/ux/hermes-gestalt-runtime-pack-proof-2026-05-30.json",
+      "requirement": "Simulated Hermes run proves idea to kernel to contract to handoff shape",
+      "requirement_id": "hermes.method_proof",
+      "status": "passed"
+    },
+    {
+      "detail": "Package validator passed.",
+      "evidence": "packages/weave-tool/scripts/validate_company_package.py",
+      "requirement": "Company package validates with Hermes as default runtime",
+      "requirement_id": "package.validation",
+      "status": "passed"
+    },
+    {
+      "detail": "Runtime setup check passed without writing secrets.",
+      "evidence": "scripts/setup_runtime.py",
+      "requirement": "WEAVE can compile a public-safe local Hermes runtime profile",
+      "requirement_id": "runtime.profile_contract",
+      "status": "passed"
+    },
+    {
+      "detail": "Local runtime profile proves a pinned Hermes source checkout and executable are present.",
+      "evidence": "runs/runtime-profile.json",
+      "requirement": "A real Hermes executable is present in the local runtime profile",
+      "requirement_id": "runtime.real_hermes",
+      "status": "passed"
+    },
+    {
+      "detail": "Secret scan, topology scan, and Hermes Gestalt pack proof validation passed.",
+      "evidence": null,
+      "requirement": "Public safety and method proof verifiers pass",
+      "requirement_id": "verification.suite",
+      "status": "passed"
+    }
+  ],
+  "runtime_profile_contract_ready": true,
+  "schema": "weave-hermes-gestalt-runtime-pack-audit/v0.1",
+  "secret_payload_allowed": false
+}

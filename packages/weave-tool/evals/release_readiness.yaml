@@ -1,0 +1,115 @@
+{
+  "advance_min_score_percent": 88,
+  "blockers": [
+    "any failed hard gate",
+    "unreviewed public claim",
+    "secret/private runtime reference",
+    "owner approval missing for public release"
+  ],
+  "description": "Evaluate whether the current repository state is ready for owner-approved public push/release.",
+  "hard_gates": [
+    {
+      "command": "python3 -m unittest discover -s tests -p 'test_*.py'",
+      "description": "Full Python unit suite passes.",
+      "id": "unit_tests_pass",
+      "kind": "command",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "python3 scripts/runtime_smoke.py",
+      "description": "Runtime smoke passes.",
+      "id": "runtime_smoke_pass",
+      "kind": "command",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "python3 scripts/lifecycle_rehearsal_smoke.py",
+      "description": "Lifecycle rehearsal proof passes.",
+      "id": "lifecycle_rehearsal_smoke_pass",
+      "kind": "command",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "python3 scripts/month1_product_app_qa.py --report-out runs/month1-product-qa-release-gate.json",
+      "description": "Month 1 product app QA passes from the repository root.",
+      "id": "month1_product_app_qa_pass",
+      "kind": "command",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool",
+      "description": "Public package validates.",
+      "id": "package_validation_pass",
+      "kind": "command",
+      "timeout_seconds": 120
+    },
+    {
+      "command": "git diff --check",
+      "description": "Git whitespace/conflict-marker check passes.",
+      "id": "diff_check_clean",
+      "kind": "command",
+      "timeout_seconds": 60
+    },
+    {
+      "command": "python3 scripts/check_no_secrets.py",
+      "description": "Secret scanner passes.",
+      "id": "no_secret_leakage",
+      "kind": "command",
+      "redact_output": true,
+      "timeout_seconds": 120
+    },
+    {
+      "command": "python3 scripts/public_safe_repo_scan.py",
+      "description": "Public-safe repository scan passes.",
+      "id": "public_safe_scan_pass",
+      "kind": "command",
+      "redact_output": true,
+      "timeout_seconds": 120
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "current diff",
+    "test output",
+    "smoke output",
+    "public-safe scan",
+    "release notes or PR body"
+  ],
+  "requires_human_approval": true,
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "operator_ux",
+      "max_score": 4,
+      "question": "Can a new operator discover setup modes, doctor/status, and local deterministic proof?"
+    },
+    {
+      "id": "runtime_safety",
+      "max_score": 4,
+      "question": "Are auth, bind policy, CORS, and side effects safe by default?"
+    },
+    {
+      "id": "lifecycle_governance",
+      "max_score": 4,
+      "question": "Are lifecycle gates/evals explicit enough to prevent vibes-based approval?"
+    },
+    {
+      "id": "test_and_smoke_coverage",
+      "max_score": 4,
+      "question": "Do tests and smokes cover the release-critical paths?"
+    },
+    {
+      "id": "documentation_readiness",
+      "max_score": 4,
+      "question": "Do public docs match current behavior without overclaiming?"
+    },
+    {
+      "id": "public_safety",
+      "max_score": 4,
+      "question": "Does the repo avoid secrets, private paths, and unverified public claims?"
+    }
+  ],
+  "schema": "weave.release-eval/v0.1",
+  "slug": "release-readiness",
+  "stage": "Release Readiness"
+}

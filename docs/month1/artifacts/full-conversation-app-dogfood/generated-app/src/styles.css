@@ -1,0 +1,12 @@
+body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #11251c; color: #f4ffe8; }
+.shell { max-width: 920px; margin: 0 auto; padding: 48px 20px; }
+.hero { padding: 28px; border-radius: 28px; background: linear-gradient(135deg, #224d35, #1c393d); box-shadow: 0 24px 80px rgba(0,0,0,.28); }
+.eyebrow { color: #b9ff9d; text-transform: uppercase; letter-spacing: .14em; font-size: .78rem; }
+h1 { margin: .1em 0; font-size: clamp(2.4rem, 7vw, 5.2rem); }
+.panel { margin-top: 22px; padding: 24px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 24px; }
+label { display: grid; gap: 8px; margin: 14px 0; font-weight: 700; }
+input { font: inherit; border: 0; border-radius: 14px; padding: 12px 14px; }
+button { margin: 12px 10px 0 0; border: 0; border-radius: 999px; padding: 12px 18px; font-weight: 800; color: #102015; background: #b9ff9d; cursor: pointer; }
+li { margin: 12px 0; padding: 12px; border-radius: 16px; background: rgba(185,255,157,.12); }
+pre { white-space: pre-wrap; color: #d8ffc8; }
+.boundary { color: #c6d8c0; }

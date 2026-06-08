@@ -16,9 +16,46 @@ class PublicSafeRepoScanTests(unittest.TestCase):
         hits = public_safe_repo_scan.scan_text("see /Users/example/private", path="docs/example.md")
         self.assertEqual(hits[0].label, "local-user-path")
 
-    def test_allows_public_local_ui_loopback_helper(self) -> None:
-        hits = public_safe_repo_scan.scan_text('host = "127.0.0.1"', path="scripts/run_operator_ui.py")
+    def test_allows_public_local_runtime_api_loopback_helper(self) -> None:
+        hits = public_safe_repo_scan.scan_text('host = "127.0.0.1"', path="scripts/weave_runtime_api.py")
         self.assertEqual(hits, [])
+
+    def test_allows_loopback_terms_in_explicit_local_proof_surfaces_only(self) -> None:
+        for path in (
+            "scripts/weave_runtime_http.py",
+            "scripts/live_hermes_lifecycle_qa.py",
+            "scripts/weave_runtime_slice.py",
+            "tests/test_live_hermes_lifecycle_qa.py",
+        ):
+            with self.subTest(path=path):
+                hits = public_safe_repo_scan.scan_text('proof binds to "127.0.0.1" / localhost', path=path)
+                self.assertEqual(hits, [])
+
+    def test_flags_private_topology_terms(self) -> None:
+        private_device = "p" + "c2"
+        overlay_vendor = "tail" + "scale"
+        runtime_host = "weave" + "-vm01"
+
+        self.assertEqual(
+            public_safe_repo_scan.scan_text(f"target {private_device}", path="docs/example.md")[0].label,
+            "private-device-name",
+        )
+        self.assertEqual(
+            public_safe_repo_scan.scan_text(f"via {overlay_vendor}", path="docs/example.md")[0].label,
+            "private-overlay-vendor",
+        )
+        self.assertEqual(
+            public_safe_repo_scan.scan_text(f"host {runtime_host}", path="docs/example.md")[0].label,
+            "private-runtime-host",
+        )
+
+    def test_allowlisted_fixture_file_still_flags_non_fixture_private_text(self) -> None:
+        private_path = "/home/" + "example/secret"
+        hits = public_safe_repo_scan.scan_text(
+            f"runtime path {private_path}",
+            path="tests/test_public_safe_repo_scan.py",
+        )
+        self.assertEqual(hits[0].label, "home-path")
 
 
 if __name__ == "__main__":

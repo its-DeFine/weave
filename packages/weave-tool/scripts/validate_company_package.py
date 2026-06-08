@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the WEAVE OpenClaw-first company package.
+"""Validate the WEAVE Hermes-default company package.
 
 The validator intentionally avoids third-party YAML dependencies. It checks the
 small portable subset used by the package frontmatter and validates the runtime
@@ -27,6 +27,35 @@ REQUIRED_STAGES = [
     "iteration",
 ]
 
+CANONICAL_LIFECYCLE_STAGES = {
+    "intent": "Intent",
+    "research": "Research",
+    "selection": "Selection",
+    "plan": "Plan",
+    "engineering": "Engineering",
+    "qa": "QA",
+    "kpi-setup": "KPI Setup",
+    "marketing": "Marketing",
+    "iteration": "Iteration",
+    "analysis": "Analysis",
+}
+LIFECYCLE_STAGE_ALIASES = {
+    "intent": "intent",
+    "research": "research",
+    "research-analysis": "research",
+    "selection": "selection",
+    "plan": "plan",
+    "engineering": "engineering",
+    "engineering-integration": "engineering",
+    "qa": "qa",
+    "qa-readiness": "qa",
+    "kpi-setup": "kpi-setup",
+    "marketing": "marketing",
+    "iteration": "iteration",
+    "analysis": "analysis",
+}
+REQUIRED_EVAL_LIFECYCLE_SLUGS = set(CANONICAL_LIFECYCLE_STAGES)
+
 REQUIRED_DEPENDENCIES = {
     "research-gate": "intent-contract",
     "selection-gate": "research-gate",
@@ -50,12 +79,37 @@ REQUIRED_SKILLS = {
     "primitive-market-research",
     "lifecycle-runtime-builder",
     "livepeer-adapter-boundary",
+    "gestalt-runtime",
 }
+
+REQUIRED_EVAL_CONTRACTS = [
+    "lifecycle/intent.yaml",
+    "lifecycle/research.yaml",
+    "lifecycle/selection.yaml",
+    "lifecycle/plan.yaml",
+    "lifecycle/engineering.yaml",
+    "lifecycle/qa.yaml",
+    "lifecycle/kpi-setup.yaml",
+    "lifecycle/marketing.yaml",
+    "lifecycle/iteration.yaml",
+    "lifecycle/analysis.yaml",
+    "release_readiness.yaml",
+]
 
 EXPECTED_VERSION = "2026.05.13-console"
 EXPECTED_RELEASE_DATE = "2026-05-13"
 EXPECTED_RELEASE_TAG = "v2026.05.13-console"
 EXPECTED_RELEASE_CHANNEL = "public-d1-console"
+PRIMARY_RUNTIME = "hermes-default"
+FALLBACK_RUNTIME = "local-fallback"
+CEO_SLUG = "ceo-hermes"
+CEO_ADAPTER = "hermes_runtime"
+FALLBACK_AGENT_SLUG = "ceo-fallback"
+FALLBACK_ADAPTER = "local_fallback_gateway"
+GESTALT_PROMPT_PACK = "hermes-gestalt-runtime-pack"
+PROMPT_PACK_SCHEMA = "weave-hermes-gestalt-runtime-pack/v0.1"
+PRIMITIVE_REGISTRY_APPLICATION = "weave-lifecycle-runtime"
+PRIMITIVE_REGISTRY_SCOPE = "cross-application-lifecycle-primitives"
 
 ABSOLUTE_PATH_PATTERN = r"(?:/" + "Users/|/" + "home/|/" + "var/lib/|/" + "tmp/)"
 LOOPBACK_PATTERN = r"\b(?:" + r"127\.0\.0\.1|" + "local" + "host|" + "host" + r"\.docker\.internal)\b"
@@ -82,6 +136,8 @@ class PackageSummary:
     task_count: int
     skill_count: int
     primitive_count: int
+    prompt_pack_count: int
+    eval_contract_count: int
 
 
 def parse_frontmatter(path: Path) -> dict[str, str]:
@@ -167,8 +223,10 @@ def validate_company(package_root: Path) -> dict[str, str]:
         raise PackageValidationError(f"COMPANY.md releaseTag must be {EXPECTED_RELEASE_TAG}")
     if fields.get("releaseChannel") != EXPECTED_RELEASE_CHANNEL:
         raise PackageValidationError(f"COMPANY.md releaseChannel must be {EXPECTED_RELEASE_CHANNEL}")
-    if fields.get("runtime") != "openclaw-solo":
-        raise PackageValidationError("COMPANY.md runtime must be openclaw-solo")
+    if fields.get("runtime") != PRIMARY_RUNTIME:
+        raise PackageValidationError(f"COMPANY.md runtime must be {PRIMARY_RUNTIME}")
+    if fields.get("runtimeFallback") != FALLBACK_RUNTIME:
+        raise PackageValidationError(f"COMPANY.md runtimeFallback must be {FALLBACK_RUNTIME}")
     return fields
 
 
@@ -222,20 +280,89 @@ def validate_agents(package_root: Path, skill_slugs: set[str] | None = None) -> 
                 raise PackageValidationError(f"{path}: unknown skills: {', '.join(unknown)}")
         if fields.get("reportsTo") == "null":
             ceos.append(fields)
-        elif fields.get("reportsTo") not in slugs and fields.get("reportsTo") != "ceo-openclaw":
-            raise PackageValidationError(f"{path}: reportsTo must reference ceo-openclaw or an earlier agent")
+        elif fields.get("reportsTo") not in slugs and fields.get("reportsTo") not in {CEO_SLUG, FALLBACK_AGENT_SLUG}:
+            raise PackageValidationError(f"{path}: reportsTo must reference {CEO_SLUG}, {FALLBACK_AGENT_SLUG}, or an earlier agent")
         agents.append(fields)
 
     if len(ceos) != 1:
         raise PackageValidationError(f"expected exactly one CEO, found {len(ceos)}")
     ceo = ceos[0]
-    if ceo.get("slug") != "ceo-openclaw":
-        raise PackageValidationError("CEO slug must be ceo-openclaw")
-    if ceo.get("adapterType") != "openclaw_gateway":
-        raise PackageValidationError("CEO adapterType must be openclaw_gateway")
-    if "OpenClaw" not in ceo.get("name", ""):
-        raise PackageValidationError("CEO name must identify OpenClaw")
+    if ceo.get("slug") != CEO_SLUG:
+        raise PackageValidationError(f"CEO slug must be {CEO_SLUG}")
+    if ceo.get("adapterType") != CEO_ADAPTER:
+        raise PackageValidationError(f"CEO adapterType must be {CEO_ADAPTER}")
+    if ceo.get("promptPack") != GESTALT_PROMPT_PACK:
+        raise PackageValidationError(f"CEO promptPack must be {GESTALT_PROMPT_PACK}")
+    if "Hermes" not in ceo.get("name", ""):
+        raise PackageValidationError("CEO name must identify Hermes")
+    fallback = next((agent for agent in agents if agent.get("slug") == FALLBACK_AGENT_SLUG), None)
+    if fallback is None:
+        raise PackageValidationError(f"fallback agent {FALLBACK_AGENT_SLUG} is required")
+    if fallback.get("adapterType") != FALLBACK_ADAPTER:
+        raise PackageValidationError(f"{FALLBACK_AGENT_SLUG} adapterType must be {FALLBACK_ADAPTER}")
+    if fallback.get("reportsTo") != CEO_SLUG:
+        raise PackageValidationError(f"{FALLBACK_AGENT_SLUG} must report to {CEO_SLUG}")
     return agents
+
+
+def validate_prompt_packs(package_root: Path) -> int:
+    prompt_root = package_root / "prompts" / GESTALT_PROMPT_PACK
+    manifest_path = prompt_root / "manifest.json"
+    if not manifest_path.exists():
+        raise PackageValidationError(f"prompt pack manifest is required: prompts/{GESTALT_PROMPT_PACK}/manifest.json")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != PROMPT_PACK_SCHEMA:
+        raise PackageValidationError(f"{manifest_path}: schema must be {PROMPT_PACK_SCHEMA}")
+    if manifest.get("pack_id") != GESTALT_PROMPT_PACK:
+        raise PackageValidationError(f"{manifest_path}: pack_id must be {GESTALT_PROMPT_PACK}")
+    if manifest.get("runtime") != "nousresearch-hermes-agent":
+        raise PackageValidationError(f"{manifest_path}: runtime must be nousresearch-hermes-agent")
+    if manifest.get("secret_payload_allowed") is not False:
+        raise PackageValidationError(f"{manifest_path}: secret_payload_allowed must be false")
+    required_modes = {
+        "Contract Mode",
+        "Premortem Mode",
+        "Implementation Mode",
+        "Contract Update Mode",
+    }
+    modes = set(manifest.get("required_modes", []))
+    if required_modes - modes:
+        raise PackageValidationError(f"{manifest_path}: missing modes: {', '.join(sorted(required_modes - modes))}")
+    files = manifest.get("files", [])
+    if not isinstance(files, list) or not files:
+        raise PackageValidationError(f"{manifest_path}: files must list prompt files")
+    combined = []
+    for name in files:
+        if not isinstance(name, str) or "/" in name or name.startswith("."):
+            raise PackageValidationError(f"{manifest_path}: invalid prompt file entry {name!r}")
+        path = prompt_root / name
+        if not path.exists():
+            raise PackageValidationError(f"missing prompt pack file: prompts/{GESTALT_PROMPT_PACK}/{name}")
+        combined.append(path.read_text(encoding="utf-8"))
+    text = "\n".join(combined)
+    required_markers = [
+        "Gestalt Kernel",
+        "Gestaltian Contract",
+        "Premortem Report",
+        "Build-Ready Handoff Packet",
+        "Implementation Report",
+        "Contract Update Log",
+        "Functional validation",
+        "Failure validation",
+        "Gestalt validation",
+        "Traceability Requirement",
+    ]
+    for marker in required_markers:
+        if marker not in text:
+            raise PackageValidationError(f"prompt pack missing marker: {marker}")
+    return 1
+
+
+def canonical_lifecycle_slug(stage: str, *, context: str) -> str:
+    canonical = LIFECYCLE_STAGE_ALIASES.get(stage)
+    if canonical is None:
+        raise PackageValidationError(f"{context}: invalid lifecycle stage {stage}")
+    return canonical
 
 
 def validate_tasks(package_root: Path) -> list[dict[str, str]]:
@@ -256,6 +383,7 @@ def validate_tasks(package_root: Path) -> list[dict[str, str]]:
             raise PackageValidationError(f"duplicate task slug: {slug}")
         if stage not in REQUIRED_STAGES:
             raise PackageValidationError(f"{path}: invalid lifecycleStage {stage}")
+        canonical_lifecycle_slug(stage, context=str(path))
         slugs.add(slug)
         stages[stage] = slug
         tasks.append(fields)
@@ -285,9 +413,45 @@ def validate_primitives(package_root: Path) -> int:
     ids = [item.get("id") for item in primitives if isinstance(item, dict)]
     if len(ids) != len(set(ids)):
         raise PackageValidationError("primitive ids must be unique")
-    if data.get("application") != "askuno-runtime-proof":
-        raise PackageValidationError("primitive registry must target askuno-runtime-proof")
+    if data.get("application") != PRIMITIVE_REGISTRY_APPLICATION:
+        raise PackageValidationError(f"primitive registry must target {PRIMITIVE_REGISTRY_APPLICATION}")
+    if data.get("registryScope") != PRIMITIVE_REGISTRY_SCOPE:
+        raise PackageValidationError(f"primitive registry must declare scope {PRIMITIVE_REGISTRY_SCOPE}")
     return len(primitives)
+
+
+def validate_eval_contracts(package_root: Path) -> int:
+    eval_root = package_root / "evals"
+    seen_slugs: set[str] = set()
+    for relative_name in REQUIRED_EVAL_CONTRACTS:
+        path = eval_root / relative_name
+        if not path.exists():
+            raise PackageValidationError(f"missing eval contract: evals/{relative_name}")
+        try:
+            contract = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise PackageValidationError(f"evals/{relative_name}: invalid JSON-compatible contract: {exc}") from exc
+        if contract.get("schema") not in {"weave.lifecycle-eval/v0.1", "weave.release-eval/v0.1"}:
+            raise PackageValidationError(f"evals/{relative_name}: schema must be weave.lifecycle-eval/v0.1 or weave.release-eval/v0.1")
+        slug = contract.get("slug")
+        if not isinstance(slug, str) or not slug:
+            raise PackageValidationError(f"evals/{relative_name}: slug is required")
+        if slug in seen_slugs:
+            raise PackageValidationError(f"duplicate eval contract slug: {slug}")
+        seen_slugs.add(slug)
+        if not contract.get("stage"):
+            raise PackageValidationError(f"evals/{relative_name}: stage is required")
+        if not isinstance(contract.get("hard_gates"), list):
+            raise PackageValidationError(f"evals/{relative_name}: hard_gates must be a list")
+        if not isinstance(contract.get("rubric"), list) or not contract["rubric"]:
+            raise PackageValidationError(f"evals/{relative_name}: rubric must be a non-empty list")
+        for gate in contract["hard_gates"]:
+            if not isinstance(gate, dict) or not gate.get("id") or not gate.get("kind"):
+                raise PackageValidationError(f"evals/{relative_name}: every hard gate needs id and kind")
+        for dimension in contract["rubric"]:
+            if not isinstance(dimension, dict) or not dimension.get("id") or not dimension.get("max_score"):
+                raise PackageValidationError(f"evals/{relative_name}: every rubric dimension needs id and max_score")
+    return len(REQUIRED_EVAL_CONTRACTS)
 
 
 def validate_package(package_root: Path) -> PackageSummary:
@@ -297,9 +461,11 @@ def validate_package(package_root: Path) -> PackageSummary:
     scan_forbidden_text(root)
     company = validate_company(root)
     skill_slugs = validate_skills(root)
+    prompt_pack_count = validate_prompt_packs(root)
     agents = validate_agents(root, skill_slugs)
     tasks = validate_tasks(root)
     primitive_count = validate_primitives(root)
+    eval_contract_count = validate_eval_contracts(root)
     return PackageSummary(
         slug=company["slug"],
         version=company["version"],
@@ -307,6 +473,8 @@ def validate_package(package_root: Path) -> PackageSummary:
         task_count=len(tasks),
         skill_count=len(skill_slugs),
         primitive_count=primitive_count,
+        prompt_pack_count=prompt_pack_count,
+        eval_contract_count=eval_contract_count,
     )
 
 
@@ -325,6 +493,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"tasks: {summary.task_count}")
     print(f"skills: {summary.skill_count}")
     print(f"primitives: {summary.primitive_count}")
+    print(f"prompt_packs: {summary.prompt_pack_count}")
+    print(f"eval_contracts: {summary.eval_contract_count}")
     return 0
 
 

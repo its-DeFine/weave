@@ -10,18 +10,22 @@ releaseTag: "v2026.05.13-console"
 releaseChannel: public-d1-console
 license: MIT
 homepage: https://github.com/its-DeFine/weave
-runtime: openclaw-solo
+runtime: hermes-default
+runtimeFallback: local-fallback
 goals:
   - Build commercially viable WEAVE applications through the lifecycle.
-  - Start with Askuno Runtime Proof using lifecycle evidence primitives.
+  - Use Month 1 product proof and conversation-to-app dogfood surfaces as the current review anchors.
+  - Keep Askuno Runtime Proof as a historical worked example, not the current deliverable-review anchor.
   - Preserve a clean future swap path to Livepeer-native pipelines.
 requirements:
   secrets:
+    - hermes_runtime_credentials
     - livepeer_gateway_credentials
 metadata:
   lifecycle: weave-eight-stage-plus-growth-loop
-  primaryRuntime: openclaw-solo
-  ceoAgent: ceo-openclaw
+  primaryRuntime: hermes-default
+  fallbackRuntime: local-fallback
+  ceoAgent: ceo-hermes
 ---
 
 # WEAVE
@@ -45,16 +49,23 @@ After KPI setup, the growth loop runs under Marketing instead of after it:
 - Iteration: implement feedback or arbitrary product improvements and deploy them.
 - Analysis: read analytics and feedback, then recommend the next iteration.
 
-OpenClaw is the CEO agent and active runtime for this package. WEAVE supplies
-the business logic: primitives, lifecycle gates, application selection,
-evidence contracts, agent skill contracts, command-bus boundaries, and future
-Livepeer adapter boundaries.
+Hermes is the default CEO agent and active runtime for this package. WEAVE
+supplies the business logic: primitives, lifecycle gates, application
+selection, evidence contracts, agent skill contracts, command-bus boundaries,
+and future Livepeer adapter boundaries. Local Fallback remains the explicit fallback
+runtime for legacy or owner-directed recovery runs.
 
-## Current Mission
+## Current Review Anchor
 
-Replay the first controlled WEAVE application proof through the lifecycle:
-Askuno Runtime Proof.
+Review the Month 1 WEAVE surfaces as a lifecycle/runtime package, not as an
+Askuno-specific launch review. The current reviewer-facing anchors are:
 
-The first implementation is a lifecycle wrapper and review surface around
-Askuno. Future Livepeer gateway, payment, or compute-warrant adapters must be
+- FableFrame Studio local product proof.
+- The full conversation-to-app dogfood artifact bundle.
+- The deterministic lifecycle, command, evidence, and prompt-pack contracts.
+
+Askuno Runtime Proof remains a starter project and historical worked example in
+this package. It should not be used as the acceptance surface for the current
+Month 1 deliverable review unless a separate Askuno review packet is explicitly
+requested. Future Livepeer gateway, payment, or compute-warrant adapters must be
 connected only after a separate approval and evidence gate.

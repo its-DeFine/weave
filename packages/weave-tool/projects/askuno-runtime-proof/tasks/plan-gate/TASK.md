@@ -3,7 +3,7 @@ schema: agentcompanies/v1
 kind: task
 slug: plan-gate
 name: Plan Gate For Askuno Runtime Proof
-assignee: ceo-openclaw
+assignee: ceo-hermes
 project: askuno-runtime-proof
 lifecycleStage: plan
 priority: high

@@ -130,8 +130,8 @@ Each skill must define:
 
 ## Runtime Bridge
 
-The operator UI or workstation-facing agent may send messages into the runtime
-only as structured command drafts or review notes. Bridge events should include
+Telegram slash commands or a workstation-facing agent may send messages into
+the runtime only as structured command drafts or review notes. Bridge events should include
 the target app, lifecycle stage, message intent, approval status, and whether
 the payload is safe for persistence.
 

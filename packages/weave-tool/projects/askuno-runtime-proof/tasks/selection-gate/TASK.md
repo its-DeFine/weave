@@ -3,7 +3,7 @@ schema: agentcompanies/v1
 kind: task
 slug: selection-gate
 name: Selection Gate For Askuno Runtime Proof
-assignee: ceo-openclaw
+assignee: ceo-hermes
 project: askuno-runtime-proof
 lifecycleStage: selection
 priority: high

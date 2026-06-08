@@ -4,12 +4,12 @@ kind: project
 slug: askuno-runtime-proof
 name: Askuno Runtime Proof
 description: Askuno worked example for the WEAVE lifecycle wrapper, evidence ledger, review gates, KPI setup, marketing, and iteration process.
-owner: ceo-openclaw
+owner: ceo-hermes
 goal: Prove that WEAVE can guide and record an agent-run application lifecycle around Askuno.
 metadata:
   admittedBy: docs/month1/app-lifecycle.md
   targetPipeline: lifecycle-wrapper
-  runtimeMode: operator-console-first
+  runtimeMode: telegram-command-first
 ---
 
 # Askuno Runtime Proof

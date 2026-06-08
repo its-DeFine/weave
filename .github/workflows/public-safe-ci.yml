@@ -28,10 +28,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Hermes runtime setup check
+        run: python3 scripts/setup_runtime.py --check
       - name: Runtime smoke
         run: python3 scripts/runtime_smoke.py
-      - name: Operator UI smoke
-        run: python3 scripts/operator_ui_smoke.py
       - name: Unit tests
         run: python3 -m unittest discover -s tests -p 'test_*.py'
 

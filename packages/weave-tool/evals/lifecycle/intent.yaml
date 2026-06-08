@@ -1,0 +1,55 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "no measurable success criterion",
+    "unclear owner approval boundary",
+    "goal too broad to evaluate"
+  ],
+  "description": "Evaluate whether the business/product intent is clear enough to justify research or planning.",
+  "hard_gates": [
+    {
+      "description": "Intent packet names at least one measurable success condition.",
+      "id": "success_metric_present",
+      "kind": "manual"
+    },
+    {
+      "description": "Intent packet labels external/public/credential/money actions that need owner approval.",
+      "id": "approval_boundary_present",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "goal statement",
+    "target user/customer",
+    "success criteria",
+    "non-goals",
+    "approval boundaries"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "goal_clarity",
+      "max_score": 4,
+      "question": "Is the desired outcome specific and testable?"
+    },
+    {
+      "id": "target_user",
+      "max_score": 4,
+      "question": "Is the user/customer and use case clear?"
+    },
+    {
+      "id": "success_measures",
+      "max_score": 4,
+      "question": "Are success criteria measurable rather than vibes-based?"
+    },
+    {
+      "id": "scope_boundaries",
+      "max_score": 4,
+      "question": "Are non-goals and approval-gated surfaces explicit?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "intent",
+  "stage": "Intent"
+}

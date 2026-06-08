@@ -11,7 +11,7 @@ signals, and iteration history tracked as first-class objects.
 WEAVE separates three layers:
 
 1. Execution runtime
-   - OpenClaw and approved execution tools.
+   - Hermes and approved execution tools.
    - This layer reads repositories, writes code, runs tests, opens pull
      requests, queues commands, and performs approved work.
 
@@ -37,14 +37,11 @@ WEAVE separates three layers:
 6. QA
 7. KPI Setup
 8. Marketing
+9. Iteration
+10. Analysis
 
-After KPI Setup, WEAVE also runs a parallel growth loop under Marketing:
-
-- Iteration
-- Analysis
-
-Each stage or loop phase records a target, current state, evidence, gates, and
-the next review action.
+Each stage records a target, current state, evidence, gates, and the next review
+action.
 
 Stage changes should be append-only in evidence. Returning to an earlier stage
 requires an overwrite record that names the reason and affected downstream
@@ -93,13 +90,28 @@ Gate states:
 - `deferred`
 - `owner_required`
 
+The implemented local runtime treats stage approval and stage movement as two
+separate deterministic controls:
+
+- `/approve_stage [app_id] [stage]` records owner approval only after foundation
+  context, prior-stage approvals, current-stage proof, blockers, and credential
+  capability gates pass.
+- `/advance [app_id]` moves the app to the next lifecycle stage only after the
+  current stage is approved.
+- `/lifecycle [app_id]` shows the current stage gate, missing proof, and
+  lifecycle row state without model-generated text.
+
+KPI Setup, Marketing, and Analysis can require credential capability. If the
+owner explicitly chooses to proceed without that capability, the runtime records
+a credential deferral instead of silently ignoring the missing dependency.
+
 ## Month 1 Mapping
 
 For Month 1:
 
 - WEAVE is the lifecycle wrapper, evidence model, gate model, and review
   surface.
-- OpenClaw is the execution runtime.
+- Hermes is the execution runtime.
 - Askuno is the proof application.
 - Atumera KPIs is the public reporting surface.
 - Review gates are the lifecycle controls.
@@ -107,7 +119,7 @@ For Month 1:
 This delivers:
 
 - M1-D1 as the WEAVE method and lifecycle contract.
-- M1-D2 as the Askuno replay through that lifecycle using OpenClaw as the
+- M1-D2 as the Askuno replay through that lifecycle using Hermes as the
   execution runtime.
 - M1-D3 as public KPI reporting through Atumera.
 
@@ -126,14 +138,14 @@ human sets target
 Example command language:
 
 ```text
-/weave target create askuno
-/weave stage set research
-/weave plan add "verify API docs and payment path"
-/weave evidence add test-output.md
-/weave gate request qa_pass
-/weave review
-/weave stage set distribution
-/weave kpi publish
+/create_app askuno
+/status askuno
+/lifecycle askuno
+/requirements askuno
+/approve_stage askuno intent
+/advance askuno
+/blockers
+/next
 ```
 
 Month 1 does not require the perfect terminal product. It requires a clear

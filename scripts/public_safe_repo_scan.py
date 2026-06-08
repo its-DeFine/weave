@@ -36,17 +36,55 @@ SCAN_EXTENSIONS = {
 }
 
 ALLOWLIST = {
-    # Public operator UI helper intentionally binds to loopback for local-only
-    # static serving. It must not imply a private runtime endpoint.
-    ("scripts/run_operator_ui.py", "loopback-host"),
+    ("scripts/weave_runtime_api.py", "loopback-host"),
+    ("scripts/weave_runtime_http.py", "loopback-host"),
+    ("scripts/live_hermes_lifecycle_qa.py", "loopback-host"),
+    ("scripts/weave_runtime_slice.py", "loopback-host"),
+    ("tests/test_live_hermes_lifecycle_qa.py", "loopback-host"),
 }
 
-ALLOWLIST_FILES = {
-    # These files intentionally contain private-looking strings as scanner or
-    # smoke-test fixtures, not as runtime configuration.
-    "scripts/context_sync_contract_smoke.py",
-    "tests/test_public_safe_repo_scan.py",
-}
+ALLOWLIST_LINE_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
+    # These scanner/test fixtures intentionally contain private-looking strings.
+    # Keep allowlists scoped to specific labels and source lines so adjacent real
+    # private data in the same file is still reported.
+    (
+        "scripts/context_sync_contract_smoke.py",
+        "local-user-path",
+        re.compile(r"/Users/\|/home/\|/opt/"),
+    ),
+    (
+        "scripts/context_sync_contract_smoke.py",
+        "credential-like-token",
+        re.compile(r"sk-\[A-Za-z0-9_|Bearer\\s"),
+    ),
+    (
+        "tests/test_public_safe_repo_scan.py",
+        "local-user-path",
+        re.compile(r"scan_text\(\"see /Users/example/private\""),
+    ),
+    (
+        "tests/test_public_safe_repo_scan.py",
+        "loopback-host",
+        re.compile(r"127\.0\.0\.1|localhost"),
+    ),
+    (
+        "tests/test_weave_runtime_http.py",
+        "loopback-host",
+        re.compile(r"is_loopback_bind_host\(\"localhost\"\)"),
+    ),
+    (
+        "tests/test_weave_runtime_http.py",
+        "private-ipv4",
+        re.compile(r"is_loopback_bind_host\(\"192\.168\.1\.25\"\)"),
+    ),
+)
+
+PRIVATE_DEVICE_NAME = "p" + "c2"
+PRIVATE_OVERLAY_VENDOR = "tail" + "scale"
+PRIVATE_RUNTIME_HOST_PREFIX = "weave" + "-vm"
+PRIVATE_RUNTIME_PLACEHOLDERS = ("<" + "P" + "C2", "<" + "WEAVE" + "_VM")
+PRIVATE_ACCESS_TOOL = "machine" + "ctl"
+PRIVATE_ROUTE_TERM = "jump" + "-host"
 
 PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("local-user-path", re.compile(r"/Users/[A-Za-z0-9_.-]+")),
@@ -54,7 +92,12 @@ PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("loopback-host", re.compile(r"\b(?:127\.0\.0\.1|localhost|host\.docker\.internal)\b", re.IGNORECASE)),
     ("private-ipv4", re.compile(r"\b(?:10|172\.(?:1[6-9]|2\d|3[01])|192\.168|100\.\d{1,3})\.\d{1,3}\.\d{1,3}\b")),
     ("private-substrate-reference", re.compile(r"\bweave-substrate\b", re.IGNORECASE)),
-    ("private-runtime-host", re.compile(r"\bweave-vm\d+\b", re.IGNORECASE)),
+    ("private-device-name", re.compile(rf"\b{re.escape(PRIVATE_DEVICE_NAME)}\b", re.IGNORECASE)),
+    ("private-overlay-vendor", re.compile(re.escape(PRIVATE_OVERLAY_VENDOR), re.IGNORECASE)),
+    ("private-runtime-host", re.compile(rf"\b{re.escape(PRIVATE_RUNTIME_HOST_PREFIX)}\d+\b", re.IGNORECASE)),
+    ("private-runtime-placeholder", re.compile("|".join(re.escape(item) for item in PRIVATE_RUNTIME_PLACEHOLDERS), re.IGNORECASE)),
+    ("private-access-command", re.compile(rf"\b(?:{re.escape(PRIVATE_ACCESS_TOOL)}|ssh\s+-i|scp\s+-r)\b", re.IGNORECASE)),
+    ("private-route-term", re.compile(re.escape(PRIVATE_ROUTE_TERM), re.IGNORECASE)),
     ("private-key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
     ("credential-like-token", re.compile(r"\b(?:sk-[A-Za-z0-9_-]{20,}|sk-or-v1-[A-Za-z0-9_-]{16,}|sk_live_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._-]{20,})\b")),
 )
@@ -88,16 +131,26 @@ def should_scan(path: Path) -> bool:
     return path.suffix in SCAN_EXTENSIONS
 
 
+def allowlisted_hit(path: str, label: str, line: str) -> bool:
+    if (path, label) in ALLOWLIST:
+        return True
+    return any(
+        allowed_path == path and allowed_label == label and line_re.search(line)
+        for allowed_path, allowed_label, line_re in ALLOWLIST_LINE_PATTERNS
+    )
+
+
 def scan_text(text: str, *, path: str) -> list[ScanHit]:
     hits: list[ScanHit] = []
     for line_number, line in enumerate(text.splitlines(), start=1):
         for label, pattern in PATTERNS:
-            if path in ALLOWLIST_FILES or (path, label) in ALLOWLIST:
-                continue
             match = pattern.search(line)
-            if match:
-                hits.append(ScanHit(path=path, line=line_number, label=label, match=match.group(0)))
-                break
+            if not match:
+                continue
+            if allowlisted_hit(path, label, line):
+                continue
+            hits.append(ScanHit(path=path, line=line_number, label=label, match=match.group(0)))
+            break
     return hits
 
 

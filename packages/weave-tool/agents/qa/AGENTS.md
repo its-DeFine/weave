@@ -5,7 +5,7 @@ slug: qa
 name: QA Lead
 title: Runtime Readiness Lead
 role: qa
-reportsTo: ceo-openclaw
+reportsTo: ceo-hermes
 skills:
   - runtime-app-attachment
   - weave-lifecycle
