@@ -28,3 +28,30 @@ This `docs/` tree is the public documentation subset for WEAVE.
 - [Workstation Context Sync](workstation-context-sync.md)
 - [Orchestrator Economics](month1/orchestrator-economics.md)
 - [Program Transparency](month1/program-transparency.md)
+
+## Proof, dogfood, and runtime workflow map
+
+If you want to run the existing proof and runtime scripts instead of reading the
+full docs tree first, start here:
+
+- **Base public-safe validation:** follow [Quickstart](quickstart.md) sections 2,
+  3, 8, and 12. The core commands are
+  `python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool`,
+  `python3 -m unittest discover -s tests -p 'test_*.py'`,
+  `python3 scripts/runtime_smoke.py`, and `python3 scripts/check_no_secrets.py`.
+- **Conversation-to-app dogfood:** run
+  `python3 scripts/full_conversation_app_dogfood.py` from [Quickstart](quickstart.md#5-try-the-full-conversation-to-app-workflow)
+  or [Full Conversation-To-App Dogfood](month1/full-conversation-app-dogfood.md).
+  It writes local `runs/` artifacts and does not call live Hermes, Telegram,
+  providers, hosting, analytics, payments, or public channels.
+- **Scripted-user / live-agent runner:** run the fixture-mode scenario in
+  [Scripted-User / Live-Agent Runner](month1/scripted-user-live-agent-runner.md)
+  with `docs/month1/examples/scripted-user-live-agent-scenario.example.json`.
+  Fixture mode is CI-safe proof; Hermes CLI live mode is separate local live-agent
+  proof and is not deployed Telegram gateway proof.
+- **Local runtime surfaces:** inspect [Runtime Home Contract](runtime-home.md),
+  [Telegram Slash Commands](telegram-slash-commands.md), and [Quickstart](quickstart.md#9-inspect-status-from-telegram-commands)
+  before starting `python3 scripts/weave_runtime_api.py` or
+  `python3 scripts/weave_runtime_http.py`. Both bind to loopback by default and
+  the HTTP wrapper requires the generated local bearer token unless explicitly
+  started with its test/dev unauthenticated flag.
