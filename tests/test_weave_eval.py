@@ -146,6 +146,46 @@ class WeaveEvalTests(unittest.TestCase):
             self.assertIn("gate ok", text)
             self.assertIn("decision: advance", text)
 
+    def test_redacted_command_gate_suppresses_success_output_excerpt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            proof_path = root / "proof-output.txt"
+            proof_path.write_text("private proof boundary\n", encoding="utf-8")
+            contract = {
+                "schema": "weave.lifecycle-eval/v0.1",
+                "slug": "redacted-gate-mini",
+                "stage": "Redacted Gate Mini",
+                "requires_review": False,
+                "advance_min_score_percent": 80,
+                "hard_gates": [
+                    {
+                        "id": "redacted_python_command",
+                        "kind": "command",
+                        "command": (
+                            f"{sys.executable} -c \"from pathlib import Path; "
+                            f"print(Path({str(proof_path)!r}).read_text().strip())\""
+                        ),
+                        "timeout_seconds": 30,
+                        "redact_output": True,
+                    }
+                ],
+                "rubric": [],
+            }
+            contract_path = root / "contract.yaml"
+            contract_path.write_text(json.dumps(contract), encoding="utf-8")
+
+            output = io.StringIO()
+            rc = weave_eval.main(
+                ["--contract-file", str(contract_path), "--run-gates", "--strict", "--json"],
+                output=output,
+            )
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            payload = json.loads(text)
+            gate = payload["hard_gates"][0]
+            self.assertEqual(gate["status"], "passed")
+            self.assertEqual(gate["output_excerpt"], "[redacted by eval contract]")
+            self.assertNotIn("private proof boundary", text)
 
     def test_kpi_alias_loads_kpi_setup_contract(self) -> None:
         output = io.StringIO()
