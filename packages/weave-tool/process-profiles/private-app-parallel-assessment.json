@@ -1,0 +1,80 @@
+{
+  "schema": "weave-operating-profile/v0.1",
+  "id": "private-app-parallel-assessment",
+  "name": "Private App Parallel Assessment",
+  "version": "2026.06.09",
+  "trigger_mode": "reactive",
+  "authority_mode": "recommend_only",
+  "target_surface": "local generated static apps plus deterministic cognitive evidence artifacts",
+  "private_data_policy": {
+    "real_private_data_allowed": false,
+    "synthetic_private_data_allowed": true,
+    "external_send_allowed": false
+  },
+  "framework_stack": [
+    {
+      "id": "gestalt",
+      "role": "keep owner intent, proof boundaries, and future handoff coherent",
+      "artifact": "intent-frame.json"
+    },
+    {
+      "id": "cwa_discovery",
+      "role": "model private-domain actors, constraints, values, functions, and observable signals before building",
+      "artifact": "cwa-work-domain.json"
+    },
+    {
+      "id": "dmn_decision_table",
+      "role": "route authority, privacy, marketing exclusion, and local-proof decisions deterministically",
+      "artifact": "dmn-decision-table.json"
+    },
+    {
+      "id": "ibis_issue_map",
+      "role": "record contested product-shape options and why local static proof wins for this slice",
+      "artifact": "ibis-map.json"
+    },
+    {
+      "id": "adr_decision_record",
+      "role": "commit the local private-first app proof choice and preserve consequences",
+      "artifact": "adr-0001-local-private-first.md"
+    },
+    {
+      "id": "prov_ledger",
+      "role": "make intent, profile selection, action intent, app generation, and result events inspectable",
+      "artifact": "prov-ledger.jsonl"
+    }
+  ],
+  "required_artifacts": [
+    "intent-frame.json",
+    "profile-selection.json",
+    "cwa-work-domain.json",
+    "dmn-decision-table.json",
+    "ibis-map.json",
+    "adr-0001-local-private-first.md",
+    "action-intent.json",
+    "action-result.json",
+    "prov-ledger.jsonl",
+    "assessment-report.json",
+    "aggregate-report.json"
+  ],
+  "hard_gates": [
+    "all generated apps must keep external actions disabled",
+    "marketing must be excluded from this evaluation slice",
+    "sample private-domain records must be synthetic",
+    "each app must include all cognitive framework artifacts",
+    "each app must have reviewable local source and assessment report",
+    "claims must stay bounded to local deterministic fixture behavior"
+  ],
+  "non_claims": [
+    "not live Hermes CLI proof",
+    "not Telegram or deployed gateway proof",
+    "not hosted application proof",
+    "not marketing, analytics, payment, or real-user traction proof",
+    "not proof over real private customer data"
+  ],
+  "evaluation": {
+    "minimum_app_count": 6,
+    "parallel_default": 4,
+    "marketing_included": false,
+    "iteration_mode": "private recommendation artifacts only"
+  }
+}

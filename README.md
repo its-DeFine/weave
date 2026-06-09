@@ -34,6 +34,7 @@ bin/weave eval --list
 bin/weave onboard --dry-run
 bin/weave command /status
 python3 scripts/full_conversation_app_dogfood.py --help
+python3 scripts/private_app_operating_profile_eval.py --list
 ```
 
 ## Version
@@ -133,6 +134,28 @@ Inspect the generated app by opening
 browser, or serve that generated-app directory with any local static-file server.
 For the committed review artifact and proof boundary, see
 [docs/month1/full-conversation-app-dogfood.md](docs/month1/full-conversation-app-dogfood.md).
+
+## Run private app operating-profile evaluations
+
+To test WEAVE's operating-profile model across several private, non-public app
+scenarios in parallel, run:
+
+```bash
+mkdir -p runs/private-app-operating-profile-evals
+python3 scripts/private_app_operating_profile_eval.py \
+  --output-dir runs/private-app-operating-profile-evals/artifacts \
+  --report-out runs/private-app-operating-profile-evals/report.md \
+  --parallel 4 \
+  --force
+```
+
+The harness generates six local-only static apps, one assessment report per app,
+and an aggregate report. Each app includes concrete cognitive artifacts:
+intent frame, profile selection, CWA work-domain model, DMN decision table, IBIS
+issue map, ADR, action intent/result, and PROV ledger. It intentionally excludes
+marketing, hosting, analytics, payments, external sends, live Hermes, and
+Telegram/deployed-gateway proof. See
+[docs/month1/private-app-operating-profile-evals.md](docs/month1/private-app-operating-profile-evals.md).
 
 Run guided onboarding:
 
