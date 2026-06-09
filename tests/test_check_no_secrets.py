@@ -63,6 +63,15 @@ class CheckNoSecretsTests(unittest.TestCase):
             )
             self.assertEqual(check_no_secrets.scan_file(path), [])
 
+    def test_rfc1918_172_private_lan_address_is_flagged(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "sample.md"
+            private_address = "172." + "16.0.5"
+            path.write_text(f"runtime endpoint {private_address}\n", encoding="utf-8")
+            hits = check_no_secrets.scan_file(path)
+            self.assertEqual(len(hits), 1)
+            self.assertIn("internal-host", hits[0])
+
 
 if __name__ == "__main__":
     unittest.main()
