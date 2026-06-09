@@ -41,7 +41,7 @@ Correct interpretation:
 
 Highest currently proven surface:
 
-`local deterministic private-app fixture with reviewable cognitive artifacts`
+`local deterministic private-app fixture with generated static apps and reviewable framework-gate evidence`
 
 What this means:
 

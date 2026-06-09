@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -55,12 +56,17 @@ COMMON_NON_CLAIMS = [
 HERMES_CLI_NON_CLAIMS = [
     "Hermes CLI adapter invokes a live local Hermes process; absence of agent/tool external side effects is not proven by this runner unless Hermes is separately sandboxed or tool-gated",
 ]
+DEPLOYED_GATEWAY_NON_CLAIMS = [
+    "deployed-gateway adapter proof requires an owner-approved command that performs send/wait/readback against the real target surface; CI or test-double commands prove adapter plumbing only",
+]
 
 
 def explicit_non_claims_for_adapter(adapter_name: str) -> list[str]:
     claims = list(COMMON_NON_CLAIMS)
     if adapter_name == "hermes-cli":
         claims.extend(HERMES_CLI_NON_CLAIMS)
+    elif adapter_name == "deployed-gateway":
+        claims.extend(DEPLOYED_GATEWAY_NON_CLAIMS)
     else:
         claims.append("fixture adapter performs no live external sends")
     return claims
@@ -357,6 +363,79 @@ class HermesCliAgentAdapter(AgentAdapter):
         )
 
 
+class DeployedGatewayCommandAdapter(AgentAdapter):
+    name = "deployed-gateway"
+
+    def __init__(self, *, command: str, allow_external_send: bool) -> None:
+        if not allow_external_send:
+            raise ScenarioError("deployed-gateway adapter requires --allow-external-send owner approval")
+        clean = command.strip()
+        if not clean:
+            raise ScenarioError("deployed-gateway adapter requires --gateway-command or WEAVE_DEPLOYED_GATEWAY_ADAPTER_CMD")
+        self.command = shlex.split(clean)
+        if not self.command:
+            raise ScenarioError("deployed-gateway adapter command is empty")
+
+    def reply(self, *, scenario: dict[str, Any], step: dict[str, Any], prompt: str, cwd: Path, timeout: int) -> AgentReply:
+        request = {
+            "schema": "weave-deployed-gateway-adapter-request/v0.1",
+            "created_at": utc_now(),
+            "scenario_id": scenario_id(scenario),
+            "step_label": step["label"],
+            "stage": step["stage"],
+            "scripted_user_message": step["user_message"],
+            "prompt": prompt,
+            "cwd": str(cwd),
+            "timeout_seconds": timeout,
+            "required_reply_source": "deployed_agent",
+        }
+        started = time.monotonic()
+        try:
+            result = subprocess.run(
+                self.command,
+                cwd=cwd,
+                input=json.dumps(request, sort_keys=True),
+                text=True,
+                capture_output=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise StepTimeout(f"deployed-gateway adapter timed out after {timeout}s for step {step['label']!r}") from exc
+        elapsed = round(time.monotonic() - started, 3)
+        if result.returncode != 0:
+            raise ScenarioError(
+                "deployed-gateway adapter command failed; "
+                f"returncode={result.returncode}; stderr_sha256={sha256_text(result.stderr)}"
+            )
+        try:
+            payload = json.loads(result.stdout)
+        except json.JSONDecodeError as exc:
+            raise ScenarioError("deployed-gateway adapter command must return JSON on stdout") from exc
+        if not isinstance(payload, dict):
+            raise ScenarioError("deployed-gateway adapter response must be a JSON object")
+        text = str(payload.get("text") or payload.get("reply") or "").strip()
+        source = str(payload.get("source") or "").strip()
+        if not text:
+            raise ScenarioError("deployed-gateway adapter returned no reviewable reply text")
+        if canonical_source_label(source) != "deployed_agent":
+            raise ScenarioError("deployed-gateway adapter response must include source='deployed_agent' after send/wait/readback")
+        raw_metadata = payload.get("metadata")
+        metadata: dict[str, Any] = dict(raw_metadata) if isinstance(raw_metadata, dict) else {}
+        metadata["command_shape"] = "owner-approved deployed gateway adapter command via JSON stdin/stdout"
+        return AgentReply(
+            text=text,
+            source=source,
+            elapsed_seconds=elapsed,
+            session_id=str(payload.get("session_id") or payload.get("message_id") or ""),
+            model=str(payload.get("model") or "deployed-gateway"),
+            provider=str(payload.get("provider") or "deployed-gateway"),
+            stdout_sha256=sha256_text(result.stdout),
+            stderr_sha256=sha256_text(result.stderr),
+            metadata=metadata,
+        )
+
+
 def build_adapter(args: argparse.Namespace, scenario: dict[str, Any]) -> AgentAdapter:
     if args.agent == "fixture":
         return FixtureAgentAdapter(fixture_replies_by_label(scenario))
@@ -368,6 +447,8 @@ def build_adapter(args: argparse.Namespace, scenario: dict[str, Any]) -> AgentAd
             max_turns=args.max_turns,
             yolo=args.yolo,
         )
+    if args.agent == "deployed-gateway":
+        return DeployedGatewayCommandAdapter(command=args.gateway_command, allow_external_send=args.allow_external_send)
     raise ScenarioError(f"Unsupported agent adapter: {args.agent}")
 
 
@@ -988,7 +1069,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scenario", action="append", required=True, help="Path to a JSON scenario file. Repeatable.")
     parser.add_argument("--mode", choices=("fixture", "live"), default="fixture", help="Declared proof mode.")
-    parser.add_argument("--agent", choices=("fixture", "hermes-cli"), default="fixture", help="Agent adapter to use.")
+    parser.add_argument(
+        "--agent",
+        choices=("fixture", "hermes-cli", "deployed-gateway"),
+        default="fixture",
+        help="Agent adapter to use.",
+    )
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Directory for run artifacts.")
     parser.add_argument("--run-id", default="")
     parser.add_argument("--repeat", type=int, default=1, help="Number of instances to run per scenario.")
@@ -1000,6 +1086,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--provider", default=os.environ.get("WEAVE_HERMES_PROVIDER_ADAPTER", "codex"))
     parser.add_argument("--max-turns", type=int, default=4, help="Hermes CLI internal max turns per scripted user message.")
     parser.add_argument("--no-yolo", dest="yolo", action="store_false", help="Disable Hermes --yolo/--accept-hooks for live app-writing runs.")
+    parser.add_argument(
+        "--gateway-command",
+        default=os.environ.get("WEAVE_DEPLOYED_GATEWAY_ADAPTER_CMD", ""),
+        help="Owner-approved deployed gateway adapter command. Receives JSON on stdin and returns JSON on stdout.",
+    )
+    parser.add_argument(
+        "--allow-external-send",
+        action="store_true",
+        help="Required for --agent deployed-gateway because real target-surface proof may send/read Telegram messages.",
+    )
     parser.set_defaults(yolo=True)
     return parser
 
@@ -1017,6 +1113,13 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--mode live cannot use --agent fixture")
     if args.mode == "fixture" and args.agent != "fixture":
         parser.error("--mode fixture requires --agent fixture")
+    if args.agent == "deployed-gateway":
+        if args.mode != "live":
+            parser.error("--agent deployed-gateway requires --mode live")
+        if not args.allow_external_send:
+            parser.error("--agent deployed-gateway requires --allow-external-send owner approval")
+        if not str(args.gateway_command).strip():
+            parser.error("--agent deployed-gateway requires --gateway-command or WEAVE_DEPLOYED_GATEWAY_ADAPTER_CMD")
     try:
         report = run_all(args)
     except Exception as exc:

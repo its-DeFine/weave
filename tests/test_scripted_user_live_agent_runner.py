@@ -445,6 +445,93 @@ class ScriptedUserLiveAgentRunnerTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("--mode live cannot use --agent fixture", result.stderr)
 
+    def test_deployed_gateway_adapter_is_owner_approval_gated(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            scenario = self.write_scenario(
+                base,
+                {
+                    "schema": runner.SCENARIO_SCHEMA,
+                    "scenario_id": "deployed-gateway-gate-demo",
+                    "steps": [{"label": "intent", "stage": "intent", "user_message": "hello"}],
+                },
+            )
+            result = self.run_runner(
+                "--scenario",
+                str(scenario),
+                "--mode",
+                "live",
+                "--agent",
+                "deployed-gateway",
+                "--output-dir",
+                str(base / "out"),
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("--agent deployed-gateway requires --allow-external-send owner approval", result.stderr)
+
+    def test_deployed_gateway_command_adapter_records_deployed_source_from_readback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            scenario = self.write_scenario(
+                base,
+                {
+                    "schema": runner.SCENARIO_SCHEMA,
+                    "scenario_id": "deployed-gateway-command-demo",
+                    "steps": [
+                        {
+                            "label": "intent",
+                            "stage": "intent",
+                            "user_message": "Drive the deployed gateway adapter test double.",
+                            "expect": {
+                                "reply_contains_all": ["deployed gateway readback"],
+                                "agent_source_in": ["deployed_agent"],
+                                "turn_count_delta_at_least": 1,
+                            },
+                            "on_pass": "stop",
+                        }
+                    ],
+                },
+            )
+            adapter = base / "mock_deployed_gateway_adapter.py"
+            adapter.write_text(
+                "import json, sys\n"
+                "request = json.loads(sys.stdin.read())\n"
+                "assert request['required_reply_source'] == 'deployed_agent'\n"
+                "print(json.dumps({\n"
+                "  'source': 'deployed_agent',\n"
+                "  'text': 'deployed gateway readback from test double; plumbing only, no Telegram send',\n"
+                "  'message_id': 'mock-message-1',\n"
+                "  'metadata': {'target': 'test-double'}\n"
+                "}))\n",
+                encoding="utf-8",
+            )
+            output_dir = base / "out"
+            result = self.run_runner(
+                "--scenario",
+                str(scenario),
+                "--mode",
+                "live",
+                "--agent",
+                "deployed-gateway",
+                "--gateway-command",
+                f"{sys.executable} {adapter}",
+                "--allow-external-send",
+                "--output-dir",
+                str(output_dir),
+                "--run-id",
+                "run-deployed-gateway-command",
+                "--force",
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            aggregate = json.loads((output_dir / "run-deployed-gateway-command" / "aggregate-report.json").read_text(encoding="utf-8"))
+            self.assertTrue(aggregate["passed"])
+            self.assertIn("test-double commands prove adapter plumbing only", "\n".join(aggregate["explicit_non_claims"]))
+            report = json.loads(Path(aggregate["results"][0]["report"]).read_text(encoding="utf-8"))
+            self.assertEqual(report["agent_adapter"], "deployed-gateway")
+            self.assertEqual(report["source_summary"]["agent_reply_sources"], {"deployed_agent": 1})
+            self.assertEqual(report["steps"][0]["agent_source"], "deployed_agent")
+            self.assertEqual(report["steps"][0]["session_id"], "mock-message-1")
+
 
 if __name__ == "__main__":
     unittest.main()

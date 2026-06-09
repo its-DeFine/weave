@@ -149,8 +149,10 @@ python3 scripts/private_app_operating_profile_eval.py \
   --force
 ```
 
-The harness generates six local-only static apps, one assessment report per app,
-and an aggregate report. Each app includes concrete cognitive artifacts:
+The harness generates ten local-only static apps, one assessment report per app,
+and an aggregate report. Its target proof surface is `local deterministic
+private-app fixture with generated static apps and reviewable framework-gate
+evidence`. Each app includes concrete cognitive artifacts:
 intent frame, profile selection, CWA work-domain model, DMN decision table, IBIS
 issue map, ADR, action intent/result, and PROV ledger. It intentionally excludes
 marketing, hosting, analytics, payments, external sends, live Hermes, and
