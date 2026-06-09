@@ -1,0 +1,89 @@
+{
+  "schema": "weave-scripted-user-live-agent-scenario/v0.1",
+  "scenario_id": "local-checklist-app-demo",
+  "intent": "Create a tiny local-only checklist application from scripted user prompts, then branch if the reply is too vague.",
+  "app": {
+    "id_template": "{scenario_id}-{run_index}",
+    "name_template": "Local Checklist Demo {run_index}"
+  },
+  "max_executed_steps": 5,
+  "foundation": {
+    "app_context": "A local-only checklist app should be produced without deploys, analytics, payments, credentials, or public sends."
+  },
+  "steps": [
+    {
+      "label": "intent",
+      "stage": "intent",
+      "user_message": "I want a tiny local-only checklist app that helps me pick one useful task for today. Keep it safe and do not deploy anything.",
+      "timeout_seconds": 120,
+      "expect": {
+        "reply_contains_any": ["local-only", "checklist", "task"],
+        "reply_not_contains_any": ["deployed successfully", "payment live", "analytics enabled"],
+        "agent_source_in": ["scripted_fixture", "live_hermes", "live_agent", "deployed_agent"],
+        "turn_count_delta_at_least": 1,
+        "stage_message_count_at_most": 1
+      },
+      "on_pass": "goto:build",
+      "on_fail": "goto:repair-intent",
+      "on_timeout": "goto:repair-intent"
+    },
+    {
+      "label": "repair-intent",
+      "stage": "intent",
+      "user_message": "Your previous reply was not specific enough. Give me a local-only checklist plan with explicit non-claims and no external actions.",
+      "expect": {
+        "reply_contains_all": ["local-only", "no external"],
+        "reply_min_chars": 80
+      },
+      "on_pass": "goto:build",
+      "on_fail": "abort"
+    },
+    {
+      "label": "build",
+      "stage": "engineering",
+      "cwd": "app_repo",
+      "user_message": "Create or describe the minimal static app files for this checklist. If you write files, keep them dependency-free and local-only.",
+      "timeout_seconds": 180,
+      "expect": {
+        "reply_contains_any": ["index.html", "app.js", "local-only", "dependency-free"],
+        "reply_not_contains_any": ["pushed to production", "charged", "sent email"]
+      },
+      "on_pass": "goto:qa",
+      "on_fail": "abort",
+      "on_timeout": "abort"
+    },
+    {
+      "label": "qa",
+      "stage": "qa",
+      "user_message": "Review the local app proof honestly. What is verified, what is assumed, and what is still blocked?",
+      "expect": {
+        "reply_contains_any": ["verified", "assumed", "blocked"],
+        "reply_not_contains_any": ["real users proven", "revenue proven"]
+      },
+      "on_pass": "stop",
+      "on_fail": "abort"
+    }
+  ],
+  "fixture_replies": [
+    {
+      "label": "intent",
+      "source": "scripted_fixture",
+      "text": "A local-only checklist app is a safe first slice. It should stay dependency-free, avoid deploys, avoid analytics, avoid payments, and produce only local proof artifacts."
+    },
+    {
+      "label": "repair-intent",
+      "source": "scripted_fixture",
+      "text": "Repair path: local-only checklist, no external actions, no deploy, no analytics, no payment, no credential handling."
+    },
+    {
+      "label": "build",
+      "source": "scripted_fixture",
+      "text": "Build path fixture: create index.html, app.js, and styles.css as dependency-free local-only files. Fixture mode does not actually prove live file generation."
+    },
+    {
+      "label": "qa",
+      "source": "scripted_fixture",
+      "text": "verified: scenario routing and local proof capture. assumed: live agent quality and browser behavior. blocked: deployed proof, real users, retention, revenue, analytics, and payment validation."
+    }
+  ]
+}
