@@ -1,0 +1,23 @@
+{
+  "allowed_scope": [
+    "write local files under scenario output",
+    "run syntax and artifact checks"
+  ],
+  "app_id": "clinic-queue",
+  "app_name": "Clinic Queue",
+  "authority_mode": "recommend_only",
+  "blocked_scope": [
+    "network calls",
+    "external sends",
+    "deployment",
+    "real private data",
+    "payments",
+    "marketing publish"
+  ],
+  "created_at": "2026-06-09T18:01:18Z",
+  "intended_action": "generate app source and framework-gate evidence bundle",
+  "marketing_excluded": true,
+  "private_local_only": true,
+  "schema": "weave-action-intent/v0.2",
+  "trigger_mode": "reactive"
+}

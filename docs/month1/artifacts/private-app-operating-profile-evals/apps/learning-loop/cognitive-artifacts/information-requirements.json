@@ -1,0 +1,42 @@
+{
+  "app_id": "learning-loop",
+  "app_name": "Learning Loop",
+  "authority_mode": "recommend_only",
+  "created_at": "2026-06-09T18:01:18Z",
+  "marketing_excluded": true,
+  "optional_inputs": [
+    "visual theme",
+    "deployment target",
+    "real user feedback"
+  ],
+  "private_local_only": true,
+  "required_inputs": [
+    {
+      "field": "owner_intent",
+      "source": "intent-frame.json",
+      "status": "present"
+    },
+    {
+      "field": "affected_user",
+      "source": "intake-state.json",
+      "status": "present"
+    },
+    {
+      "field": "private_data_domain",
+      "source": "intent-frame.json",
+      "status": "present"
+    },
+    {
+      "field": "sample_data",
+      "source": "public/app-data.json",
+      "status": "present_synthetic"
+    },
+    {
+      "field": "success_metrics",
+      "source": "intake-state.json",
+      "status": "present"
+    }
+  ],
+  "schema": "weave-information-requirements/v0.1",
+  "trigger_mode": "reactive"
+}

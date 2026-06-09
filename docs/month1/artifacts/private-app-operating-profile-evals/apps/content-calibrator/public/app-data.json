@@ -1,0 +1,30 @@
+{
+  "external_actions_enabled": false,
+  "id": "content-calibrator",
+  "marketing_included": false,
+  "name": "Content Calibrator",
+  "private_domain": "draft ideas, audience objections, launch constraints",
+  "sample_data": [
+    {
+      "label": "Founder story",
+      "signal": "add concrete lesson",
+      "value": "too vague"
+    },
+    {
+      "label": "Product proof",
+      "signal": "wait for private demo",
+      "value": "needs screenshot"
+    },
+    {
+      "label": "Customer objection",
+      "signal": "draft internal answer",
+      "value": "pricing concern"
+    }
+  ],
+  "schema": "weave-private-app-operating-profile-eval-app/v0.1",
+  "success_metrics": [
+    "best draft selected",
+    "publish blocked until review",
+    "no social post sent"
+  ]
+}

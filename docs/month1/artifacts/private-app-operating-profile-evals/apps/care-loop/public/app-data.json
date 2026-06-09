@@ -1,0 +1,30 @@
+{
+  "external_actions_enabled": false,
+  "id": "care-loop",
+  "marketing_included": false,
+  "name": "Care Loop",
+  "private_domain": "care tasks, check-ins, household routines",
+  "sample_data": [
+    {
+      "label": "Morning medication",
+      "signal": "confirm before breakfast",
+      "value": "daily"
+    },
+    {
+      "label": "Hydration check",
+      "signal": "make visible",
+      "value": "afternoon"
+    },
+    {
+      "label": "Evening note",
+      "signal": "capture pattern",
+      "value": "mood and sleep"
+    }
+  ],
+  "schema": "weave-private-app-operating-profile-eval-app/v0.1",
+  "success_metrics": [
+    "less missed routine",
+    "reviewable handoff",
+    "no health overclaim"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "external_actions_enabled": false,
+  "id": "cohort-compass",
+  "marketing_included": false,
+  "name": "Cohort Compass",
+  "private_domain": "usage cohorts, activation notes, churn reasons",
+  "sample_data": [
+    {
+      "label": "New users",
+      "signal": "improve first-session guidance",
+      "value": "low activation"
+    },
+    {
+      "label": "Returning users",
+      "signal": "protect export workflow",
+      "value": "high export usage"
+    },
+    {
+      "label": "Churn notes",
+      "signal": "add onboarding checklist",
+      "value": "unclear setup"
+    }
+  ],
+  "schema": "weave-private-app-operating-profile-eval-app/v0.1",
+  "success_metrics": [
+    "top friction named",
+    "fix candidate selected",
+    "evidence trace exists"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "external_actions_enabled": false,
+  "id": "grant-radar",
+  "marketing_included": false,
+  "name": "Grant Radar",
+  "private_domain": "grant deadlines, eligibility notes, draft application gaps",
+  "sample_data": [
+    {
+      "label": "City grant",
+      "signal": "finish budget appendix",
+      "value": "deadline in 18 days"
+    },
+    {
+      "label": "Foundation grant",
+      "signal": "request letter this week",
+      "value": "requires partner letter"
+    },
+    {
+      "label": "Pilot fund",
+      "signal": "clarify nonprofit status requirement",
+      "value": "eligibility unclear"
+    }
+  ],
+  "schema": "weave-private-app-operating-profile-eval-app/v0.1",
+  "success_metrics": [
+    "highest-priority grant named",
+    "missing material explicit",
+    "no funder contact sent"
+  ]
+}

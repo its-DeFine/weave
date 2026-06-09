@@ -1,0 +1,14 @@
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/intake-state.json", "event": "input.normalized", "role": "operator"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/intent-frame.json", "event": "intent.framed", "role": "operator"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/profile-selection.json", "event": "profile.selected", "role": "operator"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/cwa-work-domain.json", "event": "cwa.produced", "role": "product_planning"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/missing-information-assessment.json", "event": "missing_information.assessed", "role": "product_planning"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/decision-evaluation-log.json", "event": "dmn.evaluated", "role": "operator"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/ibis-issue-map.json", "event": "ibis.produced", "role": "product_planning"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/premortem-report.json", "event": "premortem.produced", "role": "qa"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/adr-0001-local-private-first.md", "event": "adr.accepted", "role": "engineering"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/action-intent.json", "event": "action.intent_recorded", "role": "engineering"}
+{"at": "2026-06-09T18:01:18Z", "entity": "index.html", "event": "app.generated", "role": "engineering"}
+{"at": "2026-06-09T18:01:18Z", "entity": "assessment-report.json", "event": "qa.verified", "role": "qa"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/proof-boundary-report.json", "event": "proof.reported", "role": "operator"}
+{"at": "2026-06-09T18:01:18Z", "entity": "cognitive-artifacts/action-result.json", "event": "action.result_recorded", "role": "engineering"}
