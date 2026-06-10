@@ -26,6 +26,32 @@ REQUIRED_SELECTED_PROFILES = set(private_app_eval.REQUIRED_SELECTED_PROFILES)
 
 
 class PrivateAppOperatingProfileEvalTests(unittest.TestCase):
+    def test_force_delete_output_root_refuses_unmarked_non_empty_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_root = Path(tmpdir) / "not-an-eval-root"
+            output_root.mkdir()
+            (output_root / "keep.txt").write_text("unrelated work\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "unmarked output root"):
+                private_app_eval.force_delete_output_root(output_root)
+
+            self.assertTrue((output_root / "keep.txt").exists())
+
+    def test_force_delete_output_root_allows_marked_harness_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_root = Path(tmpdir) / "not-an-eval-root"
+            output_root.mkdir()
+            (output_root / private_app_eval.OUTPUT_ROOT_MARKER).write_text("marker\n", encoding="utf-8")
+            (output_root / "generated.json").write_text("{}\n", encoding="utf-8")
+
+            private_app_eval.force_delete_output_root(output_root)
+
+            self.assertFalse(output_root.exists())
+
+    def test_force_delete_output_root_refuses_protected_roots(self) -> None:
+        with self.assertRaisesRegex(ValueError, "protected output root"):
+            private_app_eval.force_delete_output_root(REPO_ROOT)
+
     def test_profile_contract_is_reviewable_private_first_and_gestalt_deferred(self) -> None:
         profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -132,6 +158,7 @@ class PrivateAppOperatingProfileEvalTests(unittest.TestCase):
             self.assertEqual(payload["gate_totals"]["critical_failed"], 0)
             self.assertIn("not Telegram, deployed gateway, or hosted application proof", payload["explicit_non_claims"])
             self.assertIn("live Hermes-agent lifecycle", payload["not_proven"])
+            self.assertTrue((output_dir / private_app_eval.OUTPUT_ROOT_MARKER).exists())
             self.assertTrue((output_dir / "aggregate-review.json").exists())
             self.assertTrue((output_dir / "aggregate-review.md").exists())
             self.assertTrue((output_dir / "cases.jsonl").exists())

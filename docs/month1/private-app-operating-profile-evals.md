@@ -86,11 +86,33 @@ Every generated app gets gate-consumed artifacts:
 
 The aggregate run also writes:
 
+- `.weave-private-app-eval-output-root`
 - `aggregate-report.json`
 - `aggregate-review.json`
 - `aggregate-review.md`
 - `cases.jsonl`
 - optional Markdown report if `--report-out` is supplied
+
+## Committed artifact boundary
+
+The generated bundle committed under
+`docs/month1/artifacts/private-app-operating-profile-evals/` is sample review
+evidence. It helps reviewers inspect the shape and volume of the evidence bundle
+without running the harness first. It is not required as a byte-for-byte golden
+fixture, and it should not be treated as live-agent, hosted-app, Telegram, or
+real-user proof.
+
+For normal review, regenerate into `runs/private-app-operating-profile-evals/` or
+a temporary directory and compare these stable properties instead of raw bytes:
+
+- schemas and app counts;
+- gate names, pass/fail status, and source-artifact references;
+- proof-boundary `highest_proven_surface`, `not_proven`, and explicit non-claims;
+- generated app source presence and local-only/static constraints.
+
+Regenerated artifacts may differ by timestamp, artifact ordering, run checksum,
+or per-file hash/checksum values. Those differences are expected unless a future
+version adds a dedicated fixed-clock golden-fixture mode.
 
 ## Run it
 
@@ -102,6 +124,12 @@ python3 scripts/private_app_operating_profile_eval.py \
   --parallel 4 \
   --force
 ```
+
+`--force` is guarded. It refuses protected roots, symlink roots,
+non-directories, and non-empty unmarked directories. It may delete only an empty
+output directory, a root previously marked by this harness with
+`.weave-private-app-eval-output-root`, or an explicitly named temporary eval root.
+Use a fresh `runs/...` path when unsure.
 
 List scenarios:
 

@@ -80,6 +80,9 @@ EVENT_TYPES = {
 }
 
 CREATORS = {"hermes", "weave-runtime", "owner"}
+LIVE_AGENT_EVENT_CREATORS = {"live_hermes", "live_agent", "deployed_agent"}
+EVENT_CREATORS = CREATORS | LIVE_AGENT_EVENT_CREATORS
+CONVERSATION_TURN_CREATORS = EVENT_CREATORS | {"execution-agent"}
 
 LIFECYCLE_STAGES = [
     ("intent", "01-intent"),
@@ -1133,7 +1136,7 @@ def validate_conversation_turn(turn: dict[str, Any]) -> None:
         raise RuntimeSliceError(f"conversation turn missing required fields: {', '.join(missing)}")
     if turn["schema"] != CONVERSATION_TURN_SCHEMA:
         raise RuntimeSliceError(f"conversation turn schema must be {CONVERSATION_TURN_SCHEMA}")
-    if turn["created_by"] not in CREATORS and turn["created_by"] not in {"execution-agent"}:
+    if turn["created_by"] not in CONVERSATION_TURN_CREATORS:
         raise RuntimeSliceError(f"unsupported conversation turn creator: {turn['created_by']}")
     if turn["public_safe"] is not True:
         raise RuntimeSliceError("conversation turn must be public_safe=true")
@@ -1505,7 +1508,7 @@ def validate_event(event: dict[str, Any]) -> None:
         raise RuntimeSliceError(f"event schema must be {EVENT_SCHEMA}")
     if event["type"] not in EVENT_TYPES:
         raise RuntimeSliceError(f"unsupported event type: {event['type']}")
-    if event["created_by"] not in CREATORS:
+    if event["created_by"] not in EVENT_CREATORS:
         raise RuntimeSliceError(f"unsupported event creator: {event['created_by']}")
     if not event["app_id"]:
         raise RuntimeSliceError("event app_id is required")

@@ -544,8 +544,10 @@ def build_prompt(
     return (
         "You are the live WEAVE/Hermes agent in a scripted-user/live-agent dogfood run.\n"
         "The user message below is scripted by the test harness; your reply must be generated now by the live agent adapter.\n"
+        "Complete the requested lifecycle step within this single adapter invocation; do not leave the work in a max-turn/tool-cap partial state.\n"
         "Do not claim external sends, deploys, analytics, payments, or credentials. Keep secrets out.\n"
-        "If the step asks you to make app files and your working directory is the app repo, create only local public-safe files there and summarize what changed.\n"
+        "If the step asks you to make app files and your working directory is the app repo, create only local public-safe files there, verify required files exist, and summarize what changed.\n"
+        "If you cannot create or verify the required local files, say that plainly rather than claiming implementation.\n"
         "Record only owner-reviewable reasoning summaries; do not expose hidden chain-of-thought.\n\n"
         "RUN CONTEXT JSON:\n"
         + json.dumps(prompt_context, indent=2, sort_keys=True)
@@ -612,6 +614,83 @@ def write_step_artifact(
     return ref
 
 
+NEGATED_NON_CLAIM_PATTERNS = (
+    "does not claim",
+    "do not claim",
+    "did not claim",
+    "doesn't claim",
+    "don't claim",
+    "no claim",
+    "not claim",
+    "not claimed",
+    "not claiming",
+    "does not assert",
+    "do not assert",
+    "no external",
+    "not sent",
+    "not emailed",
+    "not deployed",
+    "not connected",
+    "not enabled",
+    "not live",
+    "without",
+    "never",
+)
+
+LIVE_ADAPTER_CAP_MARKERS = (
+    "Reached maximum iterations",
+    "maximum iterations reached",
+)
+
+
+def _sentence_bounds(text: str, start: int) -> tuple[int, int]:
+    left_candidates = [text.rfind(mark, 0, start) for mark in (".", "!", "?", "\n")]
+    left = max(left_candidates) + 1
+    right_candidates = [idx for idx in (text.find(mark, start) for mark in (".", "!", "?", "\n")) if idx != -1]
+    right = min(right_candidates) if right_candidates else len(text)
+    return left, right
+
+
+def _is_negated_non_claim_occurrence(text: str, phrase: str, start: int) -> bool:
+    """Return true when a forbidden phrase appears only as an explicit non-claim.
+
+    The benchmark forbids affirmative claims such as "sent to users". It should not
+    fail a proof-boundary sentence like "does not claim ... sent to users".
+    """
+    left, right = _sentence_bounds(text, start)
+    sentence_prefix = text[left:start].lower()
+    sentence = text[left:right].lower()
+    phrase_l = phrase.lower()
+    return phrase_l in sentence and any(pattern in sentence_prefix for pattern in NEGATED_NON_CLAIM_PATTERNS)
+
+
+def _forbidden_phrase_hits(text: str, phrases: list[str]) -> tuple[list[str], list[str]]:
+    found: list[str] = []
+    ignored_negated: list[str] = []
+    lowered = text.lower()
+    for phrase in phrases:
+        phrase_l = phrase.lower()
+        if not phrase_l:
+            continue
+        start = 0
+        phrase_found = False
+        phrase_ignored = False
+        while True:
+            idx = lowered.find(phrase_l, start)
+            if idx == -1:
+                break
+            if _is_negated_non_claim_occurrence(text, phrase, idx):
+                phrase_ignored = True
+            else:
+                phrase_found = True
+            start = idx + max(len(phrase_l), 1)
+        if phrase_found:
+            found.append(phrase)
+        elif phrase_ignored:
+            ignored_negated.append(phrase)
+    return found, ignored_negated
+
+
 def evaluate_expectations(
     *,
     step: dict[str, Any],
@@ -620,13 +699,19 @@ def evaluate_expectations(
     after_turn_count: int,
     after_state: dict[str, Any],
     stage_message_count: int,
+    app_repo: Path | None = None,
 ) -> list[dict[str, Any]]:
-    expect = step.get("expect") if isinstance(step.get("expect"), dict) else {}
+    raw_expect = step.get("expect")
+    expect: dict[str, Any] = raw_expect if isinstance(raw_expect, dict) else {}
     checks: list[dict[str, Any]] = []
     text = reply.text
 
     def add(name: str, passed: bool, detail: str = "") -> None:
         checks.append({"name": name, "passed": bool(passed), "detail": detail})
+
+    if reply.source == "live_hermes":
+        cap_hits = [marker for marker in LIVE_ADAPTER_CAP_MARKERS if marker.lower() in text.lower()]
+        add("live_adapter_completed_without_turn_cap", not cap_hits, "found=" + json.dumps(cap_hits))
 
     for key in ("reply_contains_all", "contains_all"):
         if isinstance(expect.get(key), list):
@@ -636,9 +721,14 @@ def evaluate_expectations(
         if isinstance(expect.get(key), list):
             values = [str(item) for item in expect[key]]
             add(key, any(item in text for item in values), "options=" + json.dumps(values))
-    if isinstance(expect.get("reply_not_contains_any"), list):
-        found = [str(item) for item in expect["reply_not_contains_any"] if str(item) in text]
-        add("reply_not_contains_any", not found, "found=" + json.dumps(found))
+    raw_not_contains = expect.get("reply_not_contains_any")
+    if isinstance(raw_not_contains, list):
+        values = [str(item) for item in raw_not_contains]
+        found, ignored_negated = _forbidden_phrase_hits(text, values)
+        detail = "found=" + json.dumps(found)
+        if ignored_negated:
+            detail += " ignored_negated=" + json.dumps(ignored_negated)
+        add("reply_not_contains_any", not found, detail)
     if isinstance(expect.get("reply_regex_any"), list):
         patterns = [str(item) for item in expect["reply_regex_any"]]
         add("reply_regex_any", any(re.search(pattern, text, re.IGNORECASE | re.MULTILINE) for pattern in patterns), "patterns=" + json.dumps(patterns))
@@ -663,6 +753,33 @@ def evaluate_expectations(
     if "stage_message_count_at_most" in expect:
         maximum = int(expect["stage_message_count_at_most"])
         add("stage_message_count_at_most", stage_message_count <= maximum, f"count={stage_message_count} maximum={maximum}")
+    if isinstance(expect.get("app_repo_required_files"), list):
+        required_files = [str(item) for item in expect["app_repo_required_files"]]
+        missing: list[str] = []
+        unsafe: list[str] = []
+        if app_repo is None:
+            missing = required_files
+        else:
+            for item in required_files:
+                rel = Path(item)
+                if rel.is_absolute() or ".." in rel.parts:
+                    unsafe.append(item)
+                    continue
+                candidate = app_repo / rel
+                if candidate.is_symlink():
+                    unsafe.append(item)
+                    continue
+                try:
+                    candidate.resolve().relative_to(app_repo.resolve())
+                except ValueError:
+                    unsafe.append(item)
+                    continue
+                if not candidate.is_file():
+                    missing.append(item)
+        detail = "missing=" + json.dumps(missing)
+        if unsafe:
+            detail += " unsafe=" + json.dumps(unsafe)
+        add("app_repo_required_files", not missing and not unsafe, detail)
     if not checks:
         add("non_empty_agent_reply", bool(text.strip()), f"len={len(text)}")
     return checks
@@ -715,6 +832,26 @@ def apply_post_actions(root: Path, app_id: str, step: dict[str, Any]) -> list[di
     return results
 
 
+def effective_step_timeout(*, step: dict[str, Any], default_timeout: int, mode: str, agent_name: str) -> int:
+    """Return the timeout used for an adapter call while preserving configured intent.
+
+    Live Hermes turns can need enough wall-clock to read lifecycle artifacts,
+    create local files, and produce calibrated proof-boundary analysis. The
+    default keeps only the analysis-stage floor for backwards compatibility;
+    benchmark loops may set WEAVE_LIVE_HERMES_STEP_TIMEOUT_SECONDS to apply a
+    broader live-Hermes floor across stages.
+    """
+    configured = int(step.get("timeout_seconds") or default_timeout)
+    if mode == "live" and agent_name == "hermes-cli":
+        stage = str(step.get("stage") or "")
+        general_floor = int(os.environ.get("WEAVE_LIVE_HERMES_STEP_TIMEOUT_SECONDS", "0"))
+        analysis_floor = int(os.environ.get("WEAVE_LIVE_HERMES_ANALYSIS_TIMEOUT_SECONDS", "360")) if stage == "analysis" else 0
+        floor = max(general_floor, analysis_floor)
+        if floor > 0:
+            return max(configured, floor)
+    return configured
+
+
 def run_step(
     *,
     scenario: dict[str, Any],
@@ -731,7 +868,8 @@ def run_step(
     before_turns = runtime.read_conversation_turns(root, app_id)
     before_state = runtime.app_state(root, app_id)
     before_stage_count = stage_turn_count(root, app_id, step["stage"])
-    timeout = int(step.get("timeout_seconds") or default_timeout)
+    configured_timeout = int(step.get("timeout_seconds") or default_timeout)
+    timeout = effective_step_timeout(step=step, default_timeout=default_timeout, mode=mode, agent_name=adapter.name)
     cwd_role = str(step.get("cwd") or "weave_root")
     cwd = app_repo if cwd_role == "app_repo" else root
     cwd.mkdir(parents=True, exist_ok=True)
@@ -800,6 +938,7 @@ def run_step(
         after_turn_count=len(after_turns),
         after_state=post_turn_state,
         stage_message_count=after_stage_count,
+        app_repo=app_repo,
     )
     state_expectation_names = {"stage_in", "stage_state_in"}
     non_state_passed = all(item["passed"] for item in pre_post_expectations if item["name"] not in state_expectation_names)
@@ -812,6 +951,7 @@ def run_step(
         after_turn_count=len(after_turns),
         after_state=final_state,
         stage_message_count=after_stage_count,
+        app_repo=app_repo,
     )
     artifact_ref = write_step_artifact(
         root=root,
@@ -832,6 +972,8 @@ def run_step(
         "agent_reply_excerpt": reply.text[:800],
         "session_id": reply.session_id,
         "elapsed_seconds": reply.elapsed_seconds,
+        "configured_timeout_seconds": configured_timeout,
+        "effective_timeout_seconds": timeout,
         "before_turn_count": len(before_turns),
         "after_turn_count": len(after_turns),
         "before_stage_message_count": before_stage_count,
@@ -1036,15 +1178,39 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
             run_index += 1
     results: list[dict[str, Any]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.parallel) as executor:
-        futures = [
-            executor.submit(run_scenario_instance, scenario=scenario, scenario_path=path, args=args, run_id=run_id, run_index=index)
+        futures = {
+            executor.submit(run_scenario_instance, scenario=scenario, scenario_path=path, args=args, run_id=run_id, run_index=index): (
+                path,
+                scenario,
+                index,
+            )
             for path, scenario, index in tasks
-        ]
+        }
         for future in concurrent.futures.as_completed(futures):
+            path, scenario, index = futures[future]
             try:
                 results.append(future.result())
             except Exception as exc:
-                results.append({"passed": False, "terminal_reason": str(exc), "error_type": type(exc).__name__})
+                sid = scenario_id(scenario)
+                raw_app_config = scenario.get("app")
+                app_config: dict[str, Any] = raw_app_config if isinstance(raw_app_config, dict) else {}
+                app_id_template = str(app_config.get("id_template") or f"{sid}-{{run_index}}")
+                app_name_template = str(app_config.get("name_template") or scenario.get("app_name") or sid.replace("-", " ").title())
+                app_id = runtime.slugify(render_template(app_id_template, scenario_id=sid, run_id=run_id, run_index=index))
+                results.append(
+                    {
+                        "scenario_id": sid,
+                        "scenario_path": str(path),
+                        "run_index": index,
+                        "app_id": app_id,
+                        "app_name": render_template(app_name_template, scenario_id=sid, run_id=run_id, run_index=index),
+                        "scenario_dir": str(output_root / f"{sid}-{index}"),
+                        "report": str(output_root / f"{sid}-{index}" / "scenario-report.json"),
+                        "passed": False,
+                        "terminal_reason": str(exc),
+                        "error_type": type(exc).__name__,
+                    }
+                )
     results.sort(key=lambda item: (str(item.get("scenario_id", "")), int(item.get("run_index", 0))))
     aggregate = {
         "schema": AGGREGATE_SCHEMA,
@@ -1084,7 +1250,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hermes-bin", default=os.environ.get("WEAVE_HERMES_BIN", "hermes"))
     parser.add_argument("--model", default=os.environ.get("WEAVE_HERMES_MODEL", "gpt-5.5"))
     parser.add_argument("--provider", default=os.environ.get("WEAVE_HERMES_PROVIDER_ADAPTER", "codex"))
-    parser.add_argument("--max-turns", type=int, default=4, help="Hermes CLI internal max turns per scripted user message.")
+    parser.add_argument(
+        "--max-turns",
+        type=int,
+        default=int(os.environ.get("WEAVE_HERMES_MAX_TURNS", "12")),
+        help="Hermes CLI internal max turns per scripted user message; live app-writing proof needs enough turns to create and verify files.",
+    )
     parser.add_argument("--no-yolo", dest="yolo", action="store_false", help="Disable Hermes --yolo/--accept-hooks for live app-writing runs.")
     parser.add_argument(
         "--gateway-command",

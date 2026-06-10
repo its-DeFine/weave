@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -396,6 +397,117 @@ class ScriptedUserLiveAgentRunnerTests(unittest.TestCase):
             linked_path = Path(report["runtime_root"]) / turn_artifact["path"]
             self.assertEqual(turn_artifact["checksum"], runner.runtime.artifact_checksum(linked_path))
 
+    def test_reply_not_contains_any_allows_explicit_non_claims(self) -> None:
+        checks = runner.evaluate_expectations(
+            step={
+                "expect": {
+                    "reply_not_contains_any": ["sent to users", "payment live"],
+                    "reply_min_chars": 1,
+                }
+            },
+            reply=runner.AgentReply(
+                text=(
+                    "Proof boundary: this local artifact does not claim that the app was "
+                    "deployed, payment live, or sent to users."
+                ),
+                source="live_hermes",
+                elapsed_seconds=0.1,
+            ),
+            before_turn_count=0,
+            after_turn_count=1,
+            after_state={"stage_status": {"stage": "plan", "stage_state": "ready_for_review"}},
+            stage_message_count=1,
+        )
+        not_contains = next(item for item in checks if item["name"] == "reply_not_contains_any")
+        self.assertTrue(not_contains["passed"])
+        self.assertIn("ignored_negated", not_contains["detail"])
+
+    def test_reply_not_contains_any_still_fails_affirmative_claims(self) -> None:
+        checks = runner.evaluate_expectations(
+            step={"expect": {"reply_not_contains_any": ["sent to users"]}},
+            reply=runner.AgentReply(
+                text="The app was sent to users after launch.",
+                source="live_hermes",
+                elapsed_seconds=0.1,
+            ),
+            before_turn_count=0,
+            after_turn_count=1,
+            after_state={"stage_status": {"stage": "marketing", "stage_state": "ready_for_review"}},
+            stage_message_count=1,
+        )
+        not_contains = next(item for item in checks if item["name"] == "reply_not_contains_any")
+        self.assertFalse(not_contains["passed"])
+        self.assertIn("sent to users", not_contains["detail"])
+
+    def test_live_hermes_cap_marker_fails_even_without_scenario_forbidden_phrase(self) -> None:
+        checks = runner.evaluate_expectations(
+            step={"expect": {"reply_min_chars": 1}},
+            reply=runner.AgentReply(
+                text="I created the research artifact.\nReached maximum iterations",
+                source="live_hermes",
+                elapsed_seconds=0.1,
+            ),
+            before_turn_count=0,
+            after_turn_count=1,
+            after_state={"stage_status": {"stage": "research", "stage_state": "ready_for_review"}},
+            stage_message_count=1,
+        )
+        cap_check = next(item for item in checks if item["name"] == "live_adapter_completed_without_turn_cap")
+        self.assertFalse(cap_check["passed"])
+        self.assertIn("Reached maximum iterations", cap_check["detail"])
+
+    def test_app_repo_required_files_expectation_checks_actual_source_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_repo = Path(tmpdir)
+            (app_repo / "index.html").write_text("<main>local app</main>\n", encoding="utf-8")
+            checks = runner.evaluate_expectations(
+                step={"expect": {"app_repo_required_files": ["index.html", "app.js"]}},
+                reply=runner.AgentReply(text="created index.html only", source="live_hermes", elapsed_seconds=0.1),
+                before_turn_count=0,
+                after_turn_count=1,
+                after_state={"stage_status": {"stage": "engineering", "stage_state": "ready_for_review"}},
+                stage_message_count=1,
+                app_repo=app_repo,
+            )
+        required_files = next(item for item in checks if item["name"] == "app_repo_required_files")
+        self.assertFalse(required_files["passed"])
+        self.assertIn('"app.js"', required_files["detail"])
+
+    def test_app_repo_required_files_rejects_path_escape(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_repo = Path(tmpdir)
+            checks = runner.evaluate_expectations(
+                step={"expect": {"app_repo_required_files": ["../secret.txt"]}},
+                reply=runner.AgentReply(text="created files", source="live_hermes", elapsed_seconds=0.1),
+                before_turn_count=0,
+                after_turn_count=1,
+                after_state={"stage_status": {"stage": "engineering", "stage_state": "ready_for_review"}},
+                stage_message_count=1,
+                app_repo=app_repo,
+            )
+        required_files = next(item for item in checks if item["name"] == "app_repo_required_files")
+        self.assertFalse(required_files["passed"])
+        self.assertIn("unsafe", required_files["detail"])
+
+    def test_app_repo_required_files_rejects_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_repo = Path(tmpdir)
+            target = app_repo / "real.js"
+            target.write_text("console.log('ok')\n", encoding="utf-8")
+            (app_repo / "app.js").symlink_to(target)
+            checks = runner.evaluate_expectations(
+                step={"expect": {"app_repo_required_files": ["app.js"]}},
+                reply=runner.AgentReply(text="created files", source="live_hermes", elapsed_seconds=0.1),
+                before_turn_count=0,
+                after_turn_count=1,
+                after_state={"stage_status": {"stage": "engineering", "stage_state": "ready_for_review"}},
+                stage_message_count=1,
+                app_repo=app_repo,
+            )
+        required_files = next(item for item in checks if item["name"] == "app_repo_required_files")
+        self.assertFalse(required_files["passed"])
+        self.assertIn("unsafe", required_files["detail"])
+
     def test_mode_adapter_combinations_are_gated_before_execution(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             base = Path(tmpdir)
@@ -531,6 +643,55 @@ class ScriptedUserLiveAgentRunnerTests(unittest.TestCase):
             self.assertEqual(report["source_summary"]["agent_reply_sources"], {"deployed_agent": 1})
             self.assertEqual(report["steps"][0]["agent_source"], "deployed_agent")
             self.assertEqual(report["steps"][0]["session_id"], "mock-message-1")
+    def test_live_hermes_analysis_timeout_has_narrow_floor(self) -> None:
+        timeout = runner.effective_step_timeout(
+            step={"label": "analysis", "stage": "analysis", "timeout_seconds": 240},
+            default_timeout=120,
+            mode="live",
+            agent_name="hermes-cli",
+        )
+        self.assertGreaterEqual(timeout, 360)
+
+    def test_analysis_timeout_floor_does_not_apply_to_fixture_or_non_analysis_by_default(self) -> None:
+        self.assertEqual(
+            runner.effective_step_timeout(
+                step={"label": "analysis", "stage": "analysis", "timeout_seconds": 240},
+                default_timeout=120,
+                mode="fixture",
+                agent_name="fixture",
+            ),
+            240,
+        )
+        self.assertEqual(
+            runner.effective_step_timeout(
+                step={"label": "qa", "stage": "qa", "timeout_seconds": 240},
+                default_timeout=120,
+                mode="live",
+                agent_name="hermes-cli",
+            ),
+            240,
+        )
+
+    def test_live_hermes_general_timeout_floor_can_apply_to_all_stages(self) -> None:
+        with patch.dict(runner.os.environ, {"WEAVE_LIVE_HERMES_STEP_TIMEOUT_SECONDS": "900"}):
+            self.assertEqual(
+                runner.effective_step_timeout(
+                    step={"label": "plan", "stage": "plan", "timeout_seconds": 240},
+                    default_timeout=120,
+                    mode="live",
+                    agent_name="hermes-cli",
+                ),
+                900,
+            )
+            self.assertEqual(
+                runner.effective_step_timeout(
+                    step={"label": "qa", "stage": "qa", "timeout_seconds": 1200},
+                    default_timeout=120,
+                    mode="live",
+                    agent_name="hermes-cli",
+                ),
+                1200,
+            )
 
 
 if __name__ == "__main__":

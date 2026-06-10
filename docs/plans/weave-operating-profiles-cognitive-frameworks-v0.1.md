@@ -634,7 +634,41 @@ Required artifacts:
 - target-surface proof;
 - failure evidence;
 - readiness label;
-- unverified surfaces.
+- unverified surfaces;
+- proof-strength labels that separate raw captured evidence from agent self-report;
+- explicit partial/retry status for timeout, max-turn/tool-cap, or missing raw proof.
+
+A QA pass requires more than an agent-written summary. The gate should attach raw
+command output or checksums for CLI checks, rendered/console evidence for browser
+checks, and read-back artifacts for export claims. If only a model-written QA
+reply exists, label it `agent-self-reported-check` and do not promote it to
+`raw-command-captured` or `browser-smoke-captured`.
+
+### Proof calibration ladder
+
+Every lifecycle stage should classify each material claim using this ladder:
+
+1. `source-inspected`: source/artifact read, behavior not executed.
+2. `agent-self-reported-check`: agent says it ran a check; raw output missing.
+3. `raw-command-captured`: command, cwd, exit code, stdout/stderr or checksums captured.
+4. `browser-smoke-captured`: rendered UI, console, and DOM/screenshot evidence captured.
+5. `export-readback-captured`: generated export/artifact was read back and parsed.
+6. `external-write-verified`: real external target send/deploy/payment/etc. completed with readback.
+7. `external-unproven/gated`: external surface remains unproven and requires owner approval.
+
+Rules:
+
+- Artifact existence is not proof validity.
+- Implementation proof must check required target files/paths directly. A lifecycle
+  runner should fail engineering if named files such as `index.html`, `styles.css`,
+  `app.js`, or `README.md` are absent, even when the agent reply sounds plausible.
+- A timeout, max-turn cap, or tool-call cap makes the stage `partial` unless all
+  required proof predicates already have captured evidence.
+- Fixture mode proves orchestration/reporting only.
+- Hermes CLI mode proves live generated-agent behavior only; it does not prove
+  Telegram or deployed-gateway behavior.
+- Deployed gateway proof requires a target-surface adapter that performs
+  send/wait/readback against the real destination.
 
 ### KPI Setup
 
@@ -894,6 +928,8 @@ that binds stages to frameworks, artifacts, gates, and proof surfaces.
   "lifecycle_stage": "engineering",
   "action_taken": "string",
   "target_surface": "local_file | cli | test | pr | live_agent | browser | deployed_service | public_surface",
+  "proof_strength": "source-inspected | agent-self-reported-check | raw-command-captured | browser-smoke-captured | export-readback-captured | external-write-verified | external-unproven/gated",
+  "interruption_state": "none | timeout | max_turns | tool_cap | cancelled",
   "observed_result": "string",
   "evidence": [
     {

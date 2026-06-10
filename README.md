@@ -149,6 +149,11 @@ python3 scripts/private_app_operating_profile_eval.py \
   --force
 ```
 
+`--force` is guarded. It only removes an empty output directory, a root already
+marked by this harness with `.weave-private-app-eval-output-root`, or an
+explicitly named temporary eval root. Use a fresh `runs/...` directory when in
+doubt; do not point it at hand-authored docs or workspaces.
+
 The harness generates ten local-only static apps, one assessment report per app,
 and an aggregate report. Its target proof surface is `local deterministic
 private-app fixture with generated static apps and reviewable framework-gate
@@ -156,7 +161,13 @@ evidence`. Each app includes concrete cognitive artifacts:
 intent frame, profile selection, CWA work-domain model, DMN decision table, IBIS
 issue map, ADR, action intent/result, and PROV ledger. It intentionally excludes
 marketing, hosting, analytics, payments, external sends, live Hermes, and
-Telegram/deployed-gateway proof. See
+Telegram/deployed-gateway proof.
+
+The committed generated private-app bundle under
+`docs/month1/artifacts/private-app-operating-profile-evals/` is sample review
+evidence, not a canonical byte-for-byte fixture. Regenerated artifacts may differ
+by timestamps and run hashes/checksums; reviewers should compare schemas, gates,
+non-claims, and proof-boundary fields rather than raw bytes. See
 [docs/month1/private-app-operating-profile-evals.md](docs/month1/private-app-operating-profile-evals.md).
 
 Run guided onboarding:

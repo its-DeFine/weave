@@ -219,6 +219,24 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             runtime.append_event(root, "demo", event)
 
             self.assertEqual(len(runtime.read_events(root, "demo")), before + 1)
+            live_event = runtime.new_event(
+                "validation.completed",
+                "demo",
+                "intent",
+                "Live Hermes checks passed.",
+                created_by="live_hermes",
+            )
+            runtime.append_event(root, "demo", live_event)
+            self.assertEqual(runtime.read_events(root, "demo")[-1]["created_by"], "live_hermes")
+            fixture_event = runtime.new_event(
+                "validation.completed",
+                "demo",
+                "intent",
+                "Fixture should not be accepted as a live event creator.",
+                created_by="scripted_fixture",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "unsupported event creator"):
+                runtime.append_event(root, "demo", fixture_event)
             with self.assertRaises(runtime.RuntimeSliceError):
                 runtime.append_event(root, "demo", {"schema": runtime.EVENT_SCHEMA})
 

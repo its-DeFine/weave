@@ -52,9 +52,13 @@ python3 scripts/scripted_user_live_agent_runner.py \
   --hermes-bin hermes \
   --model "$WEAVE_HERMES_MODEL" \
   --provider "$WEAVE_HERMES_PROVIDER_ADAPTER" \
-  --max-turns 4 \
+  --max-turns 12 \
   --timeout 180
 ```
+
+For long app-writing proof loops, raise `--max-turns` and set
+`WEAVE_LIVE_HERMES_STEP_TIMEOUT_SECONDS` so non-analysis stages have enough
+wall-clock to finish without being mislabeled as clean proof after a cap/timeout.
 
 Live Hermes CLI mode means: the adapter produced a generated reply from a live Hermes CLI process. It is **not** the same as deployed Telegram gateway proof.
 
