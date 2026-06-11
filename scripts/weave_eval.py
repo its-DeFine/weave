@@ -140,6 +140,7 @@ def run_shell_gate(gate: dict[str, Any], *, repo_root: Path) -> GateResult:
             detail="command gate has no command",
         )
     timeout = int(gate.get("timeout_seconds", 180))
+    redacted = bool(gate.get("redact_output", False))
     env = os.environ.copy()
     try:
         depth = int(env.get("WEAVE_EVAL_GATE_DEPTH", "0"))
@@ -165,10 +166,9 @@ def run_shell_gate(gate: dict[str, Any], *, repo_root: Path) -> GateResult:
             required=bool(gate.get("required", True)),
             detail=f"timed out after {timeout}s",
             command=command,
-            output_excerpt=output_excerpt(exc.stdout or "", exc.stderr or ""),
+            output_excerpt="[redacted by eval contract]" if redacted else output_excerpt(exc.stdout or "", exc.stderr or ""),
         )
-    redacted = bool(gate.get("redact_output", False))
-    excerpt = "[redacted by eval contract]" if redacted and result.returncode != 0 else output_excerpt(result.stdout, result.stderr)
+    excerpt = "[redacted by eval contract]" if redacted else output_excerpt(result.stdout, result.stderr)
     return GateResult(
         gate_id=str(gate.get("id", "unnamed_gate")),
         status="passed" if result.returncode == 0 else "failed",

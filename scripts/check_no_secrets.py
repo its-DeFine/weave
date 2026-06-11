@@ -86,6 +86,7 @@ INTERNAL_HOST_RE = re.compile(
     r"|local-fallback\.[a-z]"                 # local-fallback.internal etc (not local-fallback the product name standalone)
     r"|livepeer-ops"                     # livepeer-ops internal
     r"|100\.\d{1,3}\.\d{1,3}\.\d{1,3}" # private overlay CGNAT range
+    r"|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}" # Private LAN
     r"|192\.168\.\d{1,3}\.\d{1,3}"     # Private LAN
     r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"  # Private LAN
     r"|<PRIVATE_RUNTIME_USER>@[a-z]"                    # private runtime user patterns
