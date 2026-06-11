@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class Month1ProductAppQATest(unittest.TestCase):
+    @unittest.skipIf(
+        os.environ.get("WEAVE_EVAL_GATE_DEPTH"),
+        "avoid recursively running the product QA proof inside an eval command gate",
+    )
     def test_fableframe_product_qa_passes_and_records_transcript_gates(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             report = Path(tmpdir) / "fableframe-product-qa.json"

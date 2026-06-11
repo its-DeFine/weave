@@ -15,6 +15,21 @@ A contract combines four things:
 Hard gates win over rubric scores. A high rubric score cannot advance a stage if
 required tests, scans, or proof gates fail.
 
+## Runtime-agent QA contract
+
+For features that depend on Hermes agents, MCP tools, gateway routing,
+A2A/XMTP transport, or isolated containers/profiles, Plan and QA must use the
+runtime contract in `docs/runtime-agent-qa-contract.md`.
+
+That contract forces the missing specifics before the work is treated as
+provable: isolated topology, model/provider parity, credential references,
+toolsets, MCP server/tool inventory, peer identities, communication scenarios,
+parallel test lanes, sender/receiver readback, teardown, and the exact allowed
+claim boundary.
+
+Without that contract, the allowed state is only `plan-only` or
+`harness-built`; WEAVE must not claim live transport or runtime-agent proof.
+
 ## Commands
 
 List available contracts:

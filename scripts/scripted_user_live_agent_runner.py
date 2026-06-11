@@ -807,6 +807,14 @@ def apply_post_actions(root: Path, app_id: str, step: dict[str, Any]) -> list[di
     for action in actions:
         clean = str(action).strip()
         if clean == "approve_stage":
+            evaluation = runtime.complete_evaluation_from_latest_artifact(
+                root,
+                app_id,
+                step["stage"],
+                reviewer="scripted-user-runner-local-evaluator",
+                run_gates=True,
+            )
+            results.append({"action": "complete_evaluation", "result": evaluation})
             results.append(
                 {
                     "action": clean,

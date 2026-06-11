@@ -4,6 +4,7 @@ import contextlib
 import io
 import importlib.util
 import json
+import shutil
 import sys
 import tempfile
 import unittest
@@ -293,6 +294,41 @@ class WeaveCompanyPackageTests(unittest.TestCase):
 
     def test_lifecycle_eval_contracts_are_shipped_and_valid(self) -> None:
         self.assertEqual(validator.validate_eval_contracts(PACKAGE_ROOT), 11)
+
+    def test_qa_eval_contract_requires_runtime_teardown_policy_and_resource_states(self) -> None:
+        contract = json.loads((PACKAGE_ROOT / "evals" / "lifecycle" / "qa.yaml").read_text(encoding="utf-8"))
+        runtime_qa = contract["runtime_agent_qa"]
+
+        self.assertTrue(runtime_qa["teardown_policy_required"])
+        self.assertEqual(runtime_qa["manifest_schema"], "weave.runtime-qa-manifest/v0.1")
+        self.assertEqual(runtime_qa["cleanup_policy_schema"], "weave.runtime-cleanup-policy/v0.1")
+        self.assertTrue(validator.REQUIRED_RUNTIME_QA_RESOURCE_STATES.issubset(runtime_qa["resource_states_required"]))
+        self.assertIn("runtime resource lifecycle manifest when applicable", contract["required_inputs"])
+        self.assertIn("teardown policy and cleanup evidence when applicable", contract["required_inputs"])
+
+    def test_validate_eval_contracts_rejects_runtime_qa_without_teardown_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            shutil.copytree(PACKAGE_ROOT / "evals", root / "evals")
+            qa_path = root / "evals" / "lifecycle" / "qa.yaml"
+            contract = json.loads(qa_path.read_text(encoding="utf-8"))
+            contract["runtime_agent_qa"]["teardown_policy_required"] = False
+            qa_path.write_text(json.dumps(contract, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+            with self.assertRaises(validator.PackageValidationError):
+                validator.validate_eval_contracts(root)
+
+    def test_validate_eval_contracts_rejects_runtime_qa_missing_resource_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            shutil.copytree(PACKAGE_ROOT / "evals", root / "evals")
+            qa_path = root / "evals" / "lifecycle" / "qa.yaml"
+            contract = json.loads(qa_path.read_text(encoding="utf-8"))
+            contract["runtime_agent_qa"]["resource_states_required"].remove("teardown_requested")
+            qa_path.write_text(json.dumps(contract, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+            with self.assertRaises(validator.PackageValidationError):
+                validator.validate_eval_contracts(root)
 
     def test_lifecycle_dependencies_are_ordered(self) -> None:
         tasks = {task["slug"]: task for task in validator.validate_tasks(PACKAGE_ROOT)}

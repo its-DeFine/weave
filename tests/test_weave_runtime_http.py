@@ -145,6 +145,21 @@ class WeaveRuntimeHttpTests(unittest.TestCase):
                 self.assertEqual(status, 200)
                 self.assertEqual(transcript["turn_count"], 1)
 
+                review = runtime.deterministic_evaluation_review(
+                    "intent",
+                    "apps/qa-novel/lifecycle/01-intent/artifacts/intent.md",
+                    reviewer="http-test-local-evaluator",
+                )
+                status, evaluation = request(
+                    port,
+                    "POST",
+                    "/apps/qa-novel/evaluation/review",
+                    {"stage": "intent", "review": review},
+                )
+                self.assertEqual(status, 200)
+                self.assertTrue(evaluation["completed"])
+                self.assertIn(evaluation["result"]["decision"], runtime.EVALUATION_PASS_DECISIONS)
+
                 status, approved = request(port, "POST", "/apps/qa-novel/approve-stage", {"stage": "intent"})
                 self.assertEqual(status, 200)
                 self.assertTrue(approved["approved"])
