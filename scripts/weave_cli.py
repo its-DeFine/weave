@@ -15,6 +15,7 @@ import sys
 import tarfile
 import tempfile
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, TextIO
 
@@ -42,6 +43,28 @@ DEFAULT_CONTAINER_IMAGE = "weave-hermes-runtime:local"
 DEFAULT_CONTAINER_NAME = "weave-hermes-runtime"
 CONTAINER_DOCKERFILE = REPO_ROOT / "container" / "hermes" / "Dockerfile"
 EXPORT_SCHEMA = "weave-runtime-export/v0.1"
+RUNTIME_QA_MANIFEST_SCHEMA = "weave.runtime-qa-manifest/v0.1"
+RUNTIME_QA_CLEANUP_POLICY_SCHEMA = "weave.runtime-cleanup-policy/v0.1"
+RUNTIME_QA_RESOURCE_STATES = [
+    "created",
+    "running",
+    "completed",
+    "teardown_requested",
+    "stopped",
+    "removed",
+    "phased_out",
+]
+RUNTIME_QA_CLAIM_BOUNDARIES = [
+    "plan-only",
+    "provisioned-only",
+    "ready-readback",
+    "local-only verified",
+    "container-mesh verified",
+    "live-transport verified",
+    "external-write verified",
+    "cleanup-verified",
+    "rehydration-verified",
+]
 SECRET_EXPORT_NAMES = {
     ".env",
     ".env.local",
@@ -128,6 +151,8 @@ def resolve_runtime_paths(args: argparse.Namespace) -> argparse.Namespace:
         args.profile_out = profile_out.expanduser().resolve()
     if hasattr(args, "export_out") and args.export_out:
         args.export_out = args.export_out.expanduser().resolve()
+    if hasattr(args, "out") and args.out:
+        args.out = args.out.expanduser().resolve()
     if hasattr(args, "archive") and args.archive:
         args.archive = args.archive.expanduser().resolve()
     if getattr(args, "existing_hermes", False):
@@ -851,6 +876,219 @@ def verify_runtime(args: argparse.Namespace, output: TextIO) -> int:
     return 0 if required_ready else 1
 
 
+def runtime_qa_safe_label(value: str) -> str:
+    label = re.sub(r"[^a-zA-Z0-9_.-]+", "-", value.strip()).strip("-.")
+    return label[:80] or "runtime-qa"
+
+
+def default_runtime_qa_run_id(app_id: str) -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return f"qa-{stamp}-{runtime_qa_safe_label(app_id)}"
+
+
+def runtime_qa_cleanup_labels(args: argparse.Namespace, qa_run_id: str) -> dict[str, str]:
+    return {
+        "weave.qa.disposable": "true",
+        "weave.qa.run_id": qa_run_id,
+        "weave.app_id": args.app_id,
+        "weave.lifecycle_stage": "06-qa",
+    }
+
+
+def runtime_qa_planned_commands(args: argparse.Namespace, qa_run_id: str, compose_project: str) -> list[dict[str, object]]:
+    labels = runtime_qa_cleanup_labels(args, qa_run_id)
+    label_flags = [flag for key, value in labels.items() for flag in ("--label", f"{key}={value}")]
+    return [
+        {
+            "id": "export-runtime-before-removal",
+            "purpose": "archive sanitized runtime-home state before deleting disposable surfaces",
+            "command": [
+                "bin/weave",
+                "export-runtime",
+                "--runtime-home",
+                str(args.runtime_home),
+                "--out",
+                f"runs/runtime-qa/{qa_run_id}/runtime-export.tar.gz",
+            ],
+            "executes_in_dry_run": False,
+        },
+        {
+            "id": "launch-container",
+            "purpose": "create the disposable QA container with cleanup labels",
+            "command": [
+                "docker",
+                "run",
+                "-d",
+                "--name",
+                args.container_name,
+                *label_flags,
+                args.container_image,
+            ],
+            "executes_in_dry_run": False,
+        },
+        {
+            "id": "stop-container",
+            "purpose": "stop accepting work after scenario/evidence capture",
+            "command": ["docker", "stop", "--time", "20", args.container_name],
+            "executes_in_dry_run": False,
+        },
+        {
+            "id": "remove-container",
+            "purpose": "delete the disposable container after archive and drain gates pass",
+            "command": ["docker", "rm", args.container_name],
+            "executes_in_dry_run": False,
+        },
+        {
+            "id": "compose-down",
+            "purpose": "phase out a compose-backed QA room without deleting durable named volumes by default",
+            "command": ["docker", "compose", "-p", compose_project, "down", "--remove-orphans"],
+            "executes_in_dry_run": False,
+        },
+        {
+            "id": "verify-rehydrated-runtime",
+            "purpose": "prove a future re-up/import before making renewed behavior claims",
+            "command": ["bin/weave", "verify-runtime", "--runtime-home", str(args.runtime_home)],
+            "executes_in_dry_run": False,
+        },
+    ]
+
+
+def build_runtime_qa_manifest(args: argparse.Namespace) -> dict[str, object]:
+    qa_run_id = args.qa_run_id or default_runtime_qa_run_id(args.app_id)
+    compose_project = args.compose_project or f"weave-qa-{runtime_qa_safe_label(qa_run_id)}"
+    labels = runtime_qa_cleanup_labels(args, qa_run_id)
+    evidence_ref = f"runs/runtime-qa/{qa_run_id}/evidence"
+    archive_ref = f"runs/runtime-qa/{qa_run_id}/runtime-export.tar.gz"
+    claim_boundary = "plan-only"
+    return {
+        "schema": RUNTIME_QA_MANIFEST_SCHEMA,
+        "qa_run_id": qa_run_id,
+        "app_id": args.app_id,
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "dry_run": bool(args.dry_run),
+        "claim_boundary": claim_boundary,
+        "allowed_claims": RUNTIME_QA_CLAIM_BOUNDARIES,
+        "resource_states": RUNTIME_QA_RESOURCE_STATES,
+        "topology": {
+            "agent_count": args.agent_count,
+            "isolation": args.isolation,
+            "runtime_surface": args.runtime_surface,
+            "proof_boundary_requested": args.proof_boundary,
+            "runtime_home": str(args.runtime_home),
+            "weave_root": str(args.weave_root),
+            "hermes_home": str(args.hermes_home),
+            "profile_out": str(args.profile_out),
+            "credential_source_ref_only": True,
+        },
+        "resources": [
+            {
+                "id": args.container_name,
+                "type": "docker-container",
+                "current_state": "planned_only",
+                "planned_states": RUNTIME_QA_RESOURCE_STATES,
+                "image": args.container_image,
+                "labels": labels,
+                "evidence": "not created in this plan/dry-run slice",
+            },
+            {
+                "id": compose_project,
+                "type": "docker-compose-project",
+                "current_state": "planned_only",
+                "planned_states": RUNTIME_QA_RESOURCE_STATES,
+                "remove_orphans": True,
+                "remove_named_volumes_by_default": False,
+                "evidence": "not created in this plan/dry-run slice",
+            },
+            {
+                "id": str(args.runtime_home),
+                "type": "runtime-home",
+                "current_state": "planned_only",
+                "planned_states": ["created", "completed", "teardown_requested", "phased_out"],
+                "archive_required_before_delete": True,
+                "evidence": archive_ref,
+            },
+        ],
+        "teardown_policy": {
+            "schema": RUNTIME_QA_CLEANUP_POLICY_SCHEMA,
+            "required": True,
+            "archive_required_before_remove": True,
+            "evidence_ref": evidence_ref,
+            "archive_ref": archive_ref,
+            "redaction_scan_required": True,
+            "raw_secrets_in_contract": False,
+            "raw_secrets_in_evidence": False,
+            "credential_source_ref_only": True,
+            "stop_policy": {
+                "drain_timeout_seconds": 60,
+                "stop_grace_seconds": 20,
+                "force_stop_after_seconds": 120,
+                "accept_new_work_during_drain": False,
+            },
+            "container_policy": {
+                "remove_after_stop": True,
+                "required_labels": [f"{key}={value}" for key, value in labels.items()],
+            },
+            "compose_policy": {
+                "compose_project": compose_project,
+                "remove_orphans": True,
+                "remove_named_volumes": False,
+                "remove_anonymous_volumes": True,
+                "delete_images": False,
+            },
+            "profile_policy": {
+                "archive_before_delete": True,
+                "delete_ephemeral_homes": True,
+                "preserve_sanitized_export": True,
+            },
+            "quarantine_on": [
+                "secret_scan_failed",
+                "unexpected_external_write",
+                "failed_drain",
+                "cleanup_incomplete",
+            ],
+        },
+        "rehydrate_policy": {
+            "source": archive_ref,
+            "requires_secret_relink": True,
+            "requires_verify_runtime": True,
+            "requires_scenario_rerun_for_behavior_claim": True,
+        },
+        "planned_commands": runtime_qa_planned_commands(args, qa_run_id, compose_project),
+        "proof_requirements": [
+            "inside-runtime provider/model/tool/MCP readback before scenario claims",
+            "sender and receiver readback for communication claims",
+            "no pending work accepted after teardown_requested",
+            "sanitized runtime export checksum before removal",
+            "container/compose absence proof after removal",
+            "verify-runtime pass before any rehydration claim",
+        ],
+        "explicit_non_claims": [
+            "No Docker command was executed by this plan/dry-run slice.",
+            "No container was created, started, stopped, or removed by this manifest generation.",
+            "Plan-only does not prove runtime behavior, live transport, cleanup completion, or rehydration.",
+        ],
+    }
+
+
+def runtime_qa(args: argparse.Namespace, output: TextIO) -> int:
+    manifest = build_runtime_qa_manifest(args)
+    if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if args.json:
+        print_line(output, json.dumps(manifest, indent=2, sort_keys=True))
+    else:
+        print_line(output, "WEAVE Runtime QA Plan")
+        print_line(output, f"- qa_run_id: {manifest['qa_run_id']}")
+        print_line(output, "- state: plan-only")
+        print_line(output, f"- manifest: {args.out if args.out else 'stdout only'}")
+        print_line(output, "- teardown_policy_required: true")
+        print_line(output, "- resource_states: " + ", ".join(RUNTIME_QA_RESOURCE_STATES))
+        print_line(output, "- no_docker_executed: true")
+        print_line(output, "- next: execute in an isolated container only after approval, then export evidence before remove")
+    return 0
+
+
 def eval_contract(args: argparse.Namespace, output: TextIO) -> int:
     eval_args: list[str] = []
     if args.eval_stage:
@@ -999,6 +1237,32 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
     verify_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
 
+    runtime_qa_parser = subparsers.add_parser("runtime-qa", help="plan disposable runtime QA lifecycle and teardown")
+    runtime_qa_parser.add_argument("--runtime-home", type=Path, default=None)
+    runtime_qa_parser.add_argument("--weave-root", type=Path, default=None)
+    runtime_qa_parser.add_argument("--hermes-home", type=Path, default=None)
+    runtime_qa_parser.add_argument("--profile-out", type=Path, default=None)
+    runtime_qa_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
+    runtime_qa_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
+    runtime_qa_parser.add_argument("--qa-run-id")
+    runtime_qa_parser.add_argument("--app-id", default=DEFAULT_APP_ID)
+    runtime_qa_parser.add_argument("--compose-project")
+    runtime_qa_parser.add_argument("--agent-count", type=int, default=2)
+    runtime_qa_parser.add_argument("--isolation", choices=("container", "worktree", "profile", "mixed"), default="container")
+    runtime_qa_parser.add_argument(
+        "--runtime-surface",
+        choices=("hermes-cli", "hermes-gateway", "mcp-server", "a2a-transport", "xmtp-adapter", "mixed"),
+        default="mixed",
+    )
+    runtime_qa_parser.add_argument(
+        "--proof-boundary",
+        choices=("local-only", "container-mesh", "live-transport", "external-write-verified"),
+        default="container-mesh",
+    )
+    runtime_qa_parser.add_argument("--out", type=Path, help="write the runtime QA manifest JSON here")
+    runtime_qa_parser.add_argument("--dry-run", action="store_true", help="plan only; never execute Docker or mutate runtimes")
+    runtime_qa_parser.add_argument("--json", action="store_true", help="print the manifest JSON")
+
     hermes_parser = subparsers.add_parser("hermes", help="inspect or record normal Hermes setup readiness")
     hermes_parser.add_argument("--runtime-home", type=Path, default=None)
     hermes_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1026,6 +1290,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "Convenience aliases:")
         print_line(output, "  weave help [command]")
         print_line(output, "  weave attach-hermes [onboard flags]  # alias for weave onboard --existing-hermes")
+        print_line(output, "  weave runtime-qa --dry-run --out runs/runtime-qa/plan.json")
         print_line(output, "  weave eval --list")
         return 0
     topic = argv[1]
@@ -1083,6 +1348,8 @@ def main(
             return import_runtime(args, output)
         if args.command == "verify-runtime":
             return verify_runtime(args, output)
+        if args.command == "runtime-qa":
+            return runtime_qa(args, output)
         if args.command == "hermes":
             return hermes_command(args, output)
         parser.print_help(output)

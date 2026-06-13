@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -140,6 +141,12 @@ def run_shell_gate(gate: dict[str, Any], *, repo_root: Path) -> GateResult:
         )
     timeout = int(gate.get("timeout_seconds", 180))
     redacted = bool(gate.get("redact_output", False))
+    env = os.environ.copy()
+    try:
+        depth = int(env.get("WEAVE_EVAL_GATE_DEPTH", "0"))
+    except ValueError:
+        depth = 0
+    env["WEAVE_EVAL_GATE_DEPTH"] = str(depth + 1)
     try:
         result = subprocess.run(
             command,
@@ -149,6 +156,7 @@ def run_shell_gate(gate: dict[str, Any], *, repo_root: Path) -> GateResult:
             capture_output=True,
             timeout=timeout,
             check=False,
+            env=env,
         )
     except subprocess.TimeoutExpired as exc:
         return GateResult(
@@ -188,7 +196,80 @@ def file_gate(gate: dict[str, Any], *, repo_root: Path) -> GateResult:
     )
 
 
-def evaluate_gates(contract: dict[str, Any], *, run_gates: bool, repo_root: Path) -> list[GateResult]:
+def review_manual_gate_entry(review: dict[str, Any] | None, gate_id: str) -> dict[str, Any] | None:
+    if review is None:
+        return None
+    gates = review.get("hard_gates", review.get("gate_evidence", {}))
+    if not isinstance(gates, dict):
+        return None
+    entry = gates.get(gate_id)
+    return entry if isinstance(entry, dict) else None
+
+
+def review_evidence_strings(raw_evidence: Any) -> list[str]:
+    if isinstance(raw_evidence, str):
+        evidence = raw_evidence.strip()
+        return [evidence] if evidence else []
+    if isinstance(raw_evidence, list):
+        return [item.strip() for item in raw_evidence if isinstance(item, str) and item.strip()]
+    return []
+
+
+def manual_gate_from_review(gate: dict[str, Any], review: dict[str, Any] | None) -> GateResult | None:
+    gate_id = str(gate.get("id", "unnamed_gate"))
+    entry = review_manual_gate_entry(review, gate_id)
+    if entry is None:
+        return None
+    evidence = review_evidence_strings(entry.get("evidence", []))
+    raw_passed = entry.get("passed")
+    if raw_passed is None:
+        return GateResult(
+            gate_id=gate_id,
+            status="manual",
+            passed=None,
+            required=bool(gate.get("required", True)),
+            detail="manual gate review is unresolved",
+            output_excerpt="\n".join(evidence) if evidence else None,
+        )
+    if not isinstance(raw_passed, bool):
+        return GateResult(
+            gate_id=gate_id,
+            status="failed",
+            passed=False,
+            required=bool(gate.get("required", True)),
+            detail="manual gate review passed must be a boolean",
+            output_excerpt="\n".join(evidence) if evidence else None,
+        )
+    passed = raw_passed
+    if passed and not evidence:
+        return GateResult(
+            gate_id=gate_id,
+            status="failed",
+            passed=False,
+            required=bool(gate.get("required", True)),
+            detail="manual gate review marked passed without evidence",
+        )
+    notes = str(entry.get("notes", "")).strip()
+    detail = "manual gate passed per eval review evidence; evaluator did not independently execute this gate"
+    if notes:
+        detail += f"; {notes}"
+    return GateResult(
+        gate_id=gate_id,
+        status="passed" if passed else "failed",
+        passed=passed,
+        required=bool(gate.get("required", True)),
+        detail=detail,
+        output_excerpt="\n".join(evidence) if evidence else None,
+    )
+
+
+def evaluate_gates(
+    contract: dict[str, Any],
+    *,
+    run_gates: bool,
+    repo_root: Path,
+    review: dict[str, Any] | None = None,
+) -> list[GateResult]:
     results: list[GateResult] = []
     for gate in contract.get("hard_gates", []):
         gate_id = str(gate.get("id", "unnamed_gate"))
@@ -211,15 +292,19 @@ def evaluate_gates(contract: dict[str, Any], *, run_gates: bool, repo_root: Path
         elif kind == "file_exists":
             results.append(file_gate(gate, repo_root=repo_root))
         elif kind == "manual":
-            results.append(
-                GateResult(
-                    gate_id=gate_id,
-                    status="manual",
-                    passed=None,
-                    required=required,
-                    detail=str(gate.get("description", "manual gate requires human or target-surface proof")),
+            reviewed_gate = manual_gate_from_review(gate, review)
+            if reviewed_gate is not None:
+                results.append(reviewed_gate)
+            else:
+                results.append(
+                    GateResult(
+                        gate_id=gate_id,
+                        status="manual",
+                        passed=None,
+                        required=required,
+                        detail=str(gate.get("description", "manual gate requires human or target-surface proof")),
+                    )
                 )
-            )
         else:
             results.append(
                 GateResult(
@@ -255,9 +340,11 @@ def validate_review_binding(contract: dict[str, Any], review: dict[str, Any] | N
         expected = contract.get("stage") or contract.get("slug") or "unknown"
         raise EvalError(f"review stage {review_stage!r} does not match contract stage {expected!r}")
     review_artifact = str(review.get("artifact") or "").strip()
-    placeholder_artifacts = {"", "describe artifact or path"}
-    if artifact and artifact != "current" and review_artifact not in placeholder_artifacts and review_artifact != artifact:
-        raise EvalError(f"review artifact {review_artifact!r} does not match evaluated artifact {artifact!r}")
+    if review_artifact in {"", "describe artifact or path"}:
+        raise EvalError("review artifact is required and must not be a placeholder")
+    if artifact and artifact != "current":
+        if review_artifact != artifact:
+            raise EvalError(f"review artifact {review_artifact!r} does not match evaluated artifact {artifact!r}")
 
 
 def rubric_dimensions(contract: dict[str, Any]) -> list[dict[str, Any]]:
@@ -326,13 +413,7 @@ def score_review(contract: dict[str, Any], review: dict[str, Any] | None) -> dic
                 invalid.append(f"{dim_id}: score must be numeric")
                 scored_dimensions.append({"id": dim_id, "max_score": max_score, "status": "invalid"})
                 continue
-            raw_evidence = entry.get("evidence", [])
-            if isinstance(raw_evidence, str):
-                evidence = [raw_evidence]
-            elif isinstance(raw_evidence, list):
-                evidence = [str(item) for item in raw_evidence if str(item).strip()]
-            else:
-                evidence = []
+            evidence = review_evidence_strings(entry.get("evidence", []))
             notes = str(entry.get("notes", ""))
         else:
             invalid.append(f"{dim_id}: score entry must be number or object")
@@ -377,6 +458,8 @@ def decide(contract: dict[str, Any], gates: list[GateResult], score: dict[str, A
 
     failed_required = [gate.gate_id for gate in gates if gate.required and gate.passed is False]
     pending_required = [gate.gate_id for gate in gates if gate.required and gate.status in {"not_run", "manual"}]
+    pending_command_required = [gate.gate_id for gate in gates if gate.required and gate.status == "not_run"]
+    pending_manual_required = [gate.gate_id for gate in gates if gate.required and gate.status == "manual"]
     if failed_required:
         blockers.extend(f"hard gate failed: {gate_id}" for gate_id in failed_required)
         next_actions.append("fix failed hard gates and rerun eval")
@@ -387,13 +470,18 @@ def decide(contract: dict[str, Any], gates: list[GateResult], score: dict[str, A
         blockers.append("rubric review missing")
         next_actions.append("run with --review-template, have an evaluator fill scores with evidence, then pass --review-file")
         # Still call out hard gates, but review is the clearer next human/agent action.
-        if pending_required:
+        if pending_command_required:
             next_actions.append("rerun with --run-gates before accepting an advance decision")
+        if pending_manual_required:
+            next_actions.append("attach target-surface proof in the review file for manual gates")
         return "needs_agent_review", blockers, next_actions
 
     if pending_required:
         blockers.extend(f"hard gate pending: {gate_id}" for gate_id in pending_required)
-        next_actions.append("rerun with --run-gates or attach target-surface proof for manual gates")
+        if pending_command_required:
+            next_actions.append("rerun with --run-gates before accepting an advance decision")
+        if pending_manual_required:
+            next_actions.append("attach target-surface proof in the review file for manual gates")
         return "needs_gate_execution", blockers, next_actions
 
     if score["status"] == "incomplete":
@@ -435,6 +523,15 @@ def review_template(contract: dict[str, Any]) -> dict[str, Any]:
                 "notes": "",
             }
             for dim in rubric_dimensions(contract)
+        },
+        "hard_gates": {
+            str(gate.get("id", "unnamed_gate")): {
+                "passed": None,
+                "evidence": [],
+                "notes": str(gate.get("description", "")),
+            }
+            for gate in contract.get("hard_gates", [])
+            if isinstance(gate, dict) and str(gate.get("kind", "manual")) == "manual"
         },
         "overall_notes": "",
     }
@@ -558,7 +655,7 @@ def main(argv: list[str] | None = None, *, output: TextIO = sys.stdout) -> int:
             return 0
         review = load_review(args.review_file)
         validate_review_binding(contract, review, artifact=args.artifact)
-        gates = evaluate_gates(contract, run_gates=args.run_gates, repo_root=REPO_ROOT)
+        gates = evaluate_gates(contract, run_gates=args.run_gates, repo_root=REPO_ROOT, review=review)
         score = score_review(contract, review)
         decision, blockers, next_actions = decide(contract, gates, score)
         payload = result_payload(

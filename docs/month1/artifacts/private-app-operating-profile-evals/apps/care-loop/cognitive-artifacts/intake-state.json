@@ -1,0 +1,30 @@
+{
+  "app_id": "care-loop",
+  "app_name": "Care Loop",
+  "authority_mode": "recommend_only",
+  "created_at": "2026-06-09T18:01:18Z",
+  "input_surface": "synthetic_fixture",
+  "known_fields": {
+    "affected_user": "care coordinator",
+    "features": [
+      "daily checklist",
+      "gentle priority",
+      "handoff note",
+      "JSON export"
+    ],
+    "private_data_domain": "care tasks, check-ins, household routines",
+    "sample_data_rows": 3,
+    "success_metrics": [
+      "less missed routine",
+      "reviewable handoff",
+      "no health overclaim"
+    ]
+  },
+  "marketing_excluded": true,
+  "next_state": "cwa_information_assessment",
+  "normalized_intent": "Turn private care reminders into a calm daily checklist.",
+  "private_local_only": true,
+  "schema": "weave-intake-state/v0.1",
+  "status": "sufficient_for_fixture_runtime",
+  "trigger_mode": "reactive"
+}

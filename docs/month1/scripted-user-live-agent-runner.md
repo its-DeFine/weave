@@ -42,7 +42,7 @@ python3 scripts/scripted_user_live_agent_runner.py \
   --output-dir /tmp/weave-scripted-user-live-agent-runs
 ```
 
-Hermes CLI live-agent mode:
+Live Hermes CLI mode:
 
 ```bash
 python3 scripts/scripted_user_live_agent_runner.py \
@@ -52,11 +52,29 @@ python3 scripts/scripted_user_live_agent_runner.py \
   --hermes-bin hermes \
   --model "$WEAVE_HERMES_MODEL" \
   --provider "$WEAVE_HERMES_PROVIDER_ADAPTER" \
-  --max-turns 4 \
+  --max-turns 12 \
   --timeout 180
 ```
 
-Live mode currently means: the adapter produced a generated reply from a live Hermes CLI process. It is **not** the same as deployed Telegram gateway proof unless the adapter is extended to drive that deployed surface.
+For long app-writing proof loops, raise `--max-turns` and set
+`WEAVE_LIVE_HERMES_STEP_TIMEOUT_SECONDS` so non-analysis stages have enough
+wall-clock to finish without being mislabeled as clean proof after a cap/timeout.
+
+Live Hermes CLI mode means: the adapter produced a generated reply from a live Hermes CLI process. It is **not** the same as deployed Telegram gateway proof.
+
+Owner-approved deployed-gateway mode uses an explicit command adapter. The command receives a public-safe JSON request on stdin, performs the real send/wait/readback against the target gateway, and returns JSON on stdout with `source: "deployed_agent"` only after readback succeeds:
+
+```bash
+python3 scripts/scripted_user_live_agent_runner.py \
+  --scenario path/to/scenario.json \
+  --mode live \
+  --agent deployed-gateway \
+  --gateway-command "$WEAVE_DEPLOYED_GATEWAY_ADAPTER_CMD" \
+  --allow-external-send \
+  --timeout 180
+```
+
+`--allow-external-send` is intentionally mandatory because true deployed-gateway proof may send/read Telegram messages. CI or local mock commands can prove adapter plumbing only; they do not prove deployed Telegram delivery.
 
 ## Scenario Shape
 
@@ -167,6 +185,6 @@ MVP complexity is moderate:
 - each instance creates its own WEAVE root, app workspace, transcript, artifacts, and source snapshot
 - fixture mode needs no external infrastructure
 - Hermes CLI live mode needs a configured Hermes CLI and model/provider access
-- deployed gateway mode is not implemented yet; it needs a target-surface adapter with send/wait/readback proof
+- deployed gateway mode has fail-closed command-adapter plumbing, but real proof still needs owner-approved target configuration plus send/wait/readback evidence
 
 For application generation at scale, use narrow scenario batches first: one scenario per app archetype, low `--max-turns`, bounded `--timeout`, and `--parallel` sized to available model/runtime capacity. Treat every generated app as local proof until browser QA, deploy approval, analytics/payment gates, and human review are explicitly added.

@@ -20,6 +20,7 @@ This `docs/` tree is the public documentation subset for WEAVE.
 - [WEAVE Runtime One-Shot Implementation Prompt v0.1](weave-runtime-one-shot-implementation-prompt-v0.1.md)
 - [WEAVE Capability Context](capability-context.md)
 - [Month 1 Overview](month1/README.md)
+- [Private App Operating Profile Evaluations](month1/private-app-operating-profile-evals.md)
 - [Month 1 Review Evidence Pack](month1/review-evidence-pack.md)
 - [Month 1 Capability Context Runtime QA](month1/context-runtime-qa.md)
 - [Application Lifecycle Summary](month1/app-lifecycle.md)

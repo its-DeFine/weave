@@ -63,6 +63,40 @@ def record_stage_turn(root: Path, app_id: str, stage_id: str, artifact_path: Pat
     return runtime.append_conversation_turn(root, app_id, turn)
 
 
+def valid_stage_review(stage_id: str, artifact_path: str, *, reviewer: str = "test-evaluator") -> dict:
+    contract, _contract_path = runtime.load_stage_eval_contract(stage_id)
+    return {
+        "schema": "weave.eval-review/v0.1",
+        "stage": stage_id,
+        "reviewer": reviewer,
+        "artifact": artifact_path,
+        "scores": {
+            str(dim.get("id", "unnamed_dimension")): {
+                "score": float(dim.get("max_score", 4)),
+                "evidence": [artifact_path],
+                "notes": "Local regression fixture cites the stage proof artifact.",
+            }
+            for dim in contract.get("rubric", [])
+            if isinstance(dim, dict)
+        },
+        "hard_gates": {
+            str(gate.get("id", "unnamed_gate")): {
+                "passed": True,
+                "evidence": [artifact_path],
+                "notes": "Local regression fixture resolves the manual gate with proof artifact evidence.",
+            }
+            for gate in contract.get("hard_gates", [])
+            if isinstance(gate, dict) and str(gate.get("kind", "manual")) in {"manual", "command"}
+        },
+        "overall_notes": "All evidence is local deterministic fixture data.",
+    }
+
+
+def complete_stage_evaluation(root: Path, app_id: str, stage_id: str, artifact_path: Path) -> dict:
+    artifact_ref = runtime.relative(artifact_path, root)
+    return runtime.complete_evaluation_from_review(root, app_id, stage_id, valid_stage_review(stage_id, artifact_ref))
+
+
 class WeaveRuntimeSliceTests(unittest.TestCase):
     def test_setup_creates_root_registry_templates_and_token(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -154,10 +188,18 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertTrue((app_root / "repo" / "primary").is_dir())
             self.assertTrue((app_root / "ledger" / "conversation-turns.jsonl").exists())
             self.assertTrue((app_root / "ledger" / "conversation-events.jsonl").exists())
+            self.assertTrue((app_root / "collaboration" / "peers.json").exists())
+            self.assertTrue((app_root / "collaboration" / "context-capsules.json").exists())
+            self.assertTrue((app_root / "collaboration" / "discussions.json").exists())
+            self.assertTrue((app_root / "collaboration" / "attention-requests.json").exists())
+            self.assertTrue((app_root / "collaboration" / "ledger.jsonl").exists())
             self.assertEqual(result["app"]["conversation_turns_path"], "ledger/conversation-turns.jsonl")
             self.assertEqual(result["app"]["conversation_events_path"], "ledger/conversation-events.jsonl")
+            self.assertEqual(result["app"]["collaboration_path"], "collaboration")
+            self.assertEqual(result["app"]["collaboration_ledger_path"], "collaboration/ledger.jsonl")
             self.assertIn("conversation-turn-ledger", result["app"]["capabilities"])
             self.assertIn("conversation-event-ledger", result["app"]["capabilities"])
+            self.assertIn("local-a2a-collaboration", result["app"]["capabilities"])
             registry = runtime.load_registry(root)
             self.assertEqual(registry["apps"][0]["app_id"], "demo-app")
             self.assertEqual(registry["apps"][0]["app_type"], "product")
@@ -165,6 +207,1116 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertFalse(gate["passed"])
             self.assertIn("soul.md", gate["incomplete"])
             self.assertIn("context/app-context.md", gate["incomplete"])
+
+    def test_a2a_peer_capsule_discussion_and_attention_request_are_listable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+
+            peer = runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-alpha",
+            )
+            capsule = runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary for local peer review.",
+                ["peer-alpha"],
+                redacted_fields=["api_key"],
+                source_refs=[{"path": "context/app-context.md", "kind": "local_context"}],
+                capsule_id="capsule-intent",
+            )
+            discussion = runtime.open_discussion(
+                root,
+                "demo",
+                "Review intent",
+                peer_id="peer-alpha",
+                capsule_id="capsule-intent",
+                discussion_id="discussion-intent",
+            )
+            attention = runtime.create_attention_request(
+                root,
+                "demo",
+                "discussion-intent",
+                "Review requested",
+                status="pending",
+                attention_request_id="attention-intent",
+            )
+
+            self.assertEqual(peer["state"], "paired")
+            self.assertFalse(peer["live_xmtp"])
+            self.assertEqual(runtime.list_a2a_peers(root, "demo")[0]["peer_id"], "peer-alpha")
+            self.assertEqual(runtime.list_context_capsules(root, "demo")[0]["capsule_id"], capsule["capsule_id"])
+            self.assertEqual(runtime.list_discussions(root, "demo")[0]["discussion_id"], discussion["discussion_id"])
+            self.assertEqual(
+                runtime.list_attention_requests(root, "demo")[0]["attention_request_id"],
+                attention["attention_request_id"],
+            )
+            events = runtime.read_a2a_ledger_events(root, "demo")
+            self.assertEqual(
+                [event["type"] for event in events],
+                [
+                    "a2a.peer.registered",
+                    "a2a.context_capsule.created",
+                    "a2a.discussion.opened",
+                    "a2a.attention_request.created",
+                ],
+            )
+            summary = runtime.a2a_disclosure_policy_summary(root, "demo")
+            self.assertEqual(summary["schema"], runtime.A2A_DISCLOSURE_POLICY_SUMMARY_SCHEMA)
+            self.assertTrue(summary["policy"]["local_only"])
+            self.assertFalse(summary["policy"]["live_xmtp"])
+            self.assertEqual(
+                summary["policy"]["paired_active_peer_required_for"],
+                ["context_capsule", "discussion", "attention_request", "work_packet"],
+            )
+            self.assertEqual(summary["peers"][0]["permitted_context_capsule_ids"], ["capsule-intent"])
+
+    def test_attention_request_peer_must_match_discussion_peer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            for peer_id in ("peer-alpha", "peer-beta"):
+                runtime.register_a2a_peer(
+                    root,
+                    "demo",
+                    peer_id.replace("-", " ").title(),
+                    f"local://{peer_id}",
+                    "trusted",
+                    ["discussion", "attention_request"],
+                    peer_id=peer_id,
+                )
+            runtime.open_discussion(
+                root,
+                "demo",
+                "Peer alpha review",
+                peer_id="peer-alpha",
+                discussion_id="discussion-alpha",
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "peer must match discussion peer"):
+                runtime.create_attention_request(
+                    root,
+                    "demo",
+                    "discussion-alpha",
+                    "Wrong peer attention",
+                    peer_id="peer-beta",
+                )
+
+    def register_work_packet_peers(self, root: Path) -> None:
+        packet_types = sorted(runtime.A2A_WORK_PACKET_TYPES)
+        runtime.register_a2a_peer(
+            root,
+            "demo",
+            "WEAVE Runtime",
+            "local://weave-runtime",
+            "trusted-local-runtime",
+            packet_types,
+            peer_id="weave-runtime",
+        )
+        runtime.register_a2a_peer(
+            root,
+            "demo",
+            "Partner Agent",
+            "local://partner-agent",
+            "trusted-test-peer",
+            packet_types,
+            peer_id="partner-agent",
+        )
+
+    def test_a2a_creation_helpers_reject_non_list_optional_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule"],
+                peer_id="peer-alpha",
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "redacted_fields must be a list"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved app intent summary.",
+                    ["peer-alpha"],
+                    redacted_fields="api_key",  # type: ignore[arg-type]
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "source_refs must be a list"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved app intent summary.",
+                    ["peer-alpha"],
+                    source_refs={"path": "context/app-context.md"},  # type: ignore[arg-type]
+                )
+            self.assertEqual(runtime.list_context_capsules(root, "demo"), [])
+
+            self.register_work_packet_peers(root)
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "A2A work packet refs must be a list"):
+                runtime.new_a2a_work_packet(
+                    root,
+                    "demo",
+                    "task_request",
+                    "partner-agent",
+                    "weave-runtime",
+                    {"requested_action": "record_evidence_summary", "summary": "Safe local task."},
+                    refs={"path": "lifecycle/01-intent/artifacts/intent.md"},  # type: ignore[arg-type]
+                    packet_id="packet-bad-refs",
+                    idempotency_key="bad-refs",
+                )
+
+    def test_a2a_work_packet_requires_approval_executes_and_returns_evidence_report(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            self.register_work_packet_peers(root)
+
+            packet = runtime.new_a2a_work_packet(
+                root,
+                "demo",
+                "task_request",
+                "partner-agent",
+                "weave-runtime",
+                {
+                    "requested_action": "record_evidence_summary",
+                    "task": "Validate local A2A packet flow.",
+                    "summary": "Local A2A task completed with evidence report.",
+                },
+                refs=[{"path": "lifecycle/01-intent/artifacts/intent.md", "kind": "stage_artifact"}],
+                packet_id="packet-task-001",
+                idempotency_key="task-001",
+            )
+            received = runtime.receive_a2a_work_packet(root, "demo", packet)
+
+            self.assertTrue(received["received"])
+            self.assertEqual(len(runtime.load_a2a_work_packet_queue(root, "demo", "inbox")), 1)
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "requires owner approval"):
+                runtime.execute_a2a_work_packet(root, "demo", "packet-task-001")
+
+            approved = runtime.approve_a2a_work_packet(root, "demo", "packet-task-001", note="owner approved local proof")
+            self.assertEqual(approved["approval_status"], "approved")
+            executed = runtime.execute_a2a_work_packet(root, "demo", "packet-task-001")
+
+            self.assertTrue(executed["executed"])
+            inbox = runtime.load_a2a_work_packet_queue(root, "demo", "inbox")
+            outbox = runtime.load_a2a_work_packet_queue(root, "demo", "outbox")
+            evidence = runtime.list_a2a_work_packet_evidence(root, "demo")
+            self.assertEqual(inbox[0]["execution_status"], "completed")
+            self.assertEqual(inbox[0]["state"], "executed")
+            self.assertEqual(outbox[0]["packet_type"], "evidence_report")
+            self.assertEqual(outbox[0]["source_peer_id"], "weave-runtime")
+            self.assertEqual(outbox[0]["target_peer_id"], "partner-agent")
+            self.assertEqual(outbox[0]["state"], "send_ready")
+            self.assertEqual(evidence[0]["packet_id"], "packet-task-001")
+            self.assertEqual(evidence[0]["result_packet_id"], outbox[0]["packet_id"])
+            self.assertEqual(evidence[0]["status"], "completed")
+            event_types = [event["type"] for event in runtime.read_a2a_ledger_events(root, "demo")]
+            self.assertIn("a2a.work_packet.received", event_types)
+            self.assertIn("a2a.work_packet.approved", event_types)
+            self.assertIn("a2a.work_packet.evidence_recorded", event_types)
+            self.assertIn("a2a.work_packet.outbox_enqueued", event_types)
+            self.assertIn("a2a.work_packet.executed", event_types)
+
+    def test_received_a2a_work_packet_cannot_arrive_preapproved(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            self.register_work_packet_peers(root)
+            packet = runtime.new_a2a_work_packet(
+                root,
+                "demo",
+                "task_request",
+                "partner-agent",
+                "weave-runtime",
+                {"requested_action": "record_evidence_summary", "summary": "Forged approval must not execute."},
+                packet_id="packet-forged-approved",
+                idempotency_key="forged-approved",
+            )
+            packet["approval_status"] = "approved"
+            packet["state"] = "approved"
+
+            received = runtime.receive_a2a_work_packet(root, "demo", packet)
+            inbox = runtime.load_a2a_work_packet_queue(root, "demo", "inbox")
+
+            self.assertTrue(received["received"])
+            self.assertTrue(inbox[0]["approval_required"])
+            self.assertEqual(inbox[0]["approval_status"], "required")
+            self.assertEqual(inbox[0]["execution_status"], "not_started")
+            self.assertEqual(inbox[0]["state"], "pending_approval")
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "requires owner approval"):
+                runtime.execute_a2a_work_packet(root, "demo", "packet-forged-approved")
+            event_types = [event["type"] for event in runtime.read_a2a_ledger_events(root, "demo")]
+            self.assertNotIn("a2a.work_packet.approved", event_types)
+            self.assertEqual(runtime.list_a2a_work_packet_evidence(root, "demo"), [])
+
+    def test_received_a2a_work_packet_must_target_local_runtime_peer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            self.register_work_packet_peers(root)
+            packet = runtime.new_a2a_work_packet(
+                root,
+                "demo",
+                "task_request",
+                "weave-runtime",
+                "partner-agent",
+                {"requested_action": "record_evidence_summary", "summary": "Outbound packet must not enter local inbox."},
+                packet_id="packet-wrong-local-target",
+                idempotency_key="wrong-local-target",
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "target must be local runtime peer"):
+                runtime.receive_a2a_work_packet(root, "demo", packet)
+
+    def test_a2a_work_packet_execution_preflights_evidence_report_before_persisting_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            packet_types = sorted(runtime.A2A_WORK_PACKET_TYPES)
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "WEAVE Runtime",
+                "local://weave-runtime",
+                "trusted-local-runtime",
+                packet_types,
+                peer_id="weave-runtime",
+            )
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Partner Agent",
+                "local://partner-agent",
+                "trusted-test-peer",
+                [packet_type for packet_type in packet_types if packet_type != "evidence_report"],
+                peer_id="partner-agent",
+            )
+            packet = runtime.new_a2a_work_packet(
+                root,
+                "demo",
+                "task_request",
+                "partner-agent",
+                "weave-runtime",
+                {"requested_action": "record_evidence_summary", "summary": "Evidence report permission is required."},
+                packet_id="packet-no-evidence-report-permission",
+                idempotency_key="no-evidence-report-permission",
+            )
+            runtime.receive_a2a_work_packet(root, "demo", packet)
+            runtime.approve_a2a_work_packet(root, "demo", "packet-no-evidence-report-permission")
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "does not allow packet type: evidence_report"):
+                runtime.execute_a2a_work_packet(root, "demo", "packet-no-evidence-report-permission")
+
+            inbox = runtime.load_a2a_work_packet_queue(root, "demo", "inbox")
+            self.assertEqual(inbox[0]["execution_status"], "not_started")
+            self.assertEqual(inbox[0]["state"], "approved")
+            self.assertEqual(runtime.list_a2a_work_packet_evidence(root, "demo"), [])
+            self.assertEqual(runtime.load_a2a_work_packet_queue(root, "demo", "outbox"), [])
+
+    def test_a2a_work_packet_replay_does_not_execute_twice(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            self.register_work_packet_peers(root)
+            packet = runtime.new_a2a_work_packet(
+                root,
+                "demo",
+                "task_request",
+                "partner-agent",
+                "weave-runtime",
+                {
+                    "requested_action": "record_evidence_summary",
+                    "summary": "Replay protected work packet completed once.",
+                },
+                packet_id="packet-task-002",
+                idempotency_key="task-002",
+            )
+
+            runtime.receive_a2a_work_packet(root, "demo", packet)
+            runtime.approve_a2a_work_packet(root, "demo", "packet-task-002")
+            first = runtime.execute_a2a_work_packet(root, "demo", "packet-task-002")
+            duplicate_receive = runtime.receive_a2a_work_packet(root, "demo", packet)
+            second = runtime.execute_a2a_work_packet(root, "demo", "packet-task-002")
+
+            self.assertTrue(first["executed"])
+            self.assertTrue(duplicate_receive["duplicate"])
+            self.assertFalse(second["executed"])
+            self.assertTrue(second["duplicate"])
+            self.assertEqual(len(runtime.load_a2a_work_packet_queue(root, "demo", "inbox")), 1)
+            self.assertEqual(len(runtime.load_a2a_work_packet_queue(root, "demo", "outbox")), 1)
+            self.assertEqual(len(runtime.list_a2a_work_packet_evidence(root, "demo")), 1)
+            event_types = [event["type"] for event in runtime.read_a2a_ledger_events(root, "demo")]
+            self.assertIn("a2a.work_packet.duplicate", event_types)
+
+    def test_a2a_work_packets_reject_live_xmtp_claims_and_secret_material(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            self.register_work_packet_peers(root)
+            packet = runtime.new_a2a_work_packet(
+                root,
+                "demo",
+                "task_request",
+                "partner-agent",
+                "weave-runtime",
+                {"requested_action": "record_evidence_summary", "summary": "Safe local task."},
+                packet_id="packet-task-003",
+                idempotency_key="task-003",
+            )
+            packet["live_xmtp"] = True
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "must not claim live XMTP"):
+                runtime.validate_a2a_work_packet(packet)
+
+            packet = runtime.new_a2a_work_packet(
+                root,
+                "demo",
+                "task_request",
+                "partner-agent",
+                "weave-runtime",
+                {"requested_action": "record_evidence_summary", "summary": "Safe local task."},
+                packet_id="packet-task-003b",
+                idempotency_key="task-003b",
+            )
+            packet["source_peer_id"] = "Partner Agent"
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "source_peer_id is not normalized"):
+                runtime.validate_a2a_work_packet(packet)
+
+            secret_like = "sk_" + "a" * 16
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "secret-looking"):
+                runtime.new_a2a_work_packet(
+                    root,
+                    "demo",
+                    "task_request",
+                    "partner-agent",
+                    "weave-runtime",
+                    {"requested_action": "record_evidence_summary", "summary": "Do not record " + secret_like},
+                    packet_id="packet-task-004",
+                    idempotency_key="task-004",
+                )
+
+    def test_a2a_disclosure_summary_rejects_tampered_relationships(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-alpha",
+            )
+            runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                capsule_id="capsule-intent",
+            )
+            runtime.open_discussion(
+                root,
+                "demo",
+                "Capsule review",
+                peer_id="peer-alpha",
+                capsule_id="capsule-intent",
+                discussion_id="discussion-intent",
+            )
+            runtime.create_attention_request(
+                root,
+                "demo",
+                "discussion-intent",
+                "Review requested",
+                attention_request_id="attention-intent",
+            )
+
+            peer_path = root / "apps" / "demo" / "collaboration" / "peers.json"
+            peer_data = json.loads(peer_path.read_text(encoding="utf-8"))
+            peer_data["peers"][0]["state"] = "revoked"
+            peer_data["peers"][0]["paired"] = False
+            peer_data["peers"][0]["revoked"] = True
+            peer_path.write_text(json.dumps(peer_data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "requires paired active peer"):
+                runtime.a2a_disclosure_policy_summary(root, "demo")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-alpha",
+            )
+            runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                capsule_id="capsule-intent",
+            )
+            runtime.open_discussion(
+                root,
+                "demo",
+                "Capsule review",
+                peer_id="peer-alpha",
+                capsule_id="capsule-intent",
+                discussion_id="discussion-intent",
+            )
+
+            discussion_path = root / "apps" / "demo" / "collaboration" / "discussions.json"
+            discussion_data = json.loads(discussion_path.read_text(encoding="utf-8"))
+            discussion_data["discussions"][0]["capsule_id"] = "capsule-missing"
+            discussion_path.write_text(json.dumps(discussion_data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "missing context capsule"):
+                runtime.a2a_disclosure_policy_summary(root, "demo")
+
+    def test_a2a_disclosure_summary_rejects_missing_and_unpermitted_relationships(self) -> None:
+        def build_graph(root: Path) -> None:
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-alpha",
+            )
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Beta",
+                "local://peer-beta",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-beta",
+            )
+            runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                capsule_id="capsule-intent",
+            )
+            runtime.open_discussion(
+                root,
+                "demo",
+                "Capsule review",
+                peer_id="peer-alpha",
+                capsule_id="capsule-intent",
+                discussion_id="discussion-intent",
+            )
+            runtime.create_attention_request(
+                root,
+                "demo",
+                "discussion-intent",
+                "Review requested",
+                peer_id="peer-alpha",
+                attention_request_id="attention-intent",
+            )
+
+        def rewrite_record(root: Path, filename: str, key: str, changes: dict[str, object]) -> None:
+            path = root / "apps" / "demo" / "collaboration" / filename
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data[key][0].update(changes)
+            path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+        cases = [
+            (
+                "missing_peer",
+                "context-capsules.json",
+                "context_capsules",
+                {"permitted_peer_ids": ["peer-missing"]},
+                "missing A2A peer",
+            ),
+            (
+                "missing_discussion",
+                "attention-requests.json",
+                "attention_requests",
+                {"discussion_id": "discussion-missing"},
+                "missing A2A discussion",
+            ),
+            (
+                "discussion_peer_not_permitted",
+                "discussions.json",
+                "discussions",
+                {"peer_id": "peer-beta"},
+                "peer is not permitted on capsule",
+            ),
+            (
+                "attention_peer_not_permitted",
+                "attention-requests.json",
+                "attention_requests",
+                {"peer_id": "peer-beta"},
+                "peer must match discussion peer",
+            ),
+        ]
+        for name, filename, key, changes, error_pattern in cases:
+            with self.subTest(name=name):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    root = Path(tmpdir) / "weave-root"
+                    build_graph(root)
+                    rewrite_record(root, filename, key, changes)
+
+                    with self.assertRaisesRegex(runtime.RuntimeSliceError, error_pattern):
+                        runtime.a2a_disclosure_policy_summary(root, "demo")
+
+    def test_a2a_peer_addresses_must_be_local_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+
+            loopback_address = "ws://" + ".".join(["127", "0", "0", "1"]) + ":9000"
+            private_host_address = ".".join(["192", "168", "1", "10"]) + ":9000"
+            for address in [
+                "https://peer.example.test",
+                "xmtp://peer-alpha",
+                loopback_address,
+                private_host_address,
+            ]:
+                with self.subTest(address=address):
+                    with self.assertRaisesRegex(runtime.RuntimeSliceError, "address must use local://"):
+                        runtime.register_a2a_peer(
+                            root,
+                            "demo",
+                            f"Peer {address}",
+                            address,
+                            "trusted",
+                            ["context_capsule"],
+                        )
+
+            for address in [
+                "local://" + ".".join(["127", "0", "0", "1"]),
+                "local://" + "local" + "host",
+                "local://" + ".".join(["192", "168", "1", "10"]),
+                "local://peer.internal",
+                "local://peer.local",
+            ]:
+                with self.subTest(address=address):
+                    with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                        runtime.register_a2a_peer(
+                            root,
+                            "demo",
+                            f"Peer {address}",
+                            address,
+                            "trusted",
+                            ["context_capsule"],
+                        )
+                    self.assertEqual(runtime.list_a2a_peers(root, "demo"), [])
+
+            self.assertEqual(runtime.list_a2a_peers(root, "demo"), [])
+
+    def test_a2a_unpaired_or_revoked_peers_cannot_receive_capsules_or_attention(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-alpha",
+            )
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Beta",
+                "local://peer-beta",
+                "observer",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-beta",
+                state="unpaired",
+            )
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Gamma",
+                "local://peer-gamma",
+                "blocked",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-gamma",
+                revoked=True,
+            )
+            runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                capsule_id="capsule-intent",
+            )
+            runtime.open_discussion(
+                root,
+                "demo",
+                "Capsule review",
+                capsule_id="capsule-intent",
+                discussion_id="discussion-intent",
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "requires paired active peer"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Blocked Packet",
+                    "This should not be shared with an unpaired peer.",
+                    ["peer-beta"],
+                    capsule_id="capsule-blocked",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "requires paired active peer"):
+                runtime.create_attention_request(
+                    root,
+                    "demo",
+                    "discussion-intent",
+                    "Review requested",
+                    peer_id="peer-gamma",
+                    attention_request_id="attention-blocked",
+                )
+
+    def test_a2a_capsule_discussions_require_peer_discussion_permission(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule"],
+                peer_id="peer-alpha",
+            )
+            runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                capsule_id="capsule-intent",
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "does not allow packet type: discussion"):
+                runtime.open_discussion(
+                    root,
+                    "demo",
+                    "Capsule review",
+                    capsule_id="capsule-intent",
+                    discussion_id="discussion-intent",
+                )
+
+    def test_a2a_context_capsules_reject_secret_looking_material(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule"],
+                peer_id="peer-alpha",
+            )
+
+            secret_like = "sk_" + "a" * 16
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "secret-looking"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Do not record " + secret_like + " in a capsule.",
+                    ["peer-alpha"],
+                    capsule_id="capsule-secret",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "secret-looking"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Safe summary.",
+                    ["peer-alpha"],
+                    source_refs=[{"url": "https://example.test/callback?" + "token=" + "a" * 20}],
+                    capsule_id="capsule-secret-ref",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "secret-looking"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Safe summary.",
+                    ["peer-alpha"],
+                    redacted_fields=[secret_like],
+                    capsule_id="capsule-secret-redacted-field",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "secret-looking"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Safe summary.",
+                    ["peer-alpha"],
+                    capsule_id=secret_like,
+                )
+            dash_delimited_secret = "-".join(["a" * 8, "b" * 8, "c" * 8])
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "secret-looking"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Do not record " + dash_delimited_secret + " in a capsule.",
+                    ["peer-alpha"],
+                    capsule_id="capsule-dash-token",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "secret-looking"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Safe summary.",
+                    ["peer-alpha"],
+                    source_refs=[{secret_like: "redacted"}],
+                    capsule_id="capsule-secret-key-ref",
+                )
+
+    def test_a2a_context_capsules_reject_empty_peers_and_private_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule"],
+                peer_id="peer-alpha",
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "at least one permitted peer"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved app intent summary.",
+                    [],
+                    capsule_id="capsule-empty-peers",
+                )
+            absolute_path = "/" + "var/tmp/proof.json"
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved app intent summary.",
+                    ["peer-alpha"],
+                    source_refs=[{"path": absolute_path, "kind": "local_context"}],
+                    capsule_id="capsule-absolute-ref",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved app intent summary.",
+                    ["peer-alpha"],
+                    source_refs=[{"locator": absolute_path, "kind": "local_context"}],
+                    capsule_id="capsule-absolute-locator-ref",
+                )
+            private_address = ".".join(["192", "168", "1", "15"])
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved app intent summary.",
+                    ["peer-alpha"],
+                    source_refs=[{"url": "http://" + private_address + "/artifact.json"}],
+                    capsule_id="capsule-private-url-ref",
+                )
+            for name, ref in [
+                ("file_uri", {"url": "file://" + "/tmp/proof.json"}),
+                ("unqualified_host", {"url": "https://builder/artifact.json"}),
+                ("ipv6_loopback", {"url": "http://[::1]/artifact.json"}),
+            ]:
+                with self.subTest(name=name):
+                    with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                        runtime.create_context_capsule(
+                            root,
+                            "demo",
+                            "Intent Packet",
+                            "Owner-approved app intent summary.",
+                            ["peer-alpha"],
+                            source_refs=[ref],
+                            capsule_id=f"capsule-{name}-ref",
+                        )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved artifact at http://" + private_address + "/artifact.json",
+                    ["peer-alpha"],
+                    capsule_id="capsule-private-summary",
+                )
+
+    def test_a2a_private_locator_rejections_do_not_persist_partial_records(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            private_path = "/" + "var/tmp/private-proof.json"
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.register_a2a_peer(
+                    root,
+                    "demo",
+                    "Peer " + private_path,
+                    "local://peer-private-alias",
+                    "trusted",
+                    ["context_capsule"],
+                    peer_id="peer-private-alias",
+                )
+            self.assertEqual(runtime.list_a2a_peers(root, "demo"), [])
+            self.assertEqual(runtime.read_a2a_ledger_events(root, "demo"), [])
+
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-alpha",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet",
+                    "Owner-approved app intent summary.",
+                    ["peer-alpha"],
+                    redacted_fields=[private_path],
+                    capsule_id="capsule-private-redaction",
+                )
+            self.assertEqual(runtime.list_context_capsules(root, "demo"), [])
+            self.assertEqual(len(runtime.read_a2a_ledger_events(root, "demo")), 1)
+
+            runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                capsule_id="capsule-intent",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.open_discussion(
+                    root,
+                    "demo",
+                    "Discuss " + private_path,
+                    peer_id="peer-alpha",
+                    capsule_id="capsule-intent",
+                    discussion_id="discussion-private-title",
+                )
+            self.assertEqual(runtime.list_discussions(root, "demo"), [])
+            self.assertEqual(len(runtime.read_a2a_ledger_events(root, "demo")), 2)
+
+            runtime.open_discussion(
+                root,
+                "demo",
+                "Capsule review",
+                peer_id="peer-alpha",
+                capsule_id="capsule-intent",
+                discussion_id="discussion-intent",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.create_attention_request(
+                    root,
+                    "demo",
+                    "discussion-intent",
+                    "Review requested",
+                    summary="See " + private_path,
+                    attention_request_id="attention-private-summary",
+                )
+            self.assertEqual(runtime.list_attention_requests(root, "demo"), [])
+            self.assertEqual(len(runtime.read_a2a_ledger_events(root, "demo")), 3)
+
+    def test_a2a_ledger_rejects_private_locator_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            private_path = "/" + "var/tmp/private-proof.json"
+            event = runtime.new_a2a_ledger_event(
+                "a2a.context_capsule.created",
+                "demo",
+                "Created local A2A context capsule capsule-intent.",
+                record_id="capsule-intent",
+                payload={"context_capsule": {"source_refs": [{"locator": private_path}]}},
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.append_a2a_ledger_event(root, "demo", event)
+
+    def test_a2a_generated_capsule_ids_include_redaction_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule"],
+                peer_id="peer-alpha",
+            )
+
+            first = runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                redacted_fields=["api_key"],
+                source_refs=[{"path": "context/app-context.md"}],
+            )
+            second = runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                redacted_fields=["session_token"],
+                source_refs=[{"path": "context/app-context.md"}],
+            )
+
+            self.assertNotEqual(first["capsule_id"], second["capsule_id"])
+            self.assertEqual(len(runtime.list_context_capsules(root, "demo")), 2)
+
+    def test_a2a_duplicate_ids_do_not_double_create_records(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            runtime.register_a2a_peer(
+                root,
+                "demo",
+                "Peer Alpha",
+                "local://peer-alpha",
+                "trusted",
+                ["context_capsule", "discussion", "attention_request"],
+                peer_id="peer-alpha",
+            )
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "duplicate A2A peer id"):
+                runtime.register_a2a_peer(
+                    root,
+                    "demo",
+                    "Peer Alpha Again",
+                    "local://peer-alpha-again",
+                    "trusted",
+                    ["context_capsule"],
+                    peer_id="peer-alpha",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "duplicate A2A peer address"):
+                runtime.register_a2a_peer(
+                    root,
+                    "demo",
+                    "Peer Alpha Address Again",
+                    "local://peer-alpha",
+                    "trusted",
+                    ["context_capsule"],
+                    peer_id="peer-alpha-address-again",
+                )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "at least one alphanumeric"):
+                runtime.register_a2a_peer(
+                    root,
+                    "demo",
+                    "Peer Punctuation",
+                    "local://peer-punctuation",
+                    "trusted",
+                    ["context_capsule"],
+                    peer_id="!!!",
+                )
+
+            runtime.create_context_capsule(
+                root,
+                "demo",
+                "Intent Packet",
+                "Owner-approved app intent summary.",
+                ["peer-alpha"],
+                capsule_id="capsule-intent",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "duplicate A2A context capsule id"):
+                runtime.create_context_capsule(
+                    root,
+                    "demo",
+                    "Intent Packet Again",
+                    "Owner-approved app intent summary again.",
+                    ["peer-alpha"],
+                    capsule_id="capsule-intent",
+                )
+
+            runtime.open_discussion(
+                root,
+                "demo",
+                "Capsule review",
+                peer_id="peer-alpha",
+                capsule_id="capsule-intent",
+                discussion_id="discussion-intent",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "duplicate A2A discussion id"):
+                runtime.open_discussion(
+                    root,
+                    "demo",
+                    "Capsule review again",
+                    peer_id="peer-alpha",
+                    capsule_id="capsule-intent",
+                    discussion_id="discussion-intent",
+                )
+
+            runtime.create_attention_request(
+                root,
+                "demo",
+                "discussion-intent",
+                "Review requested",
+                attention_request_id="attention-intent",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "duplicate A2A attention request id"):
+                runtime.create_attention_request(
+                    root,
+                    "demo",
+                    "discussion-intent",
+                    "Review requested again",
+                    attention_request_id="attention-intent",
+                )
+
+            self.assertEqual(len(runtime.list_a2a_peers(root, "demo")), 1)
+            self.assertEqual(len(runtime.list_context_capsules(root, "demo")), 1)
+            self.assertEqual(len(runtime.list_discussions(root, "demo")), 1)
+            self.assertEqual(len(runtime.list_attention_requests(root, "demo")), 1)
+            self.assertEqual(len(runtime.read_a2a_ledger_events(root, "demo")), 4)
 
     def test_foundation_gate_passes_after_required_context_is_completed(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -219,6 +1371,24 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             runtime.append_event(root, "demo", event)
 
             self.assertEqual(len(runtime.read_events(root, "demo")), before + 1)
+            live_event = runtime.new_event(
+                "validation.completed",
+                "demo",
+                "intent",
+                "Live Hermes checks passed.",
+                created_by="live_hermes",
+            )
+            runtime.append_event(root, "demo", live_event)
+            self.assertEqual(runtime.read_events(root, "demo")[-1]["created_by"], "live_hermes")
+            fixture_event = runtime.new_event(
+                "validation.completed",
+                "demo",
+                "intent",
+                "Fixture should not be accepted as a live event creator.",
+                created_by="scripted_fixture",
+            )
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "unsupported event creator"):
+                runtime.append_event(root, "demo", fixture_event)
             with self.assertRaises(runtime.RuntimeSliceError):
                 runtime.append_event(root, "demo", {"schema": runtime.EVENT_SCHEMA})
 
@@ -671,6 +1841,577 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertFalse(passthrough["handled"])
             self.assertEqual(passthrough["error"], "not_slash_command")
 
+    def test_ready_for_review_triggers_evaluation_duty_and_blocks_until_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+
+            record_stage_turn(root, "demo", "intent", artifact_path)
+
+            request_path = runtime.evaluation_request_path(root, "demo", "intent")
+            duty_path = runtime.evaluation_duty_path(root, "demo", "intent")
+            self.assertTrue(request_path.exists())
+            self.assertTrue(duty_path.exists())
+            duty = json.loads(duty_path.read_text(encoding="utf-8"))
+            self.assertEqual(duty["status"], "waiting_for_agent")
+            self.assertEqual(duty["state"], "evaluator-agent-command-missing")
+            self.assertIn("POST a completed eval review artifact", duty["next_actions"][0])
+
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+            self.assertFalse(gate["passed"])
+            self.assertIn("evaluation: waiting_for_agent", gate["missing"])
+            lifecycle = runtime.dispatch_telegram_command(root, "/lifecycle demo")
+            self.assertIn("state: ready_for_review", lifecycle["text"])
+            self.assertFalse(lifecycle["payload"]["stage_gate"]["passed"])
+            self.assertIn("evaluation: waiting_for_agent", lifecycle["payload"]["stage_gate"]["missing"])
+
+            approval = runtime.dispatch_telegram_command(root, "/approve_stage demo")
+            self.assertFalse(approval["handled"])
+            self.assertIn("evaluation: waiting_for_agent", approval["text"])
+            events = [event["type"] for event in runtime.read_events(root, "demo")]
+            self.assertIn("lifecycle.stage_ready_for_review", events)
+            self.assertIn("evaluation.requested", events)
+            self.assertIn("evaluation.waiting_for_agent", events)
+
+    def test_evaluation_request_uses_linked_ready_for_review_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            stage_dir = root / "apps" / "demo" / "lifecycle" / runtime.stage_by_id("intent").directory / "artifacts"
+            linked_artifact = stage_dir / "a-linked.md"
+            unlinked_artifact = stage_dir / "z-unlinked.md"
+            fill(linked_artifact, "Linked Intent")
+            fill(unlinked_artifact, "Unlinked Intent")
+
+            record_stage_turn(root, "demo", "intent", linked_artifact)
+
+            request = json.loads(runtime.evaluation_request_path(root, "demo", "intent").read_text(encoding="utf-8"))
+            self.assertEqual(request["artifact"], runtime.relative(linked_artifact, root))
+            self.assertEqual(request["artifact_refs"], [runtime.transcript_capture_status(root, "demo", "intent")["latest_artifact_ref"]])
+            self.assertEqual(request["artifact_refs"][0]["checksum"], runtime.artifact_checksum(linked_artifact))
+
+    def test_ready_for_review_supersedes_stale_evaluation_result(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            stage_dir = root / "apps" / "demo" / "lifecycle" / runtime.stage_by_id("intent").directory / "artifacts"
+            old_artifact = stage_dir / "a-old.md"
+            new_artifact = stage_dir / "z-new.md"
+            fill(old_artifact, "Old Intent")
+            record_stage_turn(root, "demo", "intent", old_artifact)
+            runtime.complete_evaluation_from_review(
+                root,
+                "demo",
+                "intent",
+                valid_stage_review("intent", runtime.relative(old_artifact, root)),
+            )
+            self.assertTrue(runtime.stage_evaluation_status(root, "demo", "intent")["passed"])
+
+            fill(new_artifact, "New Intent")
+            record_stage_turn(root, "demo", "intent", new_artifact)
+
+            request = json.loads(runtime.evaluation_request_path(root, "demo", "intent").read_text(encoding="utf-8"))
+            self.assertEqual(request["artifact"], runtime.relative(new_artifact, root))
+            status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertFalse(status["passed"])
+            self.assertEqual(status["status"], "waiting_for_agent")
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+            self.assertFalse(gate["passed"])
+            self.assertIn("evaluation: waiting_for_agent", gate["missing"])
+            app = runtime.load_app(root, "demo")
+            self.assertEqual(app["evaluation_statuses"]["intent"]["result_path"], "")
+
+    def test_completed_result_without_review_does_not_open_approval_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            request = json.loads(runtime.evaluation_request_path(root, "demo", "intent").read_text(encoding="utf-8"))
+            now = runtime.utc_now()
+            runtime.write_json_artifact(
+                runtime.evaluation_result_path(root, "demo", "intent"),
+                {
+                    "schema": "weave.eval-result/v0.1",
+                    "stage": "Intent",
+                    "slug": "intent",
+                    "artifact": request["artifact"],
+                    "contract": request["contract"],
+                    "state": "verified",
+                    "hard_gates": [],
+                    "rubric_score": {"status": "complete", "total": 16, "max_total": 16, "percent": 100.0},
+                    "decision": "advance",
+                    "blockers": [],
+                    "next_actions": ["advance to next lifecycle stage"],
+                    "request_id": request["request_id"],
+                    "transcript_turn_id": request["transcript_turn_id"],
+                    "artifact_refs": request["artifact_refs"],
+                    "proof_scope": "local_deterministic_runtime",
+                },
+            )
+            runtime.write_json_artifact(
+                runtime.evaluation_duty_path(root, "demo", "intent"),
+                {
+                    "schema": runtime.EVALUATION_DUTY_SCHEMA,
+                    "request_id": request["request_id"],
+                    "app_id": "demo",
+                    "stage": "intent",
+                    "created_at": now,
+                    "updated_at": now,
+                    "request_path": runtime.relative(runtime.evaluation_request_path(root, "demo", "intent"), root),
+                    "review_path": runtime.relative(runtime.evaluation_review_path(root, "demo", "intent"), root),
+                    "result_path": runtime.relative(runtime.evaluation_result_path(root, "demo", "intent"), root),
+                    "run_gates": False,
+                    "status": "completed",
+                    "decision": "advance",
+                    "state": "verified",
+                    "blockers": [],
+                    "next_actions": [],
+                    "agent_command_configured": False,
+                    "public_safe": True,
+                    "secret_payload_allowed": False,
+                    "completed_by": "forged-local-test",
+                },
+            )
+
+            status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertFalse(status["passed"])
+            self.assertEqual(status["status"], "stale_result")
+            self.assertIn("review artifact is missing", status["blockers"][0])
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+            self.assertFalse(gate["passed"])
+            self.assertIn("evaluation: stale_result", gate["missing"])
+            approval = runtime.dispatch_telegram_command(root, "/approve_stage demo")
+            self.assertFalse(approval["handled"])
+
+    def test_deterministic_review_does_not_satisfy_command_gate_without_execution(self) -> None:
+        review = runtime.deterministic_evaluation_review("engineering", "current")
+        result = runtime.evaluate_review_artifact("engineering", review, "current", run_gates=False)
+
+        self.assertEqual(result["decision"], "needs_gate_execution")
+        self.assertIn("unit_tests_pass", result["blockers"][0])
+        command_gate_statuses = {gate["gate_id"]: gate["status"] for gate in result["hard_gates"]}
+        self.assertEqual(command_gate_statuses["unit_tests_pass"], "not_run")
+        self.assertEqual(command_gate_statuses["diff_check_clean"], "not_run")
+        self.assertEqual(command_gate_statuses["no_secret_leakage"], "not_run")
+
+    def test_forged_matching_review_and_result_do_not_open_approval_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            request = json.loads(runtime.evaluation_request_path(root, "demo", "intent").read_text(encoding="utf-8"))
+            review = valid_stage_review("intent", request["artifact"])
+            forged_result = runtime.evaluate_review_artifact("intent", review, request["artifact"], run_gates=False)
+            forged_result.update(
+                {
+                    "request_id": request["request_id"],
+                    "transcript_turn_id": request["transcript_turn_id"],
+                    "artifact_refs": request["artifact_refs"],
+                    "proof_scope": "local_deterministic_runtime",
+                    "decision": "advance",
+                    "state": "verified",
+                    "rubric_score": {"status": "scored", "total": 0, "max_total": 16, "percent": 0.0},
+                    "blockers": [],
+                    "next_actions": ["advance to next lifecycle stage"],
+                }
+            )
+            review_path = runtime.evaluation_review_path(root, "demo", "intent")
+            result_path = runtime.evaluation_result_path(root, "demo", "intent")
+            runtime.write_json_artifact(review_path, review)
+            runtime.write_json_artifact(result_path, forged_result)
+            now = runtime.utc_now()
+            runtime.write_json_artifact(
+                runtime.evaluation_duty_path(root, "demo", "intent"),
+                {
+                    "schema": runtime.EVALUATION_DUTY_SCHEMA,
+                    "request_id": request["request_id"],
+                    "app_id": "demo",
+                    "stage": "intent",
+                    "created_at": now,
+                    "updated_at": now,
+                    "request_path": runtime.relative(runtime.evaluation_request_path(root, "demo", "intent"), root),
+                    "review_path": runtime.relative(review_path, root),
+                    "result_path": runtime.relative(result_path, root),
+                    "review_checksum": runtime.artifact_checksum(review_path),
+                    "result_checksum": runtime.artifact_checksum(result_path),
+                    "run_gates": False,
+                    "status": "completed",
+                    "decision": "advance",
+                    "state": "verified",
+                    "blockers": [],
+                    "next_actions": [],
+                    "agent_command_configured": False,
+                    "public_safe": True,
+                    "secret_payload_allowed": False,
+                    "completed_by": "forged-local-test",
+                },
+            )
+
+            status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertFalse(status["passed"])
+            self.assertEqual(status["status"], "stale_result")
+            self.assertIn("inconsistent", status["blockers"][0])
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+            self.assertFalse(gate["passed"])
+            self.assertIn("evaluation: stale_result", gate["missing"])
+            approval = runtime.dispatch_telegram_command(root, "/approve_stage demo")
+            self.assertFalse(approval["handled"])
+
+    def test_run_gates_status_rebinds_manual_gates_to_current_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            request = json.loads(runtime.evaluation_request_path(root, "demo", "intent").read_text(encoding="utf-8"))
+            passing_review = valid_stage_review("intent", request["artifact"])
+            forged_result = runtime.evaluate_review_artifact("intent", passing_review, request["artifact"], run_gates=False)
+            forged_result.update(
+                {
+                    "request_id": request["request_id"],
+                    "transcript_turn_id": request["transcript_turn_id"],
+                    "artifact_refs": request["artifact_refs"],
+                    "proof_scope": "local_deterministic_runtime",
+                }
+            )
+            failing_review = valid_stage_review("intent", request["artifact"])
+            first_gate = next(iter(failing_review["hard_gates"].values()))
+            first_gate["passed"] = False
+            first_gate["evidence"] = [request["artifact"]]
+            first_gate["notes"] = "Manual gate is explicitly unresolved in the current review."
+            review_path = runtime.evaluation_review_path(root, "demo", "intent")
+            result_path = runtime.evaluation_result_path(root, "demo", "intent")
+            runtime.write_json_artifact(review_path, failing_review)
+            runtime.write_json_artifact(result_path, forged_result)
+            now = runtime.utc_now()
+            runtime.write_json_artifact(
+                runtime.evaluation_duty_path(root, "demo", "intent"),
+                {
+                    "schema": runtime.EVALUATION_DUTY_SCHEMA,
+                    "request_id": request["request_id"],
+                    "app_id": "demo",
+                    "stage": "intent",
+                    "created_at": now,
+                    "updated_at": now,
+                    "request_path": runtime.relative(runtime.evaluation_request_path(root, "demo", "intent"), root),
+                    "review_path": runtime.relative(review_path, root),
+                    "result_path": runtime.relative(result_path, root),
+                    "review_checksum": runtime.artifact_checksum(review_path),
+                    "result_checksum": runtime.artifact_checksum(result_path),
+                    "run_gates": True,
+                    "status": "completed",
+                    "decision": "advance",
+                    "state": "verified",
+                    "blockers": [],
+                    "next_actions": [],
+                    "agent_command_configured": False,
+                    "public_safe": True,
+                    "secret_payload_allowed": False,
+                    "completed_by": "forged-local-test",
+                },
+            )
+
+            status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertFalse(status["passed"])
+            self.assertEqual(status["status"], "stale_result")
+            self.assertIn("inconsistent", status["blockers"][0])
+
+    def test_evaluation_review_rejection_does_not_create_partial_request(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            review = valid_stage_review("intent", "current")
+            private_path = "/" + "var/tmp/private-proof.json"
+            first_gate = next(iter(review["hard_gates"].values()))
+            first_gate["evidence"] = [private_path]
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.complete_evaluation_from_review(root, "demo", "intent", review)
+            self.assertFalse(runtime.evaluation_request_path(root, "demo", "intent").exists())
+            self.assertFalse(runtime.evaluation_review_path(root, "demo", "intent").exists())
+            self.assertFalse(runtime.evaluation_result_path(root, "demo", "intent").exists())
+
+    def test_evaluation_review_rejects_private_locator_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            artifact_ref = runtime.relative(artifact_path, root)
+            review = valid_stage_review("intent", artifact_ref)
+            private_path = "/" + "var/tmp/private-proof.json"
+            first_gate = next(iter(review["hard_gates"].values()))
+            first_gate["evidence"] = [private_path]
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                runtime.complete_evaluation_from_review(root, "demo", "intent", review)
+            self.assertFalse(runtime.evaluation_review_path(root, "demo", "intent").exists())
+            self.assertFalse(runtime.evaluation_result_path(root, "demo", "intent").exists())
+
+    def test_evaluation_json_artifacts_reject_private_locator_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            private_address = ".".join(["192", "168", "1", "25"])
+            payloads = [
+                "proof at http://" + private_address + "/result.json",
+                "trace wrote '/tmp/private-proof.json'",
+                "review_file=/var/tmp/private-proof.json",
+            ]
+            for index, payload in enumerate(payloads):
+                path = Path(tmpdir) / f"result-{index}.json"
+                with self.subTest(payload=payload):
+                    with self.assertRaisesRegex(runtime.RuntimeSliceError, "private locator"):
+                        runtime.write_json_artifact(
+                            path,
+                            {
+                                "schema": "weave.eval-result/v0.1",
+                                "public_safe": True,
+                                "secret_payload_allowed": False,
+                                "output_excerpt": payload,
+                            },
+                        )
+                    self.assertFalse(path.exists())
+
+    def test_evaluator_agent_review_is_validated_and_persisted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            artifact_ref = runtime.relative(artifact_path, root)
+            review = valid_stage_review("intent", artifact_ref, reviewer="valid-review-agent")
+            agent = Path(tmpdir) / "valid_review_agent.py"
+            agent.write_text(
+                "import json, os\n"
+                f"review = json.loads({json.dumps(json.dumps(review))})\n"
+                "with open(os.environ['WEAVE_EVAL_REVIEW_FILE'], 'w', encoding='utf-8') as handle:\n"
+                "    json.dump(review, handle)\n",
+                encoding="utf-8",
+            )
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "WEAVE_EVALUATOR_AGENT_COMMAND": f"{sys.executable} {agent}",
+                    "WEAVE_EVALUATOR_AGENT_TIMEOUT_SECONDS": "30",
+                },
+            ):
+                duty = runtime.run_evaluation_duty(root, "demo", "intent")
+
+            self.assertEqual(duty["status"], "completed")
+            self.assertEqual(duty["decision"], "advance")
+            review_path = runtime.evaluation_review_path(root, "demo", "intent")
+            result_path = runtime.evaluation_result_path(root, "demo", "intent")
+            self.assertTrue(review_path.exists())
+            self.assertTrue(result_path.exists())
+            stored_review = json.loads(review_path.read_text(encoding="utf-8"))
+            self.assertEqual(stored_review["reviewer"], "valid-review-agent")
+            status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertTrue(status["passed"])
+            self.assertEqual(status["result_path"], runtime.relative(result_path, root))
+
+    def test_evaluator_agent_private_review_is_rejected_before_canonical_storage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            artifact_ref = runtime.relative(artifact_path, root)
+            review = valid_stage_review("intent", artifact_ref, reviewer="private-review-agent")
+            private_path = "/" + "var/tmp/private-proof.json"
+            first_gate = next(iter(review["hard_gates"].values()))
+            first_gate["evidence"] = [private_path]
+            agent = Path(tmpdir) / "private_review_agent.py"
+            agent.write_text(
+                "import json, os\n"
+                f"review = json.loads({json.dumps(json.dumps(review))})\n"
+                "with open(os.environ['WEAVE_EVAL_REVIEW_FILE'], 'w', encoding='utf-8') as handle:\n"
+                "    json.dump(review, handle)\n",
+                encoding="utf-8",
+            )
+
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "WEAVE_EVALUATOR_AGENT_COMMAND": f"{sys.executable} {agent}",
+                    "WEAVE_EVALUATOR_AGENT_TIMEOUT_SECONDS": "30",
+                },
+            ):
+                duty = runtime.run_evaluation_duty(root, "demo", "intent")
+
+            self.assertEqual(duty["status"], "failed")
+            self.assertEqual(duty["state"], "evaluator-review-invalid")
+            self.assertIn("private locator", duty["blockers"][0])
+            self.assertFalse(runtime.evaluation_review_path(root, "demo", "intent").exists())
+            self.assertFalse(runtime.evaluation_result_path(root, "demo", "intent").exists())
+            stored_duty = json.loads(runtime.evaluation_duty_path(root, "demo", "intent").read_text(encoding="utf-8"))
+            self.assertFalse(runtime.contains_private_locator(stored_duty))
+            status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertEqual(status["status"], "failed")
+            self.assertFalse(status["passed"])
+            events = [event["type"] for event in runtime.read_events(root, "demo")]
+            self.assertIn("evaluation.failed", events)
+
+    def test_evaluator_agent_malformed_review_fails_without_leaking_temp_path(self) -> None:
+        for label, review_payload, expected_blocker in (
+            ("malformed", "{bad", "evaluator review artifact is invalid"),
+            ("non_object", "[]", "JSON object"),
+        ):
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    root = Path(tmpdir) / "weave-root"
+                    runtime.create_app(root, "demo", "Demo")
+                    complete_foundation(root, "demo")
+                    artifact_path = write_stage_artifact(root, "demo", "intent")
+                    record_stage_turn(root, "demo", "intent", artifact_path)
+                    agent = Path(tmpdir) / f"{label}_review_agent.py"
+                    agent.write_text(
+                        "import os\n"
+                        f"open(os.environ['WEAVE_EVAL_REVIEW_FILE'], 'w', encoding='utf-8').write({json.dumps(review_payload)})\n",
+                        encoding="utf-8",
+                    )
+
+                    with mock.patch.dict(
+                        os.environ,
+                        {
+                            "WEAVE_EVALUATOR_AGENT_COMMAND": f"{sys.executable} {agent}",
+                            "WEAVE_EVALUATOR_AGENT_TIMEOUT_SECONDS": "30",
+                        },
+                    ):
+                        duty = runtime.run_evaluation_duty(root, "demo", "intent")
+
+                    self.assertEqual(duty["status"], "failed")
+                    self.assertEqual(duty["state"], "evaluator-review-invalid")
+                    self.assertIn(expected_blocker, duty["blockers"][0])
+                    self.assertFalse(runtime.evaluation_review_path(root, "demo", "intent").exists())
+                    self.assertFalse(runtime.evaluation_result_path(root, "demo", "intent").exists())
+                    stored_duty = json.loads(runtime.evaluation_duty_path(root, "demo", "intent").read_text(encoding="utf-8"))
+                    self.assertFalse(runtime.contains_private_locator(stored_duty))
+                    status = runtime.stage_evaluation_status(root, "demo", "intent")
+                    self.assertEqual(status["status"], "failed")
+                    self.assertFalse(status["passed"])
+                    events = [event["type"] for event in runtime.read_events(root, "demo")]
+                    self.assertIn("evaluation.failed", events)
+
+    def test_no_secret_leakage_gate_id_is_metadata_not_secret_value(self) -> None:
+        self.assertFalse(
+            runtime.contains_secret_like_value(
+                {
+                    "hard_gates": {
+                        "no_secret_leakage": {
+                            "passed": True,
+                            "evidence": ["scan-artifact: ok"],
+                            "notes": "secret scanner proof stayed public-safe",
+                        }
+                    }
+                }
+            )
+        )
+        self.assertTrue(
+            runtime.contains_secret_like_value(
+                {
+                    "hard_gates": {
+                        "no_secret_leakage": {
+                            "passed": True,
+                            "evidence": ["sk_" + "a" * 16],
+                        }
+                    }
+                }
+            )
+        )
+
+    def test_evaluation_review_storage_records_decision_and_opens_approval_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            artifact_ref = runtime.relative(artifact_path, root)
+
+            status, response = runtime.dispatch_rest(
+                root,
+                "POST",
+                "/apps/demo/evaluation/review",
+                {"stage": "intent", "review": valid_stage_review("intent", artifact_ref)},
+            )
+
+            self.assertEqual(status, 200)
+            self.assertTrue(response["completed"])
+            self.assertEqual(response["result"]["decision"], "advance")
+            self.assertEqual(response["result"]["state"], "verified")
+            self.assertEqual(response["duty"]["status"], "completed")
+            self.assertTrue(runtime.evaluation_review_path(root, "demo", "intent").exists())
+            self.assertTrue(runtime.evaluation_result_path(root, "demo", "intent").exists())
+            stored_status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertTrue(stored_status["passed"])
+            self.assertEqual(stored_status["decision"], "advance")
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+            self.assertTrue(gate["passed"])
+            self.assertEqual(gate["missing"], [])
+            app = runtime.load_app(root, "demo")
+            self.assertEqual(app["evaluation_statuses"]["intent"]["status"], "completed")
+            events = [event["type"] for event in runtime.read_events(root, "demo")]
+            self.assertIn("evaluation.review_recorded", events)
+            self.assertIn("evaluation.completed", events)
+
+    def test_evaluation_review_rejects_unbound_artifact_for_current_request(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            artifact_ref = runtime.relative(artifact_path, root)
+            review = valid_stage_review("intent", artifact_ref)
+            review["artifact"] = ""
+
+            with self.assertRaisesRegex(runtime.RuntimeSliceError, "review artifact is required"):
+                runtime.dispatch_rest(root, "POST", "/apps/demo/evaluation/review", {"stage": "intent", "review": review})
+
+            self.assertFalse(runtime.evaluation_review_path(root, "demo", "intent").exists())
+            self.assertFalse(runtime.evaluation_result_path(root, "demo", "intent").exists())
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+            self.assertFalse(gate["passed"])
+            self.assertIn("evaluation:", " ".join(gate["missing"]))
+
+    def test_evaluation_status_rejects_mutated_artifact_after_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-root"
+            runtime.create_app(root, "demo", "Demo")
+            complete_foundation(root, "demo")
+            artifact_path = write_stage_artifact(root, "demo", "intent")
+            record_stage_turn(root, "demo", "intent", artifact_path)
+            artifact_ref = runtime.relative(artifact_path, root)
+            runtime.complete_evaluation_from_review(root, "demo", "intent", valid_stage_review("intent", artifact_ref))
+            self.assertTrue(runtime.stage_evaluation_status(root, "demo", "intent")["passed"])
+
+            artifact_path.write_text(
+                "# Intent Mutated After Eval\n\nStatus: changed after the evaluator reviewed this artifact.\n",
+                encoding="utf-8",
+            )
+
+            status = runtime.stage_evaluation_status(root, "demo", "intent")
+            self.assertFalse(status["passed"])
+            self.assertEqual(status["status"], "stale_result")
+            self.assertIn("artifact checksum", status["blockers"][0])
+            gate = runtime.stage_gate_status(root, "demo", "intent")
+            self.assertFalse(gate["passed"])
+            self.assertIn("evaluation: stale_result", gate["missing"])
+            approval = runtime.dispatch_telegram_command(root, "/approve_stage demo")
+            self.assertFalse(approval["handled"])
+
     def test_lifecycle_approval_and_advance_are_stage_gated(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "weave-root"
@@ -701,6 +2442,11 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("transcript capture", approval["text"])
 
             record_stage_turn(root, "demo", "intent", artifact_path)
+            evaluation_blocked_advance = runtime.dispatch_telegram_command(root, "/advance demo")
+            self.assertFalse(evaluation_blocked_advance["handled"])
+            self.assertEqual(evaluation_blocked_advance["error"], "current_stage_gate_not_passing")
+
+            complete_stage_evaluation(root, "demo", "intent", artifact_path)
             premature_advance = runtime.dispatch_telegram_command(root, "/advance demo")
             self.assertFalse(premature_advance["handled"])
             self.assertEqual(premature_advance["error"], "current_stage_not_approved")
@@ -731,6 +2477,15 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             complete_foundation(root, "demo")
             artifact_path = write_stage_artifact(root, "demo", "intent")
             record_stage_turn(root, "demo", "intent", artifact_path)
+            artifact_ref = runtime.relative(artifact_path, root)
+            status, evaluation = runtime.dispatch_rest(
+                root,
+                "POST",
+                "/apps/demo/evaluation/review",
+                {"stage": "intent", "review": valid_stage_review("intent", artifact_ref)},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(evaluation["result"]["decision"], "advance")
 
             status, telegram_approval = runtime.dispatch_rest(
                 root,
@@ -756,6 +2511,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             complete_foundation(root, "demo")
             artifact_path = write_stage_artifact(root, "demo", "intent")
             record_stage_turn(root, "demo", "intent", artifact_path)
+            complete_stage_evaluation(root, "demo", "intent", artifact_path)
 
             status, approval = runtime.dispatch_rest(root, "POST", "/apps/demo/approve-stage", {})
             self.assertEqual(status, 200)
@@ -804,6 +2560,7 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             self.assertIn("credential capability", approval["text"])
 
             record_stage_turn(root, "demo", "marketing", artifact_path)
+            complete_stage_evaluation(root, "demo", "marketing", artifact_path)
             approval = runtime.dispatch_telegram_command(root, "/approve_stage demo marketing --defer-credentials")
             self.assertTrue(approval["handled"])
             self.assertTrue(approval["payload"]["approved"])

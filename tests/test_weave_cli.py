@@ -155,6 +155,54 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn(f"WEAVE_RUNTIME_HOME={args.runtime_home}", command)
             self.assertEqual(command[-3:], ["gateway", "run", "--replace"])
 
+    def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            runtime_home = root / "runtime-home"
+            manifest_path = root / "runtime-qa-plan.json"
+            output = io.StringIO()
+
+            with mock.patch.object(weave_cli, "run_process") as run_mock, mock.patch.object(weave_cli.shutil, "which") as which_mock:
+                rc = weave_cli.main(
+                    [
+                        "runtime-qa",
+                        "--runtime-home",
+                        str(runtime_home),
+                        "--qa-run-id",
+                        "qa-test-run",
+                        "--app-id",
+                        "qa-app",
+                        "--container-name",
+                        "weave-qa-container",
+                        "--container-image",
+                        "weave-hermes-runtime:test",
+                        "--dry-run",
+                        "--out",
+                        str(manifest_path),
+                    ],
+                    output=output,
+                )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            run_mock.assert_not_called()
+            which_mock.assert_not_called()
+            self.assertTrue(manifest_path.exists())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["schema"], "weave.runtime-qa-manifest/v0.1")
+            self.assertEqual(manifest["qa_run_id"], "qa-test-run")
+            self.assertTrue(manifest["dry_run"])
+            self.assertEqual(manifest["claim_boundary"], "plan-only")
+            self.assertTrue(manifest["teardown_policy"]["required"])
+            self.assertTrue(manifest["teardown_policy"]["archive_required_before_remove"])
+            self.assertTrue(manifest["rehydrate_policy"]["requires_secret_relink"])
+            self.assertTrue(manifest["rehydrate_policy"]["requires_verify_runtime"])
+            self.assertTrue(set(weave_cli.RUNTIME_QA_RESOURCE_STATES).issubset(manifest["resource_states"]))
+            self.assertEqual({resource["current_state"] for resource in manifest["resources"]}, {"planned_only"})
+            self.assertTrue(any(command["command"][0] == "docker" for command in manifest["planned_commands"]))
+            self.assertFalse(any(command["executes_in_dry_run"] for command in manifest["planned_commands"]))
+            self.assertIn("no_docker_executed: true", text)
+
     def test_runtime_export_import_skips_secret_material_and_verifies(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

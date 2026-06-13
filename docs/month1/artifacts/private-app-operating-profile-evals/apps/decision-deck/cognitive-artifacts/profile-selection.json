@@ -1,0 +1,43 @@
+{
+  "abstraction_level": "medium",
+  "app_id": "decision-deck",
+  "app_name": "Decision Deck",
+  "authority_mode": "recommend_only",
+  "created_at": "2026-06-09T18:01:18Z",
+  "marketing_excluded": true,
+  "optional_profiles": [
+    {
+      "enable_when": [
+        "owner requests whole-system contract",
+        "cross-product coherence is the primary risk",
+        "handoff requires whole-experience traceability"
+      ],
+      "gate_if_enabled": "handoff and QA must cite traceability-map.json",
+      "id": "gestalt",
+      "reason": "owner feedback: Gestalt artifacts are confusing for this test unless explicitly enabled",
+      "status": "deferred_by_default"
+    }
+  ],
+  "private_local_only": true,
+  "rationale": [
+    "CWA models domain and missing information before build",
+    "DMN controls routing and authority decisions",
+    "IBIS/Premortem expose unresolved assumptions and failure modes",
+    "ADR/PROV make decisions and proof claims reviewable",
+    "Gestalt is deferred unless explicitly enabled"
+  ],
+  "repeatability": "recurring",
+  "risk_level": "medium",
+  "schema": "weave-profile-selection/v0.2",
+  "selected_profiles": [
+    "cwa_discovery",
+    "dmn_decision_table",
+    "ibis_issue_map",
+    "adr_decision_record",
+    "premortem_review",
+    "prov_ledger"
+  ],
+  "trigger_mode": "reactive",
+  "uncertainty_level": "medium",
+  "work_type": "hybrid"
+}

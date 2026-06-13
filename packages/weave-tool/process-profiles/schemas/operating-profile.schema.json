@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weave.local/schemas/operating-profile.schema.json",
+  "title": "WEAVE Operating Profile",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "name",
+    "version",
+    "trigger_mode",
+    "authority_mode",
+    "target_surface",
+    "framework_stack",
+    "optional_frameworks",
+    "required_artifacts",
+    "hard_gates",
+    "company_process",
+    "proof_boundaries",
+    "non_claims"
+  ],
+  "properties": {
+    "schema": {"const": "weave-operating-profile/v0.2"},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "name": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "trigger_mode": {"enum": ["reactive", "proactive", "hybrid"]},
+    "authority_mode": {"enum": ["recommend_only", "bounded_local_action", "approval_required_action", "pre_authorized_external_action"]},
+    "target_surface": {"type": "string", "minLength": 1},
+    "private_data_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["real_private_data_allowed", "synthetic_private_data_allowed", "external_send_allowed"],
+      "properties": {
+        "real_private_data_allowed": {"type": "boolean"},
+        "synthetic_private_data_allowed": {"type": "boolean"},
+        "external_send_allowed": {"type": "boolean"}
+      }
+    },
+    "proof_boundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["highest_proven_surface", "not_proven"],
+      "properties": {
+        "highest_proven_surface": {"type": "string", "minLength": 1},
+        "not_proven": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "framework_stack": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "artifact"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "role": {"type": "string", "minLength": 1},
+          "artifact": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "optional_frameworks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "reason"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "minLength": 1},
+          "reason": {"type": "string", "minLength": 1},
+          "enable_when": {"type": "array", "items": {"type": "string"}},
+          "artifacts_if_enabled": {"type": "array", "items": {"type": "string"}},
+          "gate_if_enabled": {"type": "string"}
+        }
+      }
+    },
+    "required_artifacts": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "hard_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "framework", "rule", "consumes", "controls"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "framework": {"type": "string", "minLength": 1},
+          "rule": {"type": "string", "minLength": 1},
+          "consumes": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "controls": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+        }
+      }
+    },
+    "company_process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_type", "roles", "lifecycle_states", "escalation"],
+      "properties": {
+        "case_type": {"type": "string", "minLength": 1},
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "owns"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "owns": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+            }
+          }
+        },
+        "lifecycle_states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "owner_role", "produces"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "owner_role": {"type": "string", "minLength": 1},
+              "produces": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+              "entry_gate": {"type": "string"},
+              "exit_gate": {"type": "string"}
+            }
+          }
+        },
+        "escalation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["default_unresolved_attempt_limit", "on_limit_reached"],
+          "properties": {
+            "default_unresolved_attempt_limit": {"type": "integer", "minimum": 1},
+            "on_limit_reached": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "non_claims": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minimum_app_count": {"type": "integer", "minimum": 1},
+        "parallel_default": {"type": "integer", "minimum": 1},
+        "marketing_included": {"type": "boolean"},
+        "iteration_mode": {"type": "string"}
+      }
+    }
+  },
+  "additionalProperties": false
+}

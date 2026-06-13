@@ -231,7 +231,19 @@ def record_stage_review_turn(root: Path, app_id: str, stage_id: str, artifact_pa
         },
         next_action=f"Approve {stage_label} if the linked artifact is acceptable.",
     )
-    return runtime.append_conversation_turn(root, app_id, turn)
+    appended = runtime.append_conversation_turn(root, app_id, turn)
+    evaluation = runtime.complete_evaluation_from_latest_artifact(
+        root,
+        app_id,
+        stage_id,
+        reviewer="month1-product-qa-local-evaluator",
+        run_gates=True,
+    )
+    assert_pass(
+        evaluation["result"].get("decision") in runtime.EVALUATION_PASS_DECISIONS,
+        f"evaluation failed for {stage_id}: {evaluation}",
+    )
+    return appended
 
 
 def approve_and_advance(root: Path, app_id: str, stage_id: str, *, defer_capability: bool = False) -> dict[str, Any]:

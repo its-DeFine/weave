@@ -90,6 +90,17 @@ mode is available for local live-agent proof, and deployed gateway proof remains
 a future adapter surface. See
 [`scripted-user-live-agent-runner.md`](scripted-user-live-agent-runner.md).
 
+Current private app operating-profile eval proof:
+`scripts/private_app_operating_profile_eval.py` generates ten synthetic,
+local-only private-app fixtures with gate-consumed CWA, DMN, IBIS, ADR,
+Premortem, and PROV evidence. The committed bundle in
+[`artifacts/private-app-operating-profile-evals/`](artifacts/private-app-operating-profile-evals/)
+is sample reviewer evidence only; regenerate on demand into `runs/...` or a temp
+directory. Regenerated artifacts are deterministic in scenario/gate shape, but
+not byte-stable because timestamps and run hashes/checksums are produced per run.
+See
+[`private-app-operating-profile-evals.md`](private-app-operating-profile-evals.md).
+
 Historical Askuno URL state: the app is recorded as live at
 <https://askuno.app>. Treat that as a separately reviewable worked example, not
 the current Month 1 acceptance surface.

@@ -1,0 +1,49 @@
+{
+  "actors": [
+    "partnership lead",
+    "WEAVE operator",
+    "future reviewer"
+  ],
+  "app_id": "partner-pulse",
+  "app_name": "Partner Pulse",
+  "authority_mode": "recommend_only",
+  "constraints": [
+    "local-only",
+    "synthetic sample data",
+    "no public claims",
+    "reviewable artifacts"
+  ],
+  "created_at": "2026-06-09T18:01:18Z",
+  "functions": [
+    "objection board",
+    "follow-up planner",
+    "risk tag summary",
+    "JSON export"
+  ],
+  "marketing_excluded": true,
+  "observations": [
+    {
+      "label": "Analytics partner",
+      "signal": "needs technical owner",
+      "value": "integration blocker"
+    },
+    {
+      "label": "Agency channel",
+      "signal": "clarify package tiers",
+      "value": "pricing confusion"
+    },
+    {
+      "label": "Infra partner",
+      "signal": "send local demo evidence",
+      "value": "waiting on proof"
+    }
+  ],
+  "private_local_only": true,
+  "schema": "weave-cwa-work-domain/v0.2",
+  "trigger_mode": "reactive",
+  "values": [
+    "next partner action",
+    "objection pattern visible",
+    "no public send"
+  ]
+}

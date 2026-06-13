@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class FullConversationAppDogfoodTest(unittest.TestCase):
+    @unittest.skipIf(
+        os.environ.get("WEAVE_EVAL_GATE_DEPTH"),
+        "avoid recursively running the full conversation proof inside an eval command gate",
+    )
     def test_full_conversation_dogfood_generates_app_and_holistic_review(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             base = Path(tmpdir)

@@ -95,6 +95,17 @@ REQUIRED_EVAL_CONTRACTS = [
     "lifecycle/analysis.yaml",
     "release_readiness.yaml",
 ]
+REQUIRED_RUNTIME_QA_RESOURCE_STATES = {
+    "created",
+    "running",
+    "completed",
+    "teardown_requested",
+    "stopped",
+    "removed",
+    "phased_out",
+}
+RUNTIME_QA_MANIFEST_SCHEMA = "weave.runtime-qa-manifest/v0.1"
+RUNTIME_QA_CLEANUP_POLICY_SCHEMA = "weave.runtime-cleanup-policy/v0.1"
 
 EXPECTED_VERSION = "2026.05.13-console"
 EXPECTED_RELEASE_DATE = "2026-05-13"
@@ -420,6 +431,32 @@ def validate_primitives(package_root: Path) -> int:
     return len(primitives)
 
 
+def validate_runtime_qa_eval_contract(relative_name: str, contract: dict[str, object]) -> None:
+    runtime_qa = contract.get("runtime_agent_qa")
+    if not isinstance(runtime_qa, dict):
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa requirements are required")
+    if runtime_qa.get("teardown_policy_required") is not True:
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.teardown_policy_required must be true")
+    if runtime_qa.get("manifest_schema") != RUNTIME_QA_MANIFEST_SCHEMA:
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.manifest_schema must be {RUNTIME_QA_MANIFEST_SCHEMA}")
+    if runtime_qa.get("cleanup_policy_schema") != RUNTIME_QA_CLEANUP_POLICY_SCHEMA:
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.cleanup_policy_schema must be {RUNTIME_QA_CLEANUP_POLICY_SCHEMA}")
+    states = runtime_qa.get("resource_states_required")
+    if not isinstance(states, list) or not all(isinstance(item, str) for item in states):
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.resource_states_required must be a list of strings")
+    missing_states = sorted(REQUIRED_RUNTIME_QA_RESOURCE_STATES - set(states))
+    if missing_states:
+        raise PackageValidationError(f"evals/{relative_name}: missing runtime QA resource states: {', '.join(missing_states)}")
+    required_inputs = contract.get("required_inputs")
+    input_text = "\n".join(required_inputs) if isinstance(required_inputs, list) else ""
+    for marker in ("runtime resource lifecycle manifest", "teardown policy"):
+        if marker not in input_text:
+            raise PackageValidationError(f"evals/{relative_name}: required_inputs must mention {marker}")
+    gate_text = json.dumps(contract.get("hard_gates", []), sort_keys=True)
+    if "teardown policy" not in gate_text or "lifecycle cleanup states" not in gate_text:
+        raise PackageValidationError(f"evals/{relative_name}: hard_gates must require teardown/lifecycle cleanup evidence")
+
+
 def validate_eval_contracts(package_root: Path) -> int:
     eval_root = package_root / "evals"
     seen_slugs: set[str] = set()
@@ -451,6 +488,8 @@ def validate_eval_contracts(package_root: Path) -> int:
         for dimension in contract["rubric"]:
             if not isinstance(dimension, dict) or not dimension.get("id") or not dimension.get("max_score"):
                 raise PackageValidationError(f"evals/{relative_name}: every rubric dimension needs id and max_score")
+        if relative_name == "lifecycle/qa.yaml":
+            validate_runtime_qa_eval_contract(relative_name, contract)
     return len(REQUIRED_EVAL_CONTRACTS)
 
 

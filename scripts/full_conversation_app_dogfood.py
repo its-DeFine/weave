@@ -731,6 +731,17 @@ def run(output_dir: Path) -> dict[str, Any]:
                 add_missing_credential(root, APP_ID, stage_id)
             artifact = write_stage_artifact(root, APP_ID, stage_id, STAGE_SCRIPT[stage_id]["artifact"], extra_payload)
             record_stage_turn(root, APP_ID, stage_id, artifact, extra_refs)
+            evaluation = runtime.complete_evaluation_from_latest_artifact(
+                root,
+                APP_ID,
+                stage_id,
+                reviewer="scripted-full-conversation-local-evaluator",
+                run_gates=True,
+            )
+            assert_pass(
+                evaluation["result"].get("decision") in runtime.EVALUATION_PASS_DECISIONS,
+                f"{stage_id} evaluation did not pass: {evaluation['result'].get('decision')}",
+            )
             lifecycle = cmd(f"{stage_id} lifecycle ready", f"/lifecycle {APP_ID}")
             stage_gate = lifecycle["payload"]["stage_gate"]
             approve_command = f"/approve_stage {APP_ID} {stage_id}"
