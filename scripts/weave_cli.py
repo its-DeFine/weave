@@ -25,6 +25,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 
 import setup_gateway
 import setup_runtime
+import weave_dashboard
 import weave_eval
 import weave_hermes_setup
 
@@ -372,6 +373,18 @@ def status_container_runtime(args: argparse.Namespace, output: TextIO) -> int:
     return 0
 
 
+def dashboard(args: argparse.Namespace, output: TextIO) -> int:
+    snapshot = weave_dashboard.dashboard_snapshot(
+        runtime_home=args.runtime_home,
+        weave_root=args.weave_root,
+        hermes_home=args.hermes_home,
+        profile_path=args.profile_out,
+        container_name=args.container_name,
+        check_container=not args.no_container_check,
+    )
+    weave_dashboard.print_dashboard(snapshot, output=output, as_json=args.json)
+    return 0
+
 def docker_status(container_name: str) -> str:
     docker = shutil.which("docker")
     if not docker:
@@ -452,7 +465,6 @@ def command_runtime(args: argparse.Namespace, output: TextIO) -> int:
         print_line(output, "")
         print_line(output, str(response.get("text", "")))
     return 0 if response.get("handled") else 1
-
 
 def path_state(path: Path) -> str:
     if path.exists() and path.is_dir():
@@ -1195,6 +1207,15 @@ def build_parser() -> argparse.ArgumentParser:
         runtime_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
         runtime_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
 
+    dashboard_parser = subparsers.add_parser("dashboard", help="show a read-only WEAVE control dashboard")
+    dashboard_parser.add_argument("--runtime-home", type=Path, default=None)
+    dashboard_parser.add_argument("--weave-root", type=Path, default=None)
+    dashboard_parser.add_argument("--hermes-home", type=Path, default=None)
+    dashboard_parser.add_argument("--profile-out", type=Path, default=None)
+    dashboard_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
+    dashboard_parser.add_argument("--no-container-check", action="store_true", help="skip the read-only container status probe")
+    dashboard_parser.add_argument("--json", action="store_true", help="print dashboard snapshot as JSON")
+
     command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
     command_parser.add_argument("--runtime-home", type=Path, default=None)
     command_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1336,6 +1357,8 @@ def main(
             return stop_container_runtime(args, output)
         if args.command == "status":
             return status_container_runtime(args, output)
+        if args.command == "dashboard":
+            return dashboard(args, output)
         if args.command == "doctor":
             return doctor(args, output)
         if args.command == "command":

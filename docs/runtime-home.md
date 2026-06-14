@@ -48,7 +48,8 @@ compatibility with existing app and lifecycle contracts. The parent layout is
 
 ## Services
 
-The current first slice has no dashboard UI.
+The current first slice has a read-only terminal dashboard, but no web
+dashboard UI.
 
 Runtime surfaces:
 
@@ -59,6 +60,10 @@ Runtime surfaces:
 - `bin/weave hermes status`: reports non-secret Hermes setup readiness.
 - `bin/weave hermes confirm-ready`: records that Hermes itself has already been
   installed, authenticated, and verified for normal chat by the operator.
+- `bin/weave dashboard`: shows a read-only local TUI operator console for the
+  intended WEAVE flow: onboarding, runtime readiness, Hermes setup, gateway
+  attachment, app portfolio, lifecycle stage, transcript capture, proof/eval
+  state, inconsistencies, and next action.
 - `bin/weave start`: starts the containerized Hermes gateway from the generated
   gateway workdir.
 - `bin/weave stop`: stops the gateway container.
@@ -72,6 +77,26 @@ Runtime surfaces:
 Hermes owns the LLM conversation and app work. WEAVE owns deterministic state
 projection, local ledger primitives, setup boundaries, and process control that
 Hermes cannot safely delegate to itself.
+
+## Agent Runtime Adapter Contract
+
+Every runtime profile carries a `weave-agent-runtime-contract/v0.1` record under
+`runtime.adapter_contract`. The contract is deliberately runtime-neutral and
+requires the same five method slots for any agent runtime:
+
+- `probe`: detect whether the runtime path is available.
+- `invoke`: call the agent runtime when a live run is explicitly allowed.
+- `capture_turn`: record the operator/agent exchange into WEAVE conversation
+  ledgers.
+- `post_event`: append runtime evidence, approval, blocker, or state events.
+- `doctor`: report readiness without exposing secrets or doing live work.
+
+For this release, `hermes-default` is the supported adapter path. `local-fallback`
+is recorded as fallback-contract-only and cannot satisfy Hermes completion
+claims. `codex` is explicitly listed as unsupported until a real Codex adapter
+implements the same contract and passes conformance tests. This prevents provider
+metadata such as `openai-codex` from being mistaken for a plug-and-play WEAVE
+runtime.
 
 ## Status UX
 
@@ -187,8 +212,8 @@ Minimum runtime-home QA:
    understandable before token entry.
 2. Run `bin/weave onboard` in a disposable runtime home and confirm token input
    is hidden and not printed.
-3. Run `bin/weave status` before starting the gateway and confirm local state
-   is visible.
+3. Run `bin/weave dashboard` and `bin/weave status` before starting the gateway
+   and confirm local state is visible without side effects.
 4. Run `bin/weave export-runtime`, `bin/weave import-runtime`, and
    `bin/weave verify-runtime` on a fresh runtime home.
 5. Start the gateway only after credentials are intentionally linked.

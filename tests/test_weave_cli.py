@@ -155,6 +155,105 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn(f"WEAVE_RUNTIME_HOME={args.runtime_home}", command)
             self.assertEqual(command[-3:], ["gateway", "run", "--replace"])
 
+    def test_dashboard_missing_runtime_home_is_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "missing-runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "dashboard",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--no-container-check",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE TUI Operator Console (read-only)", text)
+            self.assertIn("WEAVE Dashboard (read-only)", text)
+            self.assertIn("[Operator Flow]", text)
+            self.assertIn("[Inconsistency Radar]", text)
+            self.assertIn("Onboarding: missing", text)
+            self.assertIn("root_ready=false", text)
+            self.assertIn("runtime profile missing or unreadable", text)
+            self.assertIn("WEAVE state root is not initialized", text)
+            self.assertIn("run weave onboard", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_dashboard_reports_runtime_apps_adapter_and_proof_gaps(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            bot_fixture = "123456789:abcdefghijklmnopqrstuvwxyzABCDEF"
+            onboard_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "onboard",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--foundation-app-id",
+                    "qa-app",
+                    "--foundation-app-name",
+                    "QA App",
+                    "--local",
+                    "--slash-only",
+                ],
+                input_stream=io.StringIO("12345\n"),
+                output=onboard_output,
+                hidden_reader=lambda _prompt: bot_fixture,
+            )
+            self.assertEqual(rc, 0, onboard_output.getvalue())
+
+            dashboard_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "dashboard",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--no-container-check",
+                    "--json",
+                ],
+                output=dashboard_output,
+            )
+
+            text = dashboard_output.getvalue()
+            payload = json.loads(text)
+            self.assertEqual(rc, 0, text)
+            self.assertEqual(payload["schema"], "weave-dashboard/v0.1")
+            self.assertTrue(payload["read_only"])
+            self.assertFalse(payload["live_effects"])
+            self.assertIn("operator_flow", payload)
+            self.assertIn("inconsistencies", payload)
+            self.assertIn("evals", payload)
+            self.assertTrue(payload["runtime"]["root_ready"])
+            self.assertEqual(payload["runtime"]["adapter"]["runtime_id"], "hermes-default")
+            self.assertTrue(payload["runtime"]["adapter"]["present"])
+            self.assertEqual(payload["apps"]["product_count"], 1)
+            self.assertEqual(payload["apps"]["rows"][0]["app_id"], "qa-app")
+            self.assertEqual(payload["proof"]["live_hermes_adapter_proof"], "missing")
+            self.assertGreaterEqual(payload["evals"]["contract_count"], 1)
+            flow_ids = [step["id"] for step in payload["operator_flow"]]
+            self.assertEqual(
+                flow_ids,
+                [
+                    "onboarding",
+                    "hermes_setup",
+                    "gateway",
+                    "app_portfolio",
+                    "lifecycle",
+                    "transcript",
+                    "proof_evals",
+                    "next_action",
+                ],
+            )
+            inconsistency_ids = [item["id"] for item in payload["inconsistencies"]]
+            self.assertIn("live_hermes_adapter_proof_missing", inconsistency_ids)
+            self.assertIn("full_adapter_bridge_not_proven", inconsistency_ids)
+            self.assertIn("full invoke/capture adapter bridge is not proven", payload["gaps"])
+            self.assertNotIn(bot_fixture, text)
+
     def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

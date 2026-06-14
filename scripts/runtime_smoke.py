@@ -88,6 +88,23 @@ def validate_runtime_setup() -> int:
     if runtime.get("agent_slug") != "ceo-hermes":
         print("runtime setup check did not select the Hermes CEO agent", file=sys.stderr)
         return 1
+    adapter_contract = runtime.get("adapter_contract", {})
+    if adapter_contract.get("schema") != "weave-agent-runtime-contract/v0.1":
+        print(f"runtime setup check did not expose the agent adapter contract: {adapter_contract}", file=sys.stderr)
+        return 1
+    if adapter_contract.get("runtime_id") != "hermes-default":
+        print(f"runtime adapter contract did not target Hermes: {adapter_contract}", file=sys.stderr)
+        return 1
+    methods = adapter_contract.get("methods", {})
+    for method in ("probe", "invoke", "capture_turn", "post_event", "doctor"):
+        if method not in methods:
+            print(f"runtime adapter contract missing method {method}: {adapter_contract}", file=sys.stderr)
+            return 1
+    catalog = profile.get("agent_runtime_catalog", {})
+    codex = catalog.get("runtimes", {}).get("codex", {})
+    if codex.get("support_state") != "unsupported":
+        print(f"runtime catalog must mark Codex unsupported until an adapter exists: {catalog}", file=sys.stderr)
+        return 1
     foundation = profile.get("foundation_onboarding", {})
     if foundation.get("setup_required") is not True or foundation.get("required_before_app_work") is not True:
         print(f"runtime setup check did not require foundation onboarding: {foundation}", file=sys.stderr)
@@ -133,6 +150,13 @@ def validate_container_runtime_profile() -> int:
         return 1
     if container.get("service_installed") is not False:
         print(f"container runtime profile should not claim a service install: {container}", file=sys.stderr)
+        return 1
+    adapter_contract = profile.get("runtime", {}).get("adapter_contract", {})
+    if adapter_contract.get("support_state") != "supported":
+        print(f"container runtime profile did not mark Hermes adapter supported: {adapter_contract}", file=sys.stderr)
+        return 1
+    if adapter_contract.get("current_probe", {}).get("container_enabled") is not True:
+        print(f"container runtime profile did not expose container probe: {adapter_contract}", file=sys.stderr)
         return 1
 
     print("container runtime profile check: ok")

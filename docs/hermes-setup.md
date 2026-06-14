@@ -62,6 +62,15 @@ The generated `runs/` directory is ignored by git. The profile records the
 runtime-home layout, container image, model/profile metadata, autonomy mode,
 and the secret migration policy.
 
+The profile also records `runtime.adapter_contract` using
+`weave-agent-runtime-contract/v0.1`. That contract is the adapter boundary for
+agent runtimes: `probe`, `invoke`, `capture_turn`, `post_event`, and `doctor`.
+Hermes is the supported default adapter path. Local Fallback remains
+fallback-contract-only, and Codex is explicitly unsupported until a tracked Codex
+adapter implements the same contract. An `openai-codex` provider value inside
+Hermes config is provider metadata, not proof that Codex itself is installed as a
+WEAVE runtime.
+
 The generated gateway workdir is the enforcement bridge. Gateway setup points
 Hermes at the printed `foundation_gateway_workdir` path through `terminal.cwd`
 and also writes a runtime system prompt. If the foundation gate is not passing,

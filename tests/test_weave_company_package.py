@@ -79,6 +79,13 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(profile["runtime"]["agent_slug"], "ceo-hermes")
         self.assertEqual(profile["runtime"]["adapter_type"], "hermes_runtime")
         self.assertFalse(profile["runtime"]["binary"]["found"])
+        adapter_contract = profile["runtime"]["adapter_contract"]
+        self.assertEqual(adapter_contract["schema"], "weave-agent-runtime-contract/v0.1")
+        self.assertEqual(adapter_contract["runtime_id"], "hermes-default")
+        self.assertEqual(adapter_contract["support_state"], "supported_unproven")
+        self.assertTrue(adapter_contract["methods"]["invoke"]["implemented"])
+        self.assertTrue(adapter_contract["methods"]["capture_turn"]["implemented"])
+        self.assertEqual(profile["agent_runtime_catalog"]["runtimes"]["codex"]["support_state"], "unsupported")
         self.assertEqual(profile["runtime_home"]["schema"], "weave-runtime-home/v0.1")
         self.assertIn("weave-state", profile["runtime_home"]["weave_state_path"])
         self.assertIn("hermes-home", profile["runtime_home"]["hermes_home_path"])
@@ -110,6 +117,8 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertFalse(profile["runtime"]["is_default"])
         self.assertEqual(profile["runtime"]["agent_slug"], "ceo-fallback")
         self.assertEqual(profile["runtime"]["adapter_type"], "local_fallback_gateway")
+        self.assertEqual(profile["runtime"]["adapter_contract"]["support_state"], "fallback_contract_only")
+        self.assertFalse(profile["runtime"]["adapter_contract"]["methods"]["invoke"]["implemented"])
 
     def test_setup_runtime_rejects_unknown_runtime(self) -> None:
         with self.assertRaises(setup_runtime.RuntimeSetupError):

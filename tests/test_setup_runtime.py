@@ -172,6 +172,11 @@ class SetupRuntimeTests(unittest.TestCase):
             self.assertEqual(container["engine"], "docker")
             self.assertEqual(container["image"], "weave-hermes-runtime:test")
             self.assertIn("Docker restart policy", container["supervision"])
+            adapter_contract = profile["runtime"]["adapter_contract"]
+            self.assertEqual(adapter_contract["runtime_id"], "hermes-default")
+            self.assertEqual(adapter_contract["support_state"], "supported")
+            self.assertTrue(adapter_contract["current_probe"]["container_enabled"])
+            self.assertEqual(adapter_contract["methods"]["invoke"]["current_state"], "requires_hermes_setup_or_runtime")
 
     def test_setup_derives_runtime_home_layout(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

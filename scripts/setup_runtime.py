@@ -29,6 +29,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 import weave_runtime_slice
 import provision_hermes
 import setup_gateway
+import weave_agent_runtime_contract
 import weave_hermes_setup
 
 try:
@@ -477,6 +478,15 @@ def runtime_profile(
     provisioned_binary = binary_from_hermes_provision(hermes_provision_profile) if runtime == "hermes-default" else None
     binary = find_runtime_binary(runtime, runtime_binary or provisioned_binary)
     is_default = runtime == default_runtime
+    hermes_setup_status = weave_hermes_setup.hermes_setup_status(hermes_home)
+    adapter_contract = weave_agent_runtime_contract.contract_for_runtime(
+        runtime,
+        adapter_type=str(agent.get("adapterType") or ""),
+        agent_slug=agent_slug,
+        binary=binary,
+        container_enabled=bool(runtime_container_image),
+        hermes_setup_state=str(hermes_setup_status["state"]),
+    )
 
     profile: dict[str, object] = {
         "schema": "weave-runtime-profile/v0.1",
@@ -493,9 +503,11 @@ def runtime_profile(
             "agent_slug": agent_slug,
             "agent_name": agent.get("name"),
             "adapter_type": agent.get("adapterType"),
+            "adapter_contract": adapter_contract,
             "agent_contract": str(agent_path.relative_to(REPO_ROOT)),
             "binary": binary,
         },
+        "agent_runtime_catalog": weave_agent_runtime_contract.runtime_catalog(runtime),
         "runtime_home": {
             "schema": weave_runtime_slice.RUNTIME_HOME_SCHEMA,
             "path": str(runtime_home),
@@ -556,8 +568,8 @@ def runtime_profile(
             "slash_only_command": "weave onboard --slash-only",
             "hermes_home": str(hermes_home),
             "route_verification_owner": "hermes",
-            "state": weave_hermes_setup.hermes_setup_status(hermes_home)["state"],
-            "normal_chat_assumed_ready": weave_hermes_setup.hermes_setup_status(hermes_home)["normal_chat_assumed_ready"],
+            "state": hermes_setup_status["state"],
+            "normal_chat_assumed_ready": hermes_setup_status["normal_chat_assumed_ready"],
             "secret_value_printed": False,
         },
         "weave_root": {

@@ -226,9 +226,16 @@ After onboarding, run the containerized gateway:
 
 ```bash
 bin/weave start
+bin/weave dashboard
 bin/weave status
 bin/weave stop
 ```
+
+Use the read-only TUI operator console before or after the gateway starts to see
+the intended WEAVE flow in one place: onboarding, runtime readiness, Hermes
+setup, gateway attachment, app portfolio, lifecycle stage, transcript capture,
+proof/eval state, inconsistencies, and the next deterministic action. It does
+not send messages or start services.
 
 Move reviewable local state without exporting credentials:
 
