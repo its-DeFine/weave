@@ -1,0 +1,55 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "no KPI comparison",
+    "no decision",
+    "lessons are generic or unsupported"
+  ],
+  "description": "Evaluate whether the completed cycle produced learning and a justified continue/pivot/stop decision.",
+  "hard_gates": [
+    {
+      "description": "Analysis compares observed outcome to original intent and KPIs.",
+      "id": "outcome_compared_to_intent",
+      "kind": "manual"
+    },
+    {
+      "description": "Analysis ends with continue, pivot, or stop recommendation.",
+      "id": "continue_pivot_stop_decision",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "outcome summary",
+    "KPI comparison",
+    "failures",
+    "reusable learnings",
+    "decision"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "outcome_honesty",
+      "max_score": 4,
+      "question": "Does analysis honestly separate wins, failures, and unknowns?"
+    },
+    {
+      "id": "kpi_interpretation",
+      "max_score": 4,
+      "question": "Are metrics interpreted against intent rather than cherry-picked?"
+    },
+    {
+      "id": "root_cause_quality",
+      "max_score": 4,
+      "question": "Are causes and lessons more specific than vibes?"
+    },
+    {
+      "id": "next_decision_quality",
+      "max_score": 4,
+      "question": "Is continue/pivot/stop justified by evidence?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "analysis",
+  "stage": "Analysis"
+}

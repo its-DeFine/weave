@@ -449,6 +449,21 @@ def validate_telegram_commands() -> int:
             print(f"telegram /approve_stage should require transcript capture: {missing_transcript}", file=sys.stderr)
             return 1
         record_stage_turn(root, "visual-novel", "intent", artifact_path)
+        waiting_for_evaluation = weave_runtime_slice.dispatch_telegram_command(root, "/advance visual-novel")
+        evaluation_missing = waiting_for_evaluation.get("payload", {}).get("gate", {}).get("missing", [])
+        if waiting_for_evaluation.get("error") != "current_stage_gate_not_passing" or "evaluation: waiting_for_agent" not in evaluation_missing:
+            print(f"telegram /advance should block before evaluation review: {waiting_for_evaluation}", file=sys.stderr)
+            return 1
+        evaluation = weave_runtime_slice.complete_evaluation_from_latest_artifact(
+            root,
+            "visual-novel",
+            "intent",
+            reviewer="runtime-smoke-evaluator",
+            run_gates=True,
+        )
+        if evaluation.get("result", {}).get("decision") != "advance":
+            print(f"runtime smoke evaluation did not advance: {evaluation}", file=sys.stderr)
+            return 1
         premature_advance = weave_runtime_slice.dispatch_telegram_command(root, "/advance visual-novel")
         if premature_advance.get("error") != "current_stage_not_approved":
             print(f"telegram /advance should block before owner approval: {premature_advance}", file=sys.stderr)

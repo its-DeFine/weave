@@ -1,9 +1,10 @@
 # WEAVE Quickstart
 
 The base validation path runs locally with no API keys and no network calls.
-Guided onboarding uses Docker to build a pinned Hermes runtime container from
-the public repository Dockerfile. Requires Python 3.9+, git, and Docker for the
-default runtime path.
+Guided onboarding supports four operator modes: managed container,
+existing-Hermes attach, slash-only deterministic commands, and host-local
+fallback. Requires Python 3.9+ and git; Docker is required only for the managed
+container path.
 
 ## 1. Clone
 
@@ -28,6 +29,7 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
+eval_contracts: 11
 ```
 
 If you see an error, the package is malformed or a required file is missing.
@@ -42,7 +44,103 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 All tests should pass. The suite exercises the package validator and the
 lifecycle dependency rules.
 
-## 4. Run guided onboarding
+## 4. Inspect lifecycle evals
+
+WEAVE uses evidence-bound eval contracts for every lifecycle stage. List them
+and generate an agent/human review template:
+
+```bash
+bin/weave eval --list
+bin/weave eval engineering --review-template
+```
+
+For release readiness, run hard gates and attach a completed review file:
+
+```bash
+bin/weave eval release-readiness --run-gates --review-file release-review.json
+```
+
+Hard gates can veto high rubric scores. Release readiness remains owner-gated
+even when all checks pass. See [Lifecycle Evals](lifecycle-evals.md).
+
+## 5. Try the full conversation-to-app workflow
+
+To try the end-to-end app-production loop without live Hermes, Telegram, model
+provider keys, hosting, analytics, payments, or public side effects, run the
+dedicated local dogfood script:
+
+```bash
+mkdir -p runs/full-conversation-app-dogfood
+python3 scripts/full_conversation_app_dogfood.py \
+  --report-out runs/full-conversation-app-dogfood/report.json \
+  --output-dir runs/full-conversation-app-dogfood/artifacts \
+  --transcript-out runs/full-conversation-app-dogfood/transcript.md
+```
+
+Expected output shape:
+
+```text
+full conversation app dogfood: ok (runs/full-conversation-app-dogfood/report.json)
+```
+
+The script creates an isolated local WEAVE root, creates the `Pocket Orchard`
+app, walks all 10 lifecycle stages, generates a dependency-free static app, runs
+QA checks, exports conversation review artifacts, and writes a holistic review.
+The generated app is at:
+
+```text
+runs/full-conversation-app-dogfood/artifacts/generated-app/index.html
+```
+
+Review outputs:
+
+```text
+runs/full-conversation-app-dogfood/report.json
+runs/full-conversation-app-dogfood/transcript.md
+runs/full-conversation-app-dogfood/artifacts/conversation-review/
+runs/full-conversation-app-dogfood/artifacts/lifecycle-artifacts/
+runs/full-conversation-app-dogfood/artifacts/holistic-review.json
+```
+
+Boundary: this proves local scripted conversation-to-app mechanics. It does not
+prove live Hermes autonomy, Telegram operation, deployment, analytics, payments,
+real users, or market demand. For the committed proof bundle, see
+[Month 1 Full Conversation-To-App Dogfood](month1/full-conversation-app-dogfood.md).
+
+## 6. Choose a setup mode
+
+Use the doctor and dry-run commands before writing runtime state:
+
+```bash
+bin/weave help
+bin/weave doctor
+bin/weave onboard --dry-run
+```
+
+Pick one mode:
+
+- **Managed container:** `bin/weave onboard --hermes-ready` after Hermes normal
+  chat is verified. WEAVE builds and runs the pinned container gateway.
+- **Existing Hermes attach:** `bin/weave onboard --existing-hermes --hermes-ready`
+  or `bin/weave attach-hermes --hermes-ready`. WEAVE does not install Hermes or
+  mutate provider credentials; it creates deterministic WEAVE state and attaches
+  the `weave-runtime` plugin/config to the selected Hermes home.
+- **Slash-only deterministic:** `bin/weave onboard --slash-only`. Normal Hermes
+  chat remains blocked; deterministic Telegram commands work.
+- **Host-local fallback:** `bin/weave onboard --local --install-hermes` when you
+  want a pinned host-local Hermes checkout instead of a container.
+
+All normal setup modes create the deterministic WEAVE layer unless you call a
+script-level CI/testing flag such as `--check`, `--dry-run`, or
+`--skip-weave-root`.
+
+You can feel the deterministic command surface locally before Telegram pairing:
+
+```bash
+bin/weave command /status
+```
+
+## 7. Run guided onboarding
 
 ```bash
 bin/weave onboard
@@ -63,11 +161,11 @@ Step 1/6  Hermes Setup
     HERMES_HOME=runs/runtime-home/hermes-home hermes setup --portal
     HERMES_HOME=runs/runtime-home/hermes-home hermes model
   Confirm Hermes itself can chat, then rerun:
-    weave onboard --hermes-ready
+    bin/weave onboard --hermes-ready
   Or record readiness directly:
-    weave hermes confirm-ready
+    bin/weave hermes confirm-ready
   For deterministic Telegram commands only, rerun:
-    weave onboard --slash-only
+    bin/weave onboard --slash-only
 ```
 
 After Hermes itself can chat, resume WEAVE setup:
@@ -140,7 +238,7 @@ bin/weave status
 bin/weave stop
 ```
 
-`weave start` launches a Docker container with the local WEAVE root, Hermes
+`bin/weave start` launches a Docker container with the local WEAVE root, Hermes
 home, and repository mounted in. Docker's `unless-stopped` restart policy makes
 the gateway restartable without installing host startup services.
 
@@ -211,7 +309,7 @@ confirmation prompts for non-gated local work. Hermes must still ask the owner
 through the Telegram LLM conversation before secrets, auth changes, public
 sends, paid or metered work, production/service changes, or destructive work.
 
-## 5. Run the runtime smoke
+## 8. Run the runtime smoke
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -229,9 +327,8 @@ WEAVE lifecycle stages:
   6. QA
   7. KPI Setup
   8. Marketing
-Parallel growth loop:
-  A. Iteration
-  B. Analysis
+  9. Iteration
+  10. Analysis
 
 valid WEAVE company package: weave
 version: 2026.05.13-console
@@ -240,12 +337,14 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
+eval_contracts: 11
 runtime setup check: ok
 container runtime profile check: ok
 Hermes provisioner check: ok
 runtime first-slice check: ok
 telegram command smoke: ok
 runtime migration CLI check: ok
+context index runtime smoke: ok
 smoke: ok
 ```
 
@@ -255,7 +354,7 @@ provisioner contract, first-slice root/app/ledger contract, REST dispatch
 skeleton, and deterministic Telegram slash-command output. It imports nothing
 outside the standard library and makes no network calls.
 
-## 6. Inspect status from Telegram commands
+## 9. Inspect status from Telegram commands
 
 Optional: start the local REST skeleton first:
 
@@ -267,6 +366,12 @@ It binds to loopback, reads the ignored local WEAVE root, and requires the
 generated local bearer token. It exposes health, runtime status, apps, app
 state, events, artifacts, contract diff, and procedure feedback endpoints. It
 does not claim real Hermes execution.
+
+For the operational HTTP wrapper, run `python3 scripts/weave_runtime_http.py`.
+It also binds to the loopback interface by default and requires bearer auth from
+`<weave-root>/runtime/tokens/local-api-token`. Use
+`--allow-unauthenticated-local` only for explicit tests/dev runs; `/health`
+reports the active `transport.auth_policy`.
 
 Telegram is the status surface for this release. Normal messages go to Hermes.
 Slash commands are intercepted by the gateway and answered from deterministic
@@ -287,7 +392,7 @@ The response contract is `schema: weave-telegram-command/v0.1`,
 [Telegram Slash Commands](telegram-slash-commands.md) for the full command
 list and examples.
 
-## 7. Mission format
+## 10. Mission format
 
 A WEAVE mission is a markdown file with YAML front-matter. The required fields
 are:
@@ -306,19 +411,16 @@ are:
 A full worked example with body text lives at
 [docs/missions/MISSION_TEMPLATE.md](missions/MISSION_TEMPLATE.md).
 
-## 8. Lifecycle dry-run
+## 11. Lifecycle dry-run
 
 The main lifecycle stages a mission passes through, in order:
 
 ```text
-Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing
+Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing -> Iteration -> Analysis
 ```
 
-After KPI Setup, the growth loop runs under Marketing:
-
-```text
-Iteration <-> Analysis
-```
+Iteration and Analysis are explicit lifecycle stages for local proof and review,
+while production growth work remains owner-approval-gated.
 
 Stage rules enforced by the package:
 
@@ -354,7 +456,7 @@ for t in tasks:
 EOF
 ```
 
-## Security check
+## 12. Security check
 
 Before committing any changes, scan for accidental secrets:
 

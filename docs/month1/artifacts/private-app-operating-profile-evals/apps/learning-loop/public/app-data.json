@@ -1,0 +1,30 @@
+{
+  "external_actions_enabled": false,
+  "id": "learning-loop",
+  "marketing_included": false,
+  "name": "Learning Loop",
+  "private_domain": "learner notes, quiz misses, lesson feedback",
+  "sample_data": [
+    {
+      "label": "Module one",
+      "signal": "add glossary",
+      "value": "confusing vocabulary"
+    },
+    {
+      "label": "Module two",
+      "signal": "shorten assignment",
+      "value": "exercise skipped"
+    },
+    {
+      "label": "Module three",
+      "signal": "keep structure",
+      "value": "high confidence"
+    }
+  ],
+  "schema": "weave-private-app-operating-profile-eval-app/v0.1",
+  "success_metrics": [
+    "highest leverage lesson named",
+    "private feedback summarized",
+    "no public claim"
+  ]
+}

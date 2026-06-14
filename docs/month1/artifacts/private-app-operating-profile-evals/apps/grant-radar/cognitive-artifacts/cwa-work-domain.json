@@ -1,0 +1,49 @@
+{
+  "actors": [
+    "nonprofit operator",
+    "WEAVE operator",
+    "future reviewer"
+  ],
+  "app_id": "grant-radar",
+  "app_name": "Grant Radar",
+  "authority_mode": "recommend_only",
+  "constraints": [
+    "local-only",
+    "synthetic sample data",
+    "no public claims",
+    "reviewable artifacts"
+  ],
+  "created_at": "2026-06-09T18:01:18Z",
+  "functions": [
+    "grant priority board",
+    "missing-material checklist",
+    "deadline risk",
+    "JSON export"
+  ],
+  "marketing_excluded": true,
+  "observations": [
+    {
+      "label": "City grant",
+      "signal": "finish budget appendix",
+      "value": "deadline in 18 days"
+    },
+    {
+      "label": "Foundation grant",
+      "signal": "request letter this week",
+      "value": "requires partner letter"
+    },
+    {
+      "label": "Pilot fund",
+      "signal": "clarify nonprofit status requirement",
+      "value": "eligibility unclear"
+    }
+  ],
+  "private_local_only": true,
+  "schema": "weave-cwa-work-domain/v0.2",
+  "trigger_mode": "reactive",
+  "values": [
+    "highest-priority grant named",
+    "missing material explicit",
+    "no funder contact sent"
+  ]
+}

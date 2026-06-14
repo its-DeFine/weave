@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pocket Orchard</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">Local product proof</p>
+      <h1>Pocket Orchard</h1>
+      <p>Turn three rough ideas into a tiny, prioritized action plan.</p>
+    </section>
+    <section class="panel" aria-labelledby="seed-heading">
+      <h2 id="seed-heading">Idea seeds</h2>
+      <label>Seed 1 <input id="seed-one" value="Interview three users about onboarding friction" /></label>
+      <label>Seed 2 <input id="seed-two" value="Prototype a calmer dashboard for daily focus" /></label>
+      <label>Seed 3 <input id="seed-three" value="Package the best workflow as a paid template later" /></label>
+      <button id="grow-plan" type="button">Grow plan</button>
+      <button id="export-plan" type="button">Export JSON</button>
+    </section>
+    <section class="panel" aria-live="polite">
+      <h2>Daily action plan</h2>
+      <ol id="plan-list"></ol>
+      <pre id="export-output" aria-label="Exported plan JSON"></pre>
+    </section>
+    <p class="boundary">Local-only proof: analytics, hosting, and payments are disabled.</p>
+  </main>
+  <script src="src/app.js"></script>
+</body>
+</html>

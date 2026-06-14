@@ -1,0 +1,24 @@
+{
+  "app_id": "partner-pulse",
+  "app_name": "Partner Pulse",
+  "authority_mode": "recommend_only",
+  "claim_limits": [
+    "deterministic local fixture/runtime proof only; not live Hermes CLI proof",
+    "not Telegram, deployed gateway, or hosted application proof",
+    "no public marketing, analytics calls, payments, auth changes, or external sends",
+    "uses synthetic private-domain sample data only; no real personal or customer data"
+  ],
+  "created_at": "2026-06-09T18:01:18Z",
+  "generated_files": [
+    "index.html",
+    "src/app.js",
+    "src/styles.css",
+    "public/app-data.json",
+    "README.md"
+  ],
+  "marketing_excluded": true,
+  "private_local_only": true,
+  "result": "generated",
+  "schema": "weave-action-result/v0.2",
+  "trigger_mode": "reactive"
+}

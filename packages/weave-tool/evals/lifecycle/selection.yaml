@@ -1,0 +1,54 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "no rejected alternatives",
+    "decision unsupported by research",
+    "irreversible action without approval"
+  ],
+  "description": "Evaluate whether the selected option is justified against alternatives.",
+  "hard_gates": [
+    {
+      "description": "Selection packet compares at least two alternatives or explicitly justifies one-option selection.",
+      "id": "alternatives_compared",
+      "kind": "manual"
+    },
+    {
+      "description": "Decision notes whether it is reversible and what rollback/pivot means.",
+      "id": "reversibility_labeled",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "options matrix",
+    "selected option",
+    "rejected alternatives",
+    "tradeoffs"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "option_fairness",
+      "max_score": 4,
+      "question": "Were alternatives compared on the same criteria?"
+    },
+    {
+      "id": "tradeoff_clarity",
+      "max_score": 4,
+      "question": "Are costs, risks, and benefits explicit?"
+    },
+    {
+      "id": "fit_to_intent",
+      "max_score": 4,
+      "question": "Does the chosen path fit the original intent and success metrics?"
+    },
+    {
+      "id": "anti_overbuild",
+      "max_score": 4,
+      "question": "Does the choice avoid unnecessary complexity?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "selection",
+  "stage": "Selection"
+}

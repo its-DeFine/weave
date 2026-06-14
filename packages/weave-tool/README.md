@@ -39,18 +39,48 @@ contract and deterministic Telegram slash-command output:
 python3 scripts/runtime_smoke.py
 ```
 
+To try the full local conversation-to-app workflow that creates a concrete app
+artifact, use the repository-level dogfood runner:
+
+```bash
+mkdir -p runs/full-conversation-app-dogfood
+python3 scripts/full_conversation_app_dogfood.py \
+  --report-out runs/full-conversation-app-dogfood/report.json \
+  --output-dir runs/full-conversation-app-dogfood/artifacts \
+  --transcript-out runs/full-conversation-app-dogfood/transcript.md
+```
+
+It generates the `Pocket Orchard` static app and review artifacts locally. This
+is scripted local proof, not live Hermes/Telegram proof.
+
 To run the guided local onboarding flow from the repository root:
 
 ```bash
 bin/weave onboard
 ```
 
-This builds the pinned Hermes container image, writes a generated Hermes
+Recommended first inspection commands:
+
+```bash
+bin/weave help
+bin/weave doctor
+bin/weave eval --list
+bin/weave onboard --dry-run
+bin/weave command /status
+```
+
+WEAVE now has four explicit setup modes: managed container, existing-Hermes
+attach, slash-only deterministic commands, and host-local fallback. The default
+managed-container path builds the pinned Hermes image, writes a generated Hermes
 gateway workdir under ignored local state, and configures the deterministic
-Telegram command plugin. Start the live Telegram gateway with `bin/weave start`
-so Hermes loads the unskippable foundation onboarding gate before app work.
-Gateway setup also writes Hermes `terminal.cwd` and a runtime system prompt
-when gateway flags are supplied.
+Telegram command plugin. If Hermes already exists and can chat, use
+`bin/weave onboard --existing-hermes --hermes-ready` or
+`bin/weave attach-hermes --hermes-ready` to attach only the deterministic WEAVE
+state/plugin/config without installing Hermes or mutating provider auth. Start
+the live Telegram gateway with `bin/weave start` so Hermes loads the
+unskippable foundation onboarding gate before app work. Gateway setup also
+writes Hermes `terminal.cwd` and a runtime system prompt when gateway flags are
+supplied.
 
 To inspect or stop the containerized gateway:
 
@@ -88,6 +118,7 @@ tasks: 9
 skills: 13
 primitives: 9
 prompt_packs: 1
+eval_contracts: 11
 ```
 
 ## Current Package Contents
@@ -96,17 +127,27 @@ prompt_packs: 1
 - `agents/ceo-hermes/AGENTS.md`: Hermes CEO identity and operating rules.
 - `agents/ceo-fallback/AGENTS.md`: Local Fallback fallback identity and operating rules.
 - `agents/*/AGENTS.md`: lifecycle role shells that report to the CEO.
-- `projects/askuno-runtime-proof/PROJECT.md`: first admitted application project.
-- `projects/askuno-runtime-proof/tasks/*/TASK.md`: starter lifecycle task graph.
+- `projects/askuno-runtime-proof/PROJECT.md`: historical/starter worked
+  example. It is not the current Month 1 deliverable-review anchor.
+- `projects/askuno-runtime-proof/tasks/*/TASK.md`: starter lifecycle task
+  graph kept for package-shape continuity, not a claim that Askuno mirrors every
+  current review artifact.
 - `skills/*/SKILL.md`: portable development and lifecycle skill contracts
   referenced by agents and tasks.
 - `prompts/hermes-gestalt-runtime-pack/*`: Hermes prompt/spec package for
   raw idea to contract, handoff, implementation, validation, and contract
   update.
-- `primitives/registry.json`: local primitive catalog and future adapter mapping.
+- `primitives/registry.json`: cross-application lifecycle primitive catalog and
+  future adapter mapping. It is consumed by package validation and review docs;
+  it is not an Askuno app manifest and should not be expected to mirror Askuno's
+  product surface.
 - Repository `bin/weave`: human-facing CLI launcher.
 - Repository `scripts/weave_cli.py`: guided onboarding CLI backed by the
   public-safe runtime setup scripts.
+- Repository `scripts/weave_eval.py`: evidence-bound lifecycle and
+  release-readiness eval runner.
+- `evals/lifecycle/*.yaml` and `evals/release_readiness.yaml`: stage-specific
+  hard gates, rubric dimensions, and decision contracts.
 - `scripts/validate_company_package.py`: local package validator.
 - Repository `scripts/setup_runtime.py`: local runtime profile and ignored
   WEAVE root setup, generated Hermes foundation onboarding workdir, and opt-in
@@ -121,6 +162,11 @@ prompt_packs: 1
   derivation, REST dispatch, and Telegram slash-command status.
 - Repository `scripts/weave_runtime_api.py`: loopback-only REST skeleton that
   requires the ignored generated local token.
+
+The repository-level `container/hermes/Dockerfile` is used only by the managed
+container setup path (`bin/weave onboard --hermes-ready`, then
+`bin/weave start`). Existing-Hermes attach, slash-only deterministic mode, and
+host-local fallback do not build or require that image.
 
 ## Runtime Boundary
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,39 @@ REQUIRED_STAGE_USES = {
     "engineering",
     "qa",
 }
+SOURCE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+SCHEMA_SOURCE_TYPES = {
+    "api",
+    "sdk",
+    "documentation",
+    "example",
+    "gateway",
+    "pipeline",
+    "capability-discovery",
+    "pricing",
+    "health",
+    "orchestrator-capability",
+    "container",
+    "model",
+    "hardware",
+    "conformance-test",
+    "operations",
+    "kpi",
+    "outreach",
+}
+SCHEMA_STAGE_USES = {
+    "intent",
+    "research",
+    "selection",
+    "plan",
+    "engineering",
+    "qa",
+    "kpi",
+    "marketing",
+    "iteration",
+    "analysis",
+}
+SCHEMA_FRESHNESS_VALUES = {"stable_reference", "verify_before_use", "snapshot"}
 
 
 class ValidationError(Exception):
@@ -56,9 +90,29 @@ def ensure_list(value: Any, field: str, source_id: str) -> list[Any]:
     return value
 
 
+def ensure_string(value: Any, field: str, source_id: str = "index") -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValidationError(f"source {source_id}: {field} must be a non-empty string")
+    return value
+
+
+def ensure_string_list(value: Any, field: str, source_id: str, allowed: set[str] | None = None) -> list[str]:
+    items = ensure_list(value, field, source_id)
+    output: list[str] = []
+    for item in items:
+        if not isinstance(item, str) or not item.strip():
+            raise ValidationError(f"source {source_id}: {field} entries must be non-empty strings")
+        if allowed is not None and item not in allowed:
+            raise ValidationError(f"source {source_id}: invalid {field}: {item}")
+        output.append(item)
+    return output
+
+
 def validate_index(index: dict[str, Any]) -> None:
     if index.get("schema") != SCHEMA:
         raise ValidationError(f"schema must be {SCHEMA}")
+    for field in ("version", "updated_at"):
+        ensure_string(index.get(field), field)
     sources = index.get("sources")
     if not isinstance(sources, list) or not sources:
         raise ValidationError("sources must be a non-empty list")
@@ -74,6 +128,8 @@ def validate_index(index: dict[str, Any]) -> None:
         source_id = str(source.get("id") or "")
         if not source_id:
             raise ValidationError("source id is required")
+        if not SOURCE_ID_RE.fullmatch(source_id):
+            raise ValidationError(f"source {source_id}: id must match ^[a-z0-9][a-z0-9-]*$")
         if source_id in seen_ids:
             raise ValidationError(f"duplicate source id: {source_id}")
         seen_ids.add(source_id)
@@ -82,11 +138,19 @@ def validate_index(index: dict[str, Any]) -> None:
         if missing:
             raise ValidationError(f"source {source_id}: missing fields: {', '.join(missing)}")
 
-        all_types.add(str(source["type"]))
-        all_paths.update(str(item) for item in ensure_list(source["application_paths"], "application_paths", source_id))
-        all_stages.update(str(item) for item in ensure_list(source["stage_use"], "stage_use", source_id))
+        for field in ("name", "url", "summary"):
+            ensure_string(source.get(field), field, source_id)
+        source_type = ensure_string(source.get("type"), "type", source_id)
+        if source_type not in SCHEMA_SOURCE_TYPES:
+            raise ValidationError(f"source {source_id}: invalid type: {source_type}")
+        freshness = ensure_string(source.get("freshness"), "freshness", source_id)
+        if freshness not in SCHEMA_FRESHNESS_VALUES:
+            raise ValidationError(f"source {source_id}: invalid freshness: {freshness}")
+        all_types.add(source_type)
+        all_paths.update(ensure_string_list(source["application_paths"], "application_paths", source_id, REQUIRED_APPLICATION_PATHS))
+        all_stages.update(ensure_string_list(source["stage_use"], "stage_use", source_id, SCHEMA_STAGE_USES))
 
-        if str(source.get("freshness")) == "verify_before_use" and not source.get("last_verified_at"):
+        if freshness == "verify_before_use" and not source.get("last_verified_at"):
             raise ValidationError(f"source {source_id}: verify_before_use requires last_verified_at")
 
     missing_paths = sorted(REQUIRED_APPLICATION_PATHS - all_paths)

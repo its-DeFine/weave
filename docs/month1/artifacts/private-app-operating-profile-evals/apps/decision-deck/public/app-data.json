@@ -1,0 +1,30 @@
+{
+  "external_actions_enabled": false,
+  "id": "decision-deck",
+  "marketing_included": false,
+  "name": "Decision Deck",
+  "private_domain": "meeting notes, decisions, unresolved blockers",
+  "sample_data": [
+    {
+      "label": "Pricing meeting",
+      "signal": "needs ADR",
+      "value": "discount policy undecided"
+    },
+    {
+      "label": "Engineering sync",
+      "signal": "assign reviewer",
+      "value": "QA owner missing"
+    },
+    {
+      "label": "Customer call",
+      "signal": "draft risk response",
+      "value": "migration concern"
+    }
+  ],
+  "schema": "weave-private-app-operating-profile-eval-app/v0.1",
+  "success_metrics": [
+    "decision state clear",
+    "blockers surfaced",
+    "owners visible"
+  ]
+}

@@ -77,6 +77,32 @@ Failure validation checks messy or missing input.
 Gestalt validation checks whether the artifact still embodies the intended
 whole.
 
+Validation must also classify proof strength:
+
+- `source-inspected`: files or artifacts were read, but behavior was not run.
+- `agent-self-reported-check`: an agent says a check ran, but raw output is not attached.
+- `raw-command-captured`: command, cwd, exit code, and stdout/stderr or checksums are attached.
+- `browser-smoke-captured`: rendered surface, console, and DOM/screenshot evidence are attached.
+- `export-readback-captured`: exported data was read back and parsed from an artifact.
+- `external-write-verified`: real target-surface send/write completed with wait/readback evidence from the destination.
+- `external-unproven/gated`: deploys, sends, analytics, payments, credentials, or hosted behavior remain unproven and owner-gated.
+
+A timeout, max-turn/tool cap, or interrupted run is not a clean pass. Mark the
+stage `partial` or `retry_required` unless all required proof predicates already
+have captured evidence. Artifact existence alone is not proof validity.
+
+Implementation-stage proof must bind claims to actual target files. If the
+handoff names required files, the gate must check those paths exist in the app
+repo (for example `app_repo_required_files`) before approval. A reply saying
+"created" while the required files are absent is a failed implementation, even if
+later lifecycle prose is coherent.
+
+Proof mode boundaries must stay explicit:
+
+- fixture mode proves orchestration/reporting only;
+- Hermes CLI mode proves live generated-agent behavior only, not Telegram or deployed-gateway delivery;
+- deployed gateway proof requires real adapter send/wait/readback against the target surface before using `external-write-verified`.
+
 ## Step 8. Update The Contract
 
 After implementation or discovery, write a Contract Update Log. Do not mark the

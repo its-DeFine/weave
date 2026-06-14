@@ -229,6 +229,54 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("full invoke/capture adapter bridge is not proven", payload["gaps"])
             self.assertNotIn(bot_fixture, text)
 
+    def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            runtime_home = root / "runtime-home"
+            manifest_path = root / "runtime-qa-plan.json"
+            output = io.StringIO()
+
+            with mock.patch.object(weave_cli, "run_process") as run_mock, mock.patch.object(weave_cli.shutil, "which") as which_mock:
+                rc = weave_cli.main(
+                    [
+                        "runtime-qa",
+                        "--runtime-home",
+                        str(runtime_home),
+                        "--qa-run-id",
+                        "qa-test-run",
+                        "--app-id",
+                        "qa-app",
+                        "--container-name",
+                        "weave-qa-container",
+                        "--container-image",
+                        "weave-hermes-runtime:test",
+                        "--dry-run",
+                        "--out",
+                        str(manifest_path),
+                    ],
+                    output=output,
+                )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            run_mock.assert_not_called()
+            which_mock.assert_not_called()
+            self.assertTrue(manifest_path.exists())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["schema"], "weave.runtime-qa-manifest/v0.1")
+            self.assertEqual(manifest["qa_run_id"], "qa-test-run")
+            self.assertTrue(manifest["dry_run"])
+            self.assertEqual(manifest["claim_boundary"], "plan-only")
+            self.assertTrue(manifest["teardown_policy"]["required"])
+            self.assertTrue(manifest["teardown_policy"]["archive_required_before_remove"])
+            self.assertTrue(manifest["rehydrate_policy"]["requires_secret_relink"])
+            self.assertTrue(manifest["rehydrate_policy"]["requires_verify_runtime"])
+            self.assertTrue(set(weave_cli.RUNTIME_QA_RESOURCE_STATES).issubset(manifest["resource_states"]))
+            self.assertEqual({resource["current_state"] for resource in manifest["resources"]}, {"planned_only"})
+            self.assertTrue(any(command["command"][0] == "docker" for command in manifest["planned_commands"]))
+            self.assertFalse(any(command["executes_in_dry_run"] for command in manifest["planned_commands"]))
+            self.assertIn("no_docker_executed: true", text)
+
     def test_runtime_export_import_skips_secret_material_and_verifies(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -310,6 +358,106 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("state: operator_confirmed_ready", text)
             self.assertIn("route_verification_owner: hermes", text)
             self.assertIn("secret_value_printed: false", text)
+
+    def test_help_alias_supports_top_level_and_command_topics(self) -> None:
+        output = io.StringIO()
+        rc = weave_cli.main(["help"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        self.assertIn("WEAVE command line", text)
+        self.assertIn("weave help [command]", text)
+        self.assertIn("weave eval --list", text)
+
+        output = io.StringIO()
+        rc = weave_cli.main(["help", "onboard"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        self.assertIn("--existing-hermes", text)
+        self.assertIn("--slash-only", text)
+
+    def test_eval_command_lists_contracts(self) -> None:
+        output = io.StringIO()
+        rc = weave_cli.main(["eval", "--list"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        self.assertIn("engineering", text)
+        self.assertIn("release-readiness", text)
+
+    def test_eval_command_prints_review_template(self) -> None:
+        output = io.StringIO()
+        rc = weave_cli.main(["eval", "engineering", "--review-template"], output=output)
+        text = output.getvalue()
+        self.assertEqual(rc, 0, text)
+        template = json.loads(text)
+        self.assertEqual(template["stage"], "Engineering")
+        self.assertIn("correctness", template["scores"])
+
+    def test_existing_hermes_dry_run_is_mode_aware(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "onboard",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--existing-hermes",
+                    "--runtime-binary",
+                    "/usr/bin/hermes",
+                    "--dry-run",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("mode: existing Hermes attach", text)
+            self.assertIn("WEAVE will not install Hermes", text)
+            self.assertIn("would attach WEAVE plugin/config", text)
+            self.assertIn("bin/weave onboard --existing-hermes", text)
+            self.assertFalse((runtime_home / "runtime-profile.json").exists())
+
+    def test_attach_hermes_alias_reuses_existing_hermes_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "attach-hermes",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--runtime-binary",
+                    "/usr/bin/hermes",
+                    "--dry-run",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("mode: existing Hermes attach", text)
+            self.assertIn("bin/weave onboard --existing-hermes", text)
+
+    def test_doctor_reports_next_action_without_printing_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(["doctor", "--runtime-home", str(runtime_home)], output=output)
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Doctor", text)
+            self.assertIn("deterministic_layer_ready: false", text)
+            self.assertIn("secret_value_printed: false", text)
+            self.assertIn("bin/weave onboard", text)
+
+    def test_command_runs_deterministic_slash_command_locally(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            rc = weave_cli.main(["command", "--runtime-home", str(runtime_home), "/status"], output=output)
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Status", text)
+            self.assertIn("deterministic", text.lower())
+            self.assertTrue((runtime_home / "weave-state" / "apps" / "registry.json").exists())
 
 
 if __name__ == "__main__":

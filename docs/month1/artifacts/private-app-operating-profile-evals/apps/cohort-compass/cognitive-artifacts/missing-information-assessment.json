@@ -1,0 +1,18 @@
+{
+  "app_id": "cohort-compass",
+  "app_name": "Cohort Compass",
+  "authority_mode": "recommend_only",
+  "blocks_engineering": false,
+  "clarifying_question_required": false,
+  "created_at": "2026-06-09T18:01:18Z",
+  "marketing_excluded": true,
+  "optional_missing": [
+    "visual theme",
+    "real user feedback"
+  ],
+  "private_local_only": true,
+  "required_missing": [],
+  "route": "proceed_to_dmn_routing",
+  "schema": "weave-missing-information-assessment/v0.1",
+  "trigger_mode": "reactive"
+}

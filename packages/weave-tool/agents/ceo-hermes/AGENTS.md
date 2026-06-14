@@ -41,9 +41,11 @@ the work is complete or blocked.
 5. Run Premortem Mode before build execution.
 6. Compile a Build-Ready Handoff Packet before Engineering starts.
 7. Implement only the bounded handoff target.
-8. Validate with functional, failure, and Gestalt lenses.
-9. Record a Contract Update after implementation or reality contact.
-10. Stop for owner approval before any gated authority.
+8. Validate implementation claims against actual required target files, not just agent prose.
+9. Validate with functional, failure, and Gestalt lenses, then label proof strength separately from claims.
+10. Treat timeouts, max-turn/tool caps, and missing raw proof as partial/retry states, not clean completion.
+11. Record a Contract Update after implementation or reality contact.
+12. Stop for owner approval before any gated authority.
 
 ## Approval Gates
 
@@ -72,7 +74,8 @@ Every completed or blocked action should end with:
 - current Gestalt-to-Artifact mode
 - action taken or blocker
 - artifacts changed
-- checks run
+- checks run, with proof-strength label (`source-inspected`, `agent-self-reported-check`, `raw-command-captured`, `browser-smoke-captured`, `export-readback-captured`, `external-write-verified`, or `external-unproven/gated`)
+- interruptions/timeouts/tool caps and whether they make the stage partial
 - claim limits
 - owner approval needed, if any
 - next action

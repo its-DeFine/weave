@@ -12,17 +12,22 @@ from __future__ import annotations
 
 import hashlib
 import html
+import ipaddress
 import json
 import os
 import re
 import secrets
+import shlex
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import weave_hermes_setup
+import weave_eval
 
 
 ROOT_SCHEMA = "weave-root/v0.1"
@@ -43,6 +48,23 @@ SOURCE_MAP_SCHEMA = "weave-runtime-source-map/v0.1"
 AGENT_PROFILE_SCHEMA = "weave-agent-profile/v0.1"
 ACTIVE_APP_SCHEMA = "weave-active-app/v0.1"
 CONTEXT_INDEX_SCHEMA = "weave/context-index/v0.1"
+A2A_PEER_REGISTRY_SCHEMA = "weave-a2a-peer-registry/v0.1"
+A2A_PEER_SCHEMA = "weave-a2a-peer/v0.1"
+A2A_CONTEXT_CAPSULE_REGISTRY_SCHEMA = "weave-a2a-context-capsule-registry/v0.1"
+A2A_CONTEXT_CAPSULE_SCHEMA = "weave-a2a-context-capsule/v0.1"
+A2A_DISCUSSION_REGISTRY_SCHEMA = "weave-a2a-discussion-registry/v0.1"
+A2A_DISCUSSION_SCHEMA = "weave-a2a-discussion/v0.1"
+A2A_ATTENTION_REQUEST_REGISTRY_SCHEMA = "weave-a2a-attention-request-registry/v0.1"
+A2A_ATTENTION_REQUEST_SCHEMA = "weave-a2a-attention-request/v0.1"
+A2A_LEDGER_EVENT_SCHEMA = "weave-a2a-ledger-event/v0.1"
+A2A_DISCLOSURE_POLICY_SUMMARY_SCHEMA = "weave-a2a-disclosure-policy-summary/v0.1"
+A2A_WORK_PACKET_SCHEMA = "weave-a2a-work-packet/v0.1"
+A2A_WORK_PACKET_QUEUE_SCHEMA = "weave-a2a-work-packet-queue/v0.1"
+A2A_WORK_PACKET_EVIDENCE_SCHEMA = "weave-a2a-work-packet-evidence/v0.1"
+A2A_WORK_PACKET_EVIDENCE_REGISTRY_SCHEMA = "weave-a2a-work-packet-evidence-registry/v0.1"
+EVALUATION_REQUEST_SCHEMA = "weave-evaluation-request/v0.1"
+EVALUATION_DUTY_SCHEMA = "weave-evaluation-duty/v0.1"
+EVALUATION_PASS_DECISIONS = {"advance", "needs_human_approval"}
 DEFAULT_CONTEXT_INDEX_REPO = "its-DeFine/weave-context"
 DEFAULT_CONTEXT_INDEX_URL = "https://raw.githubusercontent.com/its-DeFine/weave-context/main/context-index.json"
 DEFAULT_CONTEXT_INDEX_SAMPLE = "docs/context-sources/livepeer-context-index.sample.json"
@@ -60,6 +82,7 @@ EVENT_TYPES = {
     "app_context.updated",
     "lifecycle.stage_registered",
     "lifecycle.stage_derived",
+    "lifecycle.stage_ready_for_review",
     "artifact.created",
     "artifact.updated",
     "artifact.reference_recorded",
@@ -77,9 +100,18 @@ EVENT_TYPES = {
     "runtime.agent_profile.recorded",
     "runtime.agent_profile.changed",
     "runtime.active_app.changed",
+    "evaluation.requested",
+    "evaluation.waiting_for_agent",
+    "evaluation.review_recorded",
+    "evaluation.completed",
+    "evaluation.failed",
+    "evaluation.auto_advanced",
 }
 
 CREATORS = {"hermes", "weave-runtime", "owner"}
+LIVE_AGENT_EVENT_CREATORS = {"live_hermes", "live_agent", "deployed_agent"}
+EVENT_CREATORS = CREATORS | LIVE_AGENT_EVENT_CREATORS
+CONVERSATION_TURN_CREATORS = EVENT_CREATORS | {"execution-agent"}
 
 LIFECYCLE_STAGES = [
     ("intent", "01-intent"),
@@ -105,11 +137,57 @@ APP_DIRS = [
     "evidence",
     "approvals",
     "ledger/procedure-feedback",
+    "collaboration",
     "exports",
     "outputs",
+    "evaluations",
     "refs",
     "other",
 ]
+
+A2A_LEGACY_PACKET_TYPES = {
+    "context_capsule",
+    "discussion",
+    "attention_request",
+    "policy_summary",
+}
+A2A_WORK_PACKET_TYPES = {
+    "pair_request",
+    "pair_accept",
+    "task_request",
+    "context_bundle",
+    "approval_request",
+    "approval_response",
+    "evidence_report",
+    "error",
+}
+A2A_PACKET_TYPES = A2A_LEGACY_PACKET_TYPES | A2A_WORK_PACKET_TYPES
+DEFAULT_LOCAL_A2A_PEER_ID = "weave-runtime"
+A2A_PEER_STATES = {"paired", "unpaired", "revoked"}
+A2A_DISCUSSION_STATUSES = {"open", "closed"}
+A2A_ATTENTION_REQUEST_STATUSES = {"pending", "resolved", "deferred"}
+A2A_WORK_PACKET_STATES = {
+    "pending_approval",
+    "approved",
+    "executed",
+    "rejected",
+    "duplicate",
+    "send_ready",
+}
+A2A_WORK_PACKET_APPROVAL_STATUSES = {"required", "approved", "rejected", "not_required"}
+A2A_WORK_PACKET_EXECUTION_STATUSES = {"not_started", "completed", "blocked", "duplicate", "error"}
+A2A_LEDGER_EVENT_TYPES = {
+    "a2a.peer.registered",
+    "a2a.context_capsule.created",
+    "a2a.discussion.opened",
+    "a2a.attention_request.created",
+    "a2a.work_packet.received",
+    "a2a.work_packet.duplicate",
+    "a2a.work_packet.approved",
+    "a2a.work_packet.executed",
+    "a2a.work_packet.outbox_enqueued",
+    "a2a.work_packet.evidence_recorded",
+}
 
 TELEGRAM_COMMANDS = {
     "/start": "Show the deterministic WEAVE command surface.",
@@ -330,10 +408,15 @@ def ensure_git_repo(root: Path) -> bool:
 
 def ensure_runtime_token(root: Path, created: list[str]) -> Path:
     token_path = root / "runtime" / "tokens" / "local-api-token"
+    token_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    token_path.parent.chmod(0o700)
     if token_path.exists():
+        token_path.chmod(0o600)
         return token_path
-    token_path.parent.mkdir(parents=True, exist_ok=True)
-    token_path.write_text(secrets.token_urlsafe(32) + "\n", encoding="utf-8")
+    fd = os.open(token_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(secrets.token_urlsafe(32) + "\n")
+    token_path.chmod(0o600)
     created.append(relative(token_path, root))
     return token_path
 
@@ -813,6 +896,30 @@ def app_metadata_path(root: Path, app_id: str) -> Path:
     return app_root(root, app_id) / "app.weave.json"
 
 
+def evaluation_root(root: Path, app_id: str) -> Path:
+    return app_root(root, app_id) / "evaluations"
+
+
+def evaluation_stage_dir(root: Path, app_id: str, stage_id: str) -> Path:
+    return evaluation_root(root, app_id) / normalize_stage_id(stage_id)
+
+
+def evaluation_request_path(root: Path, app_id: str, stage_id: str) -> Path:
+    return evaluation_stage_dir(root, app_id, stage_id) / "request.json"
+
+
+def evaluation_review_path(root: Path, app_id: str, stage_id: str) -> Path:
+    return evaluation_stage_dir(root, app_id, stage_id) / "review.json"
+
+
+def evaluation_result_path(root: Path, app_id: str, stage_id: str) -> Path:
+    return evaluation_stage_dir(root, app_id, stage_id) / "result.json"
+
+
+def evaluation_duty_path(root: Path, app_id: str, stage_id: str) -> Path:
+    return evaluation_stage_dir(root, app_id, stage_id) / "duty.json"
+
+
 def load_app(root: Path, app_id: str) -> dict[str, Any]:
     path = app_metadata_path(root, app_id)
     if not path.exists():
@@ -833,19 +940,1579 @@ def write_app(root: Path, app: dict[str, Any]) -> None:
 SECRET_PATTERNS = [
     re.compile(r"\b[0-9]{6,20}:[A-Za-z0-9_-]{20,}\b"),
     re.compile(r"\b(?:sk|pk|rk|ghp|gho|github_pat)_[A-Za-z0-9_=-]{16,}\b"),
+    re.compile(r"\b[A-Za-z0-9]{8,}(?:-[A-Za-z0-9]{8,}){2,}\b"),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"https?://[^\s]*(?:token|auth|code|secret|credential)[^\s]*=", re.IGNORECASE),
 ]
+LOCAL_A2A_ADDRESS_RE = re.compile(r"^local://[a-z0-9][a-z0-9._/@:+-]*$", re.IGNORECASE)
+SENSITIVE_FIELD_NAME_RE = re.compile(
+    r"(^|[_-])(?:api[_-]?key|auth(?:orization)?|bearer|credential|password|passwd|private[_-]?key|"
+    r"refresh[_-]?token|access[_-]?token|session[_-]?token|secret|token)(?:$|[_-])",
+    re.IGNORECASE,
+)
+REDACTED_STRING_VALUES = {"", "[redacted]", "<redacted>", "redacted", "***"}
+SAFE_SENSITIVE_METADATA_KEYS = {
+    "credential_blockers",
+    "credential_requirements",
+    "defer_credentials",
+    "no_secret_leakage",
+}
+PUBLIC_REF_LOCATION_KEYS = {"artifact", "artifact_path", "file", "href", "path", "source", "url"}
+PRIVATE_LOCATOR_PATTERNS = [
+    re.compile(r"(?:^|[\s\"'`=({\[,;])(?:/|~(?:/|$)|[A-Za-z]:[\\/])"),
+    re.compile(r"(?:^|[\\/])\.\.(?:[\\/]|$)"),
+    re.compile(
+        r"\b(?:localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+        r"192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})\b",
+        re.IGNORECASE,
+    ),
+]
+URL_LIKE_RE = re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s<>)\"']+", re.IGNORECASE)
+FILE_URI_RE = re.compile(r"\bfile:(?://)?", re.IGNORECASE)
+PRIVATE_HOST_SUFFIXES = (".local", ".localhost", ".lan", ".internal", ".home", ".home.arpa")
 
 
-def contains_secret_like_value(value: Any) -> bool:
+def is_redacted_or_empty(value: Any) -> bool:
+    if value is None or value is False:
+        return True
     if isinstance(value, str):
-        return any(pattern.search(value) for pattern in SECRET_PATTERNS)
-    if isinstance(value, dict):
-        return any(contains_secret_like_value(item) for item in value.values())
+        return value.strip().lower() in REDACTED_STRING_VALUES
     if isinstance(value, list):
-        return any(contains_secret_like_value(item) for item in value)
+        return all(is_redacted_or_empty(item) for item in value)
+    if isinstance(value, dict):
+        return all(is_redacted_or_empty(item) for item in value.values())
     return False
+
+
+def contains_secret_like_value(value: Any, *, key_context: str = "") -> bool:
+    if isinstance(value, str):
+        text = value.strip()
+        if any(pattern.search(text) for pattern in SECRET_PATTERNS):
+            return True
+        if key_context and key_context not in SAFE_SENSITIVE_METADATA_KEYS and SENSITIVE_FIELD_NAME_RE.search(key_context) and not is_redacted_or_empty(value):
+            return True
+        return False
+    if isinstance(value, dict):
+        for key, item in value.items():
+            key_text = str(key)
+            if any(pattern.search(key_text) for pattern in SECRET_PATTERNS):
+                return True
+            if key_text not in SAFE_SENSITIVE_METADATA_KEYS and SENSITIVE_FIELD_NAME_RE.search(key_text) and not is_redacted_or_empty(item):
+                return True
+            if contains_secret_like_value(item, key_context=key_text):
+                return True
+        return False
+    if isinstance(value, list):
+        return any(contains_secret_like_value(item, key_context=key_context) for item in value)
+    return False
+
+
+def contains_private_locator(value: Any) -> bool:
+    if isinstance(value, str):
+        text = value.strip()
+        if any(pattern.search(text) for pattern in PRIVATE_LOCATOR_PATTERNS):
+            return True
+        if FILE_URI_RE.search(text):
+            return True
+        candidates = []
+        parsed_text = urlparse(text)
+        if parsed_text.scheme:
+            candidates.append(text)
+        candidates.extend(match.group(0).rstrip(".,;") for match in URL_LIKE_RE.finditer(text))
+        for candidate in candidates:
+            parsed = urlparse(candidate)
+            scheme = parsed.scheme.lower()
+            if scheme == "file":
+                return True
+            host = (parsed.hostname or "").rstrip(".").lower()
+            if not host:
+                continue
+            try:
+                ip = ipaddress.ip_address(host.strip("[]"))
+            except ValueError:
+                if scheme == "local":
+                    if host.endswith(PRIVATE_HOST_SUFFIXES):
+                        return True
+                elif "." not in host or host.endswith(PRIVATE_HOST_SUFFIXES):
+                    return True
+            else:
+                if ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_reserved or ip.is_unspecified:
+                    return True
+        return False
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if contains_private_locator(str(key)) or contains_private_locator(item):
+                return True
+        return False
+    if isinstance(value, list):
+        return any(contains_private_locator(item) for item in value)
+    return False
+
+
+def validate_public_safe_refs(refs: list[dict[str, Any]], *, noun: str) -> None:
+    for ref in refs:
+        if not isinstance(ref, dict):
+            raise RuntimeSliceError(f"{noun} entries must be objects")
+        if contains_secret_like_value(ref):
+            raise RuntimeSliceError(f"{noun} contains secret-looking content")
+        if contains_private_locator(ref):
+            raise RuntimeSliceError(f"{noun} contains private locator content")
+
+
+def a2a_root_path(root: Path, app_id: str) -> Path:
+    return app_root(root, app_id) / "collaboration"
+
+
+def a2a_peer_registry_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "peers.json"
+
+
+def a2a_context_capsule_registry_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "context-capsules.json"
+
+
+def a2a_discussion_registry_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "discussions.json"
+
+
+def a2a_attention_request_registry_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "attention-requests.json"
+
+
+def a2a_ledger_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "ledger.jsonl"
+
+
+def a2a_work_packet_inbox_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "work-packet-inbox.json"
+
+
+def a2a_work_packet_outbox_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "work-packet-outbox.json"
+
+
+def a2a_work_packet_evidence_path(root: Path, app_id: str) -> Path:
+    return a2a_root_path(root, app_id) / "work-packet-evidence.json"
+
+
+def ensure_a2a_surface(root: Path, app_id: str, created: list[str] | None = None) -> dict[str, str]:
+    clean_id = slugify(app_id)
+    base = a2a_root_path(root, clean_id)
+    created_paths = created if created is not None else []
+    if not base.exists():
+        base.mkdir(parents=True, exist_ok=True)
+        created_paths.append(relative(base, root) + "/")
+    write_new(
+        a2a_peer_registry_path(root, clean_id),
+        json.dumps({"schema": A2A_PEER_REGISTRY_SCHEMA, "peers": []}, indent=2, sort_keys=True) + "\n",
+        created_paths,
+        root,
+    )
+    write_new(
+        a2a_context_capsule_registry_path(root, clean_id),
+        json.dumps(
+            {"schema": A2A_CONTEXT_CAPSULE_REGISTRY_SCHEMA, "context_capsules": []},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        created_paths,
+        root,
+    )
+    write_new(
+        a2a_discussion_registry_path(root, clean_id),
+        json.dumps({"schema": A2A_DISCUSSION_REGISTRY_SCHEMA, "discussions": []}, indent=2, sort_keys=True) + "\n",
+        created_paths,
+        root,
+    )
+    write_new(
+        a2a_attention_request_registry_path(root, clean_id),
+        json.dumps(
+            {"schema": A2A_ATTENTION_REQUEST_REGISTRY_SCHEMA, "attention_requests": []},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        created_paths,
+        root,
+    )
+    write_new(a2a_ledger_path(root, clean_id), "", created_paths, root)
+    write_new(
+        a2a_work_packet_inbox_path(root, clean_id),
+        json.dumps(
+            {"schema": A2A_WORK_PACKET_QUEUE_SCHEMA, "queue": "inbox", "packets": []},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        created_paths,
+        root,
+    )
+    write_new(
+        a2a_work_packet_outbox_path(root, clean_id),
+        json.dumps(
+            {"schema": A2A_WORK_PACKET_QUEUE_SCHEMA, "queue": "outbox", "packets": []},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        created_paths,
+        root,
+    )
+    write_new(
+        a2a_work_packet_evidence_path(root, clean_id),
+        json.dumps(
+            {"schema": A2A_WORK_PACKET_EVIDENCE_REGISTRY_SCHEMA, "evidence": []},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        created_paths,
+        root,
+    )
+    return {
+        "path": "collaboration",
+        "peer_registry_path": "collaboration/peers.json",
+        "context_capsule_registry_path": "collaboration/context-capsules.json",
+        "discussion_registry_path": "collaboration/discussions.json",
+        "attention_request_registry_path": "collaboration/attention-requests.json",
+        "work_packet_inbox_path": "collaboration/work-packet-inbox.json",
+        "work_packet_outbox_path": "collaboration/work-packet-outbox.json",
+        "work_packet_evidence_path": "collaboration/work-packet-evidence.json",
+        "ledger_path": "collaboration/ledger.jsonl",
+    }
+
+
+def stable_a2a_id(prefix: str, app_id: str, material: dict[str, Any]) -> str:
+    encoded = json.dumps(
+        {"app_id": slugify(app_id), "material": material},
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return f"{prefix}-{hashlib.sha256(encoded).hexdigest()[:20]}"
+
+
+def clean_a2a_id(value: str | None, prefix: str, app_id: str, material: dict[str, Any]) -> str:
+    if value and str(value).strip():
+        raw = str(value).strip()
+        if contains_secret_like_value(raw):
+            raise RuntimeSliceError(f"A2A {prefix} id contains secret-looking content")
+        if not re.search(r"[A-Za-z0-9]", raw):
+            raise RuntimeSliceError(f"A2A {prefix} id must include at least one alphanumeric character")
+        return slugify(raw)
+    return stable_a2a_id(prefix, app_id, material)
+
+
+def normalize_a2a_packet_types(value: Any) -> list[str]:
+    if value is None:
+        return []
+    raw_values = [value] if isinstance(value, str) else value
+    if not isinstance(raw_values, list):
+        raise RuntimeSliceError("A2A allowed_packet_types must be a list")
+    packet_types: list[str] = []
+    for item in raw_values:
+        packet_type = slugify(str(item)).replace("-", "_")
+        if not packet_type:
+            continue
+        if packet_type not in A2A_PACKET_TYPES:
+            raise RuntimeSliceError(f"unsupported A2A packet type: {item}")
+        if packet_type not in packet_types:
+            packet_types.append(packet_type)
+    return packet_types
+
+
+def normalize_a2a_peer_state(
+    *,
+    state: str | None = None,
+    paired: bool | None = None,
+    revoked: bool = False,
+) -> str:
+    if revoked:
+        clean_state = "revoked"
+    elif state and str(state).strip():
+        clean_state = slugify(str(state)).replace("-", "_")
+    elif paired is False:
+        clean_state = "unpaired"
+    else:
+        clean_state = "paired"
+    if clean_state not in A2A_PEER_STATES:
+        raise RuntimeSliceError(f"unsupported A2A peer state: {state}")
+    if paired is not None and not revoked and ((clean_state == "paired") is not bool(paired)):
+        raise RuntimeSliceError("A2A peer paired flag conflicts with state")
+    return clean_state
+
+
+def a2a_peer_is_active(peer: dict[str, Any]) -> bool:
+    return peer.get("state") == "paired" and peer.get("paired") is True and peer.get("revoked") is False
+
+
+def require_normalized_a2a_id(value: Any, field: str) -> None:
+    text = str(value)
+    if not text.strip():
+        raise RuntimeSliceError(f"A2A {field} is required")
+    if slugify(text) != text:
+        raise RuntimeSliceError(f"A2A {field} is not normalized")
+
+
+def require_unique_a2a_id(records: list[dict[str, Any]], id_key: str, value: str, noun: str) -> None:
+    if any(str(record.get(id_key) or "") == value for record in records):
+        raise RuntimeSliceError(f"duplicate A2A {noun} id: {value}")
+
+
+def validate_a2a_peer(peer: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "peer_id",
+        "alias",
+        "address",
+        "trust_tier",
+        "allowed_packet_types",
+        "state",
+        "paired",
+        "revoked",
+        "created_at",
+        "transport",
+        "live_xmtp",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(peer))
+    if missing:
+        raise RuntimeSliceError(f"A2A peer missing required fields: {', '.join(missing)}")
+    if peer["schema"] != A2A_PEER_SCHEMA:
+        raise RuntimeSliceError(f"A2A peer schema must be {A2A_PEER_SCHEMA}")
+    if not str(peer["peer_id"]).strip():
+        raise RuntimeSliceError("A2A peer_id is required")
+    require_normalized_a2a_id(peer["peer_id"], "peer_id")
+    for field in ("alias", "address", "trust_tier"):
+        if not str(peer[field]).strip():
+            raise RuntimeSliceError(f"A2A peer {field} is required")
+    address = str(peer["address"]).strip()
+    if not LOCAL_A2A_ADDRESS_RE.match(address):
+        raise RuntimeSliceError("A2A peer address must use local:// for this local-only slice")
+    if contains_private_locator(address):
+        raise RuntimeSliceError("A2A peer address contains private locator content")
+    packet_types = normalize_a2a_packet_types(peer["allowed_packet_types"])
+    if packet_types != peer["allowed_packet_types"]:
+        raise RuntimeSliceError("A2A peer allowed_packet_types are not normalized")
+    state = normalize_a2a_peer_state(state=str(peer["state"]))
+    if state != peer["state"]:
+        raise RuntimeSliceError("A2A peer state is not normalized")
+    if peer["paired"] is not (state == "paired") or peer["revoked"] is not (state == "revoked"):
+        raise RuntimeSliceError("A2A peer paired/revoked flags must match state")
+    if peer["transport"] != "local-only":
+        raise RuntimeSliceError("A2A peer transport must be local-only")
+    if peer["live_xmtp"] is not False:
+        raise RuntimeSliceError("A2A peer must not claim live XMTP transport")
+    if peer["public_safe"] is not True or peer["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("A2A peer must be public_safe and disallow secret payloads")
+    if contains_secret_like_value(peer):
+        raise RuntimeSliceError("A2A peer contains secret-looking content")
+    if contains_private_locator(peer):
+        raise RuntimeSliceError("A2A peer contains private locator content")
+
+
+def validate_context_capsule(capsule: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "capsule_id",
+        "title",
+        "summary",
+        "permitted_peer_ids",
+        "redacted_fields",
+        "source_refs",
+        "created_at",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(capsule))
+    if missing:
+        raise RuntimeSliceError(f"context capsule missing required fields: {', '.join(missing)}")
+    if capsule["schema"] != A2A_CONTEXT_CAPSULE_SCHEMA:
+        raise RuntimeSliceError(f"context capsule schema must be {A2A_CONTEXT_CAPSULE_SCHEMA}")
+    if not str(capsule["capsule_id"]).strip():
+        raise RuntimeSliceError("context capsule_id is required")
+    require_normalized_a2a_id(capsule["capsule_id"], "context capsule_id")
+    if not str(capsule["title"]).strip():
+        raise RuntimeSliceError("context capsule title is required")
+    if not str(capsule["summary"]).strip():
+        raise RuntimeSliceError("context capsule summary is required")
+    for field in ("permitted_peer_ids", "redacted_fields", "source_refs"):
+        if not isinstance(capsule[field], list):
+            raise RuntimeSliceError(f"context capsule {field} must be a list")
+    if not capsule["permitted_peer_ids"]:
+        raise RuntimeSliceError("context capsule requires at least one permitted peer")
+    for peer_id in capsule["permitted_peer_ids"]:
+        require_normalized_a2a_id(peer_id, "context capsule permitted_peer_id")
+    if contains_private_locator(capsule["title"]) or contains_private_locator(capsule["summary"]):
+        raise RuntimeSliceError("context capsule contains private locator content")
+    validate_public_safe_refs(capsule["source_refs"], noun="context capsule source_refs")
+    if capsule["public_safe"] is not True or capsule["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("context capsule must be public_safe and disallow secret payloads")
+    if contains_secret_like_value(capsule):
+        raise RuntimeSliceError("context capsule contains secret-looking content")
+    if contains_private_locator(capsule):
+        raise RuntimeSliceError("context capsule contains private locator content")
+
+
+def validate_a2a_discussion(discussion: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "discussion_id",
+        "title",
+        "summary",
+        "peer_id",
+        "capsule_id",
+        "status",
+        "created_at",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(discussion))
+    if missing:
+        raise RuntimeSliceError(f"A2A discussion missing required fields: {', '.join(missing)}")
+    if discussion["schema"] != A2A_DISCUSSION_SCHEMA:
+        raise RuntimeSliceError(f"A2A discussion schema must be {A2A_DISCUSSION_SCHEMA}")
+    if not str(discussion["discussion_id"]).strip():
+        raise RuntimeSliceError("A2A discussion_id is required")
+    require_normalized_a2a_id(discussion["discussion_id"], "discussion_id")
+    if not str(discussion["title"]).strip():
+        raise RuntimeSliceError("A2A discussion title is required")
+    if not str(discussion["peer_id"] or discussion["capsule_id"]).strip():
+        raise RuntimeSliceError("A2A discussion must be tied to a peer or capsule")
+    if discussion["peer_id"]:
+        require_normalized_a2a_id(discussion["peer_id"], "discussion peer_id")
+    if discussion["capsule_id"]:
+        require_normalized_a2a_id(discussion["capsule_id"], "discussion capsule_id")
+    if discussion["status"] not in A2A_DISCUSSION_STATUSES:
+        raise RuntimeSliceError(f"unsupported A2A discussion status: {discussion['status']}")
+    if discussion["public_safe"] is not True or discussion["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("A2A discussion must be public_safe and disallow secret payloads")
+    if contains_secret_like_value(discussion):
+        raise RuntimeSliceError("A2A discussion contains secret-looking content")
+    if contains_private_locator(discussion):
+        raise RuntimeSliceError("A2A discussion contains private locator content")
+
+
+def validate_attention_request(request: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "attention_request_id",
+        "discussion_id",
+        "peer_id",
+        "title",
+        "summary",
+        "status",
+        "created_at",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(request))
+    if missing:
+        raise RuntimeSliceError(f"attention request missing required fields: {', '.join(missing)}")
+    if request["schema"] != A2A_ATTENTION_REQUEST_SCHEMA:
+        raise RuntimeSliceError(f"attention request schema must be {A2A_ATTENTION_REQUEST_SCHEMA}")
+    if not str(request["attention_request_id"]).strip():
+        raise RuntimeSliceError("attention_request_id is required")
+    require_normalized_a2a_id(request["attention_request_id"], "attention_request_id")
+    if not str(request["discussion_id"]).strip():
+        raise RuntimeSliceError("attention request discussion_id is required")
+    require_normalized_a2a_id(request["discussion_id"], "attention request discussion_id")
+    if not str(request["peer_id"]).strip():
+        raise RuntimeSliceError("attention request peer_id is required")
+    require_normalized_a2a_id(request["peer_id"], "attention request peer_id")
+    if not str(request["title"]).strip():
+        raise RuntimeSliceError("attention request title is required")
+    if request["status"] not in A2A_ATTENTION_REQUEST_STATUSES:
+        raise RuntimeSliceError(f"unsupported attention request status: {request['status']}")
+    if request["public_safe"] is not True or request["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("attention request must be public_safe and disallow secret payloads")
+    if contains_secret_like_value(request):
+        raise RuntimeSliceError("attention request contains secret-looking content")
+    if contains_private_locator(request):
+        raise RuntimeSliceError("attention request contains private locator content")
+
+
+def validate_a2a_ledger_event(event: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "event_id",
+        "type",
+        "app_id",
+        "created_at",
+        "created_by",
+        "summary",
+        "payload",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(event))
+    if missing:
+        raise RuntimeSliceError(f"A2A ledger event missing required fields: {', '.join(missing)}")
+    if event["schema"] != A2A_LEDGER_EVENT_SCHEMA:
+        raise RuntimeSliceError(f"A2A ledger event schema must be {A2A_LEDGER_EVENT_SCHEMA}")
+    if event["type"] not in A2A_LEDGER_EVENT_TYPES:
+        raise RuntimeSliceError(f"unsupported A2A ledger event type: {event['type']}")
+    if event["created_by"] not in EVENT_CREATORS:
+        raise RuntimeSliceError(f"unsupported A2A ledger event creator: {event['created_by']}")
+    if not str(event["app_id"]).strip():
+        raise RuntimeSliceError("A2A ledger event app_id is required")
+    if not str(event["summary"]).strip():
+        raise RuntimeSliceError("A2A ledger event summary is required")
+    if not isinstance(event["payload"], dict):
+        raise RuntimeSliceError("A2A ledger event payload must be an object")
+    if event["public_safe"] is not True or event["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("A2A ledger event must be public_safe and disallow secret payloads")
+    if contains_secret_like_value(event):
+        raise RuntimeSliceError("A2A ledger event contains secret-looking content")
+    if contains_private_locator(event):
+        raise RuntimeSliceError("A2A ledger event contains private locator content")
+
+
+def load_a2a_collection(
+    root: Path,
+    app_id: str,
+    *,
+    path: Path,
+    collection_schema: str,
+    key: str,
+    validator: Any,
+) -> list[dict[str, Any]]:
+    ensure_a2a_surface(root, app_id)
+    data = load_json(path)
+    if data.get("schema") != collection_schema:
+        raise RuntimeSliceError(f"A2A collection schema must be {collection_schema}")
+    records = data.get(key)
+    if not isinstance(records, list):
+        raise RuntimeSliceError(f"A2A collection {key} must be a list")
+    for record in records:
+        if not isinstance(record, dict):
+            raise RuntimeSliceError(f"A2A collection {key} entries must be objects")
+        validator(record)
+    return records
+
+
+def write_a2a_collection(
+    path: Path,
+    collection_schema: str,
+    key: str,
+    records: list[dict[str, Any]],
+    validator: Any,
+) -> None:
+    for record in records:
+        validator(record)
+    path.write_text(json.dumps({"schema": collection_schema, key: records}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def list_a2a_peers(root: Path, app_id: str) -> list[dict[str, Any]]:
+    load_app(root, app_id)
+    return load_a2a_collection(
+        root,
+        app_id,
+        path=a2a_peer_registry_path(root, app_id),
+        collection_schema=A2A_PEER_REGISTRY_SCHEMA,
+        key="peers",
+        validator=validate_a2a_peer,
+    )
+
+
+def list_context_capsules(root: Path, app_id: str) -> list[dict[str, Any]]:
+    load_app(root, app_id)
+    return load_a2a_collection(
+        root,
+        app_id,
+        path=a2a_context_capsule_registry_path(root, app_id),
+        collection_schema=A2A_CONTEXT_CAPSULE_REGISTRY_SCHEMA,
+        key="context_capsules",
+        validator=validate_context_capsule,
+    )
+
+
+def list_discussions(root: Path, app_id: str) -> list[dict[str, Any]]:
+    load_app(root, app_id)
+    return load_a2a_collection(
+        root,
+        app_id,
+        path=a2a_discussion_registry_path(root, app_id),
+        collection_schema=A2A_DISCUSSION_REGISTRY_SCHEMA,
+        key="discussions",
+        validator=validate_a2a_discussion,
+    )
+
+
+def list_attention_requests(root: Path, app_id: str) -> list[dict[str, Any]]:
+    load_app(root, app_id)
+    return load_a2a_collection(
+        root,
+        app_id,
+        path=a2a_attention_request_registry_path(root, app_id),
+        collection_schema=A2A_ATTENTION_REQUEST_REGISTRY_SCHEMA,
+        key="attention_requests",
+        validator=validate_attention_request,
+    )
+
+
+def a2a_peer_by_id(root: Path, app_id: str, peer_id: str) -> dict[str, Any]:
+    clean_peer_id = slugify(peer_id)
+    for peer in list_a2a_peers(root, app_id):
+        if peer["peer_id"] == clean_peer_id:
+            return peer
+    raise RuntimeSliceError(f"A2A peer does not exist: {clean_peer_id}")
+
+
+def context_capsule_by_id(root: Path, app_id: str, capsule_id: str) -> dict[str, Any]:
+    clean_capsule_id = slugify(capsule_id)
+    for capsule in list_context_capsules(root, app_id):
+        if capsule["capsule_id"] == clean_capsule_id:
+            return capsule
+    raise RuntimeSliceError(f"context capsule does not exist: {clean_capsule_id}")
+
+
+def discussion_by_id(root: Path, app_id: str, discussion_id: str) -> dict[str, Any]:
+    clean_discussion_id = slugify(discussion_id)
+    for discussion in list_discussions(root, app_id):
+        if discussion["discussion_id"] == clean_discussion_id:
+            return discussion
+    raise RuntimeSliceError(f"A2A discussion does not exist: {clean_discussion_id}")
+
+
+def require_a2a_peer_can_receive(root: Path, app_id: str, peer_id: str, packet_type: str) -> dict[str, Any]:
+    clean_packet_type = slugify(packet_type).replace("-", "_")
+    if clean_packet_type not in A2A_PACKET_TYPES:
+        raise RuntimeSliceError(f"unsupported A2A packet type: {packet_type}")
+    peer = a2a_peer_by_id(root, app_id, peer_id)
+    if not a2a_peer_is_active(peer):
+        raise RuntimeSliceError(f"A2A {clean_packet_type} requires paired active peer: {peer['peer_id']}")
+    if clean_packet_type not in peer["allowed_packet_types"]:
+        raise RuntimeSliceError(f"A2A peer {peer['peer_id']} does not allow packet type: {clean_packet_type}")
+    return peer
+
+
+def local_a2a_peer_id(root: Path, app_id: str) -> str:
+    app = load_app(root, app_id)
+    configured = str(app.get("local_a2a_peer_id") or DEFAULT_LOCAL_A2A_PEER_ID)
+    clean_peer_id = slugify(configured)
+    if not clean_peer_id:
+        raise RuntimeSliceError("local A2A peer id is required")
+    return clean_peer_id
+
+
+def validate_a2a_relationships(
+    peers: list[dict[str, Any]],
+    capsules: list[dict[str, Any]],
+    discussions: list[dict[str, Any]],
+    attention_requests: list[dict[str, Any]],
+) -> None:
+    peers_by_id = {peer["peer_id"]: peer for peer in peers}
+    capsules_by_id = {capsule["capsule_id"]: capsule for capsule in capsules}
+    discussions_by_id = {discussion["discussion_id"]: discussion for discussion in discussions}
+
+    def require_peer(peer_id: str, packet_type: str, noun: str) -> dict[str, Any]:
+        peer = peers_by_id.get(peer_id)
+        if peer is None:
+            raise RuntimeSliceError(f"{noun} references missing A2A peer: {peer_id}")
+        if not a2a_peer_is_active(peer):
+            raise RuntimeSliceError(f"{noun} requires paired active peer: {peer_id}")
+        if packet_type not in peer["allowed_packet_types"]:
+            raise RuntimeSliceError(f"{noun} peer does not allow packet type {packet_type}: {peer_id}")
+        return peer
+
+    for capsule in capsules:
+        for peer_id in capsule["permitted_peer_ids"]:
+            require_peer(peer_id, "context_capsule", "context capsule")
+
+    for discussion in discussions:
+        peer_id = str(discussion.get("peer_id") or "")
+        capsule_id = str(discussion.get("capsule_id") or "")
+        capsule = capsules_by_id.get(capsule_id) if capsule_id else None
+        if capsule_id and capsule is None:
+            raise RuntimeSliceError(f"A2A discussion references missing context capsule: {capsule_id}")
+        if peer_id:
+            require_peer(peer_id, "discussion", "A2A discussion")
+        if capsule and peer_id and peer_id not in capsule["permitted_peer_ids"]:
+            raise RuntimeSliceError(f"A2A discussion peer is not permitted on capsule: {peer_id}")
+
+    for request in attention_requests:
+        discussion_id = str(request["discussion_id"])
+        peer_id = str(request["peer_id"])
+        discussion = discussions_by_id.get(discussion_id)
+        if discussion is None:
+            raise RuntimeSliceError(f"attention request references missing A2A discussion: {discussion_id}")
+        require_peer(peer_id, "attention_request", "attention request")
+        discussion_peer_id = str(discussion.get("peer_id") or "")
+        if discussion_peer_id and peer_id != discussion_peer_id:
+            raise RuntimeSliceError(f"attention request peer must match discussion peer: {discussion_peer_id}")
+        capsule_id = str(discussion.get("capsule_id") or "")
+        if capsule_id:
+            capsule = capsules_by_id.get(capsule_id)
+            if capsule is None:
+                raise RuntimeSliceError(f"attention request discussion references missing context capsule: {capsule_id}")
+            if peer_id not in capsule["permitted_peer_ids"]:
+                raise RuntimeSliceError(f"attention request peer is not permitted on capsule: {peer_id}")
+
+
+def new_a2a_ledger_event(
+    event_type: str,
+    app_id: str,
+    summary: str,
+    *,
+    record_id: str,
+    payload: dict[str, Any],
+    created_by: str = "weave-runtime",
+) -> dict[str, Any]:
+    return {
+        "schema": A2A_LEDGER_EVENT_SCHEMA,
+        "event_id": stable_a2a_id("a2a-event", app_id, {"type": event_type, "record_id": record_id}),
+        "type": event_type,
+        "app_id": slugify(app_id),
+        "created_at": utc_now(),
+        "created_by": created_by,
+        "summary": summary,
+        "payload": payload,
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+
+
+def append_a2a_ledger_event(root: Path, app_id: str, event: dict[str, Any]) -> dict[str, Any]:
+    load_app(root, app_id)
+    validate_a2a_ledger_event(event)
+    if event["app_id"] != slugify(app_id):
+        raise RuntimeSliceError("A2A ledger event app_id does not match target app")
+    path = a2a_ledger_path(root, app_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, sort_keys=True) + "\n")
+    return event
+
+
+def read_a2a_ledger_events(root: Path, app_id: str) -> list[dict[str, Any]]:
+    load_app(root, app_id)
+    ensure_a2a_surface(root, app_id)
+    path = a2a_ledger_path(root, app_id)
+    if not path.exists():
+        return []
+    events: list[dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise RuntimeSliceError(f"invalid A2A ledger JSON at line {line_number}: {exc}") from exc
+        validate_a2a_ledger_event(event)
+        events.append(event)
+    return events
+
+
+def normalize_a2a_work_packet_type(value: str) -> str:
+    packet_type = slugify(str(value)).replace("-", "_")
+    if packet_type not in A2A_WORK_PACKET_TYPES:
+        raise RuntimeSliceError(f"unsupported A2A work packet type: {value}")
+    return packet_type
+
+
+def a2a_work_packet_checksum(packet: dict[str, Any]) -> str:
+    encoded = json.dumps(packet, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def a2a_work_queue_path(root: Path, app_id: str, queue: str) -> Path:
+    clean_queue = slugify(queue).replace("-", "_")
+    if clean_queue == "inbox":
+        return a2a_work_packet_inbox_path(root, app_id)
+    if clean_queue == "outbox":
+        return a2a_work_packet_outbox_path(root, app_id)
+    raise RuntimeSliceError(f"unsupported A2A work packet queue: {queue}")
+
+
+def validate_a2a_work_packet(packet: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "packet_id",
+        "packet_type",
+        "app_id",
+        "source_peer_id",
+        "target_peer_id",
+        "created_at",
+        "idempotency_key",
+        "approval_required",
+        "approval_status",
+        "execution_status",
+        "state",
+        "transport",
+        "live_xmtp",
+        "body",
+        "refs",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(packet))
+    if missing:
+        raise RuntimeSliceError(f"A2A work packet missing required fields: {', '.join(missing)}")
+    if packet["schema"] != A2A_WORK_PACKET_SCHEMA:
+        raise RuntimeSliceError(f"A2A work packet schema must be {A2A_WORK_PACKET_SCHEMA}")
+    if not str(packet["packet_id"]).strip():
+        raise RuntimeSliceError("A2A work packet_id is required")
+    packet_type = normalize_a2a_work_packet_type(str(packet["packet_type"]))
+    if packet_type != packet["packet_type"]:
+        raise RuntimeSliceError("A2A work packet type is not normalized")
+    for field in ("app_id", "source_peer_id", "target_peer_id", "idempotency_key"):
+        if not str(packet[field]).strip():
+            raise RuntimeSliceError(f"A2A work packet {field} is required")
+    for field in ("packet_id", "app_id", "source_peer_id", "target_peer_id"):
+        require_normalized_a2a_id(packet[field], f"work packet {field}")
+    if slugify(str(packet["app_id"])) != packet["app_id"]:
+        raise RuntimeSliceError("A2A work packet app_id is not normalized")
+    if packet["state"] not in A2A_WORK_PACKET_STATES:
+        raise RuntimeSliceError(f"unsupported A2A work packet state: {packet['state']}")
+    if packet["approval_status"] not in A2A_WORK_PACKET_APPROVAL_STATUSES:
+        raise RuntimeSliceError(f"unsupported A2A work packet approval_status: {packet['approval_status']}")
+    if packet["execution_status"] not in A2A_WORK_PACKET_EXECUTION_STATUSES:
+        raise RuntimeSliceError(f"unsupported A2A work packet execution_status: {packet['execution_status']}")
+    if not isinstance(packet["approval_required"], bool):
+        raise RuntimeSliceError("A2A work packet approval_required must be boolean")
+    if packet["approval_required"] and packet["approval_status"] == "not_required":
+        raise RuntimeSliceError("A2A work packet cannot mark required approval as not_required")
+    if not packet["approval_required"] and packet["approval_status"] == "required":
+        raise RuntimeSliceError("A2A work packet cannot require approval while approval_required is false")
+    if packet["transport"] != "local-only":
+        raise RuntimeSliceError("A2A work packet transport must be local-only")
+    if packet["live_xmtp"] is not False:
+        raise RuntimeSliceError("A2A work packet must not claim live XMTP transport")
+    if not isinstance(packet["body"], dict):
+        raise RuntimeSliceError("A2A work packet body must be an object")
+    if not isinstance(packet["refs"], list):
+        raise RuntimeSliceError("A2A work packet refs must be a list")
+    validate_public_safe_refs(packet["refs"], noun="A2A work packet refs")
+    if packet["public_safe"] is not True or packet["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("A2A work packet must be public_safe and disallow secret payloads")
+    if contains_secret_like_value(packet):
+        raise RuntimeSliceError("A2A work packet contains secret-looking content")
+    if contains_private_locator(packet):
+        raise RuntimeSliceError("A2A work packet contains private locator content")
+
+
+def validate_a2a_work_packet_evidence(evidence: dict[str, Any]) -> None:
+    required = {
+        "schema",
+        "evidence_id",
+        "packet_id",
+        "app_id",
+        "created_at",
+        "status",
+        "summary",
+        "refs",
+        "result_packet_id",
+        "input_packet_sha256",
+        "public_safe",
+        "secret_payload_allowed",
+    }
+    missing = sorted(required - set(evidence))
+    if missing:
+        raise RuntimeSliceError(f"A2A work packet evidence missing required fields: {', '.join(missing)}")
+    if evidence["schema"] != A2A_WORK_PACKET_EVIDENCE_SCHEMA:
+        raise RuntimeSliceError(f"A2A work packet evidence schema must be {A2A_WORK_PACKET_EVIDENCE_SCHEMA}")
+    for field in ("evidence_id", "packet_id", "app_id", "status", "summary", "input_packet_sha256"):
+        if not str(evidence[field]).strip():
+            raise RuntimeSliceError(f"A2A work packet evidence {field} is required")
+    if slugify(str(evidence["app_id"])) != evidence["app_id"]:
+        raise RuntimeSliceError("A2A work packet evidence app_id is not normalized")
+    if not isinstance(evidence["refs"], list):
+        raise RuntimeSliceError("A2A work packet evidence refs must be a list")
+    validate_public_safe_refs(evidence["refs"], noun="A2A work packet evidence refs")
+    if evidence["public_safe"] is not True or evidence["secret_payload_allowed"] is not False:
+        raise RuntimeSliceError("A2A work packet evidence must be public_safe and disallow secret payloads")
+    if contains_secret_like_value(evidence):
+        raise RuntimeSliceError("A2A work packet evidence contains secret-looking content")
+    if contains_private_locator(evidence):
+        raise RuntimeSliceError("A2A work packet evidence contains private locator content")
+
+
+def load_a2a_work_packet_queue(root: Path, app_id: str, queue: str) -> list[dict[str, Any]]:
+    load_app(root, app_id)
+    ensure_a2a_surface(root, app_id)
+    path = a2a_work_queue_path(root, app_id, queue)
+    clean_queue = slugify(queue).replace("-", "_")
+    data = load_json(path)
+    if data.get("schema") != A2A_WORK_PACKET_QUEUE_SCHEMA:
+        raise RuntimeSliceError(f"A2A work packet queue schema must be {A2A_WORK_PACKET_QUEUE_SCHEMA}")
+    if data.get("queue") != clean_queue:
+        raise RuntimeSliceError(f"A2A work packet queue label must be {clean_queue}")
+    packets = data.get("packets")
+    if not isinstance(packets, list):
+        raise RuntimeSliceError("A2A work packet queue packets must be a list")
+    for packet in packets:
+        if not isinstance(packet, dict):
+            raise RuntimeSliceError("A2A work packet queue entries must be objects")
+        validate_a2a_work_packet(packet)
+    return packets
+
+
+def write_a2a_work_packet_queue(root: Path, app_id: str, queue: str, packets: list[dict[str, Any]]) -> None:
+    clean_queue = slugify(queue).replace("-", "_")
+    for packet in packets:
+        validate_a2a_work_packet(packet)
+    a2a_work_queue_path(root, app_id, clean_queue).write_text(
+        json.dumps(
+            {"schema": A2A_WORK_PACKET_QUEUE_SCHEMA, "queue": clean_queue, "packets": packets},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def list_a2a_work_packet_evidence(root: Path, app_id: str) -> list[dict[str, Any]]:
+    load_app(root, app_id)
+    ensure_a2a_surface(root, app_id)
+    data = load_json(a2a_work_packet_evidence_path(root, app_id))
+    if data.get("schema") != A2A_WORK_PACKET_EVIDENCE_REGISTRY_SCHEMA:
+        raise RuntimeSliceError(
+            f"A2A work packet evidence registry schema must be {A2A_WORK_PACKET_EVIDENCE_REGISTRY_SCHEMA}"
+        )
+    evidence = data.get("evidence")
+    if not isinstance(evidence, list):
+        raise RuntimeSliceError("A2A work packet evidence registry evidence must be a list")
+    for record in evidence:
+        if not isinstance(record, dict):
+            raise RuntimeSliceError("A2A work packet evidence entries must be objects")
+        validate_a2a_work_packet_evidence(record)
+    return evidence
+
+
+def write_a2a_work_packet_evidence(root: Path, app_id: str, evidence: list[dict[str, Any]]) -> None:
+    for record in evidence:
+        validate_a2a_work_packet_evidence(record)
+    a2a_work_packet_evidence_path(root, app_id).write_text(
+        json.dumps(
+            {"schema": A2A_WORK_PACKET_EVIDENCE_REGISTRY_SCHEMA, "evidence": evidence},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def new_a2a_work_packet(
+    root: Path,
+    app_id: str,
+    packet_type: str,
+    source_peer_id: str,
+    target_peer_id: str,
+    body: dict[str, Any],
+    *,
+    refs: list[dict[str, Any]] | None = None,
+    packet_id: str | None = None,
+    idempotency_key: str | None = None,
+    approval_required: bool = True,
+) -> dict[str, Any]:
+    load_app(root, app_id)
+    if refs is not None and not isinstance(refs, list):
+        raise RuntimeSliceError("A2A work packet refs must be a list")
+    clean_app_id = slugify(app_id)
+    clean_packet_type = normalize_a2a_work_packet_type(packet_type)
+    clean_source_peer_id = slugify(source_peer_id)
+    clean_target_peer_id = slugify(target_peer_id)
+    source_peer = a2a_peer_by_id(root, clean_app_id, clean_source_peer_id)
+    if not a2a_peer_is_active(source_peer):
+        raise RuntimeSliceError(f"A2A work packet requires paired active source peer: {clean_source_peer_id}")
+    require_a2a_peer_can_receive(root, clean_app_id, clean_target_peer_id, clean_packet_type)
+    clean_body = dict(body)
+    clean_refs = normalize_refs(refs or [])
+    material = {
+        "packet_type": clean_packet_type,
+        "source_peer_id": clean_source_peer_id,
+        "target_peer_id": clean_target_peer_id,
+        "body": clean_body,
+        "refs": clean_refs,
+        "approval_required": bool(approval_required),
+    }
+    clean_packet_id = clean_a2a_id(packet_id, "packet", clean_app_id, material)
+    clean_idempotency_key = str(idempotency_key or clean_packet_id).strip()
+    if not clean_idempotency_key:
+        raise RuntimeSliceError("A2A work packet idempotency_key is required")
+    packet = {
+        "schema": A2A_WORK_PACKET_SCHEMA,
+        "packet_id": clean_packet_id,
+        "packet_type": clean_packet_type,
+        "app_id": clean_app_id,
+        "source_peer_id": clean_source_peer_id,
+        "target_peer_id": clean_target_peer_id,
+        "created_at": utc_now(),
+        "idempotency_key": clean_idempotency_key,
+        "approval_required": bool(approval_required),
+        "approval_status": "required" if approval_required else "not_required",
+        "execution_status": "not_started",
+        "state": "pending_approval" if approval_required else "send_ready",
+        "transport": "local-only",
+        "live_xmtp": False,
+        "body": clean_body,
+        "refs": clean_refs,
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+    validate_a2a_work_packet(packet)
+    return packet
+
+
+def receive_a2a_work_packet(root: Path, app_id: str, packet: dict[str, Any]) -> dict[str, Any]:
+    clean_app_id = slugify(app_id)
+    load_app(root, clean_app_id)
+    validate_a2a_work_packet(packet)
+    if packet["app_id"] != clean_app_id:
+        raise RuntimeSliceError("A2A work packet app_id does not match target app")
+    clean_local_peer_id = local_a2a_peer_id(root, clean_app_id)
+    if packet["target_peer_id"] != clean_local_peer_id:
+        raise RuntimeSliceError(f"A2A work packet target must be local runtime peer: {clean_local_peer_id}")
+    source_peer = a2a_peer_by_id(root, clean_app_id, packet["source_peer_id"])
+    if not a2a_peer_is_active(source_peer):
+        raise RuntimeSliceError(f"A2A work packet requires paired active source peer: {packet['source_peer_id']}")
+    require_a2a_peer_can_receive(root, clean_app_id, packet["target_peer_id"], packet["packet_type"])
+    packet = dict(packet)
+    packet["approval_required"] = True
+    packet["approval_status"] = "required"
+    packet["execution_status"] = "not_started"
+    packet["state"] = "pending_approval"
+    packet.pop("evidence_id", None)
+    packet.pop("result_packet_id", None)
+    validate_a2a_work_packet(packet)
+    packets = load_a2a_work_packet_queue(root, clean_app_id, "inbox")
+    existing = next(
+        (
+            queued
+            for queued in packets
+            if queued["packet_id"] == packet["packet_id"] or queued["idempotency_key"] == packet["idempotency_key"]
+        ),
+        None,
+    )
+    if existing:
+        append_a2a_ledger_event(
+            root,
+            clean_app_id,
+            new_a2a_ledger_event(
+                "a2a.work_packet.duplicate",
+                clean_app_id,
+                f"Rejected duplicate A2A work packet {packet['packet_id']}.",
+                record_id=packet["packet_id"],
+                payload={"duplicate_packet_id": packet["packet_id"], "existing_packet_id": existing["packet_id"]},
+            ),
+        )
+        return {"received": False, "duplicate": True, "existing_packet": existing}
+    packets.append(packet)
+    write_a2a_work_packet_queue(root, clean_app_id, "inbox", packets)
+    append_a2a_ledger_event(
+        root,
+        clean_app_id,
+        new_a2a_ledger_event(
+            "a2a.work_packet.received",
+            clean_app_id,
+            f"Received local A2A work packet {packet['packet_id']}.",
+            record_id=packet["packet_id"],
+            payload={"packet": packet, "packet_sha256": a2a_work_packet_checksum(packet)},
+        ),
+    )
+    return {"received": True, "duplicate": False, "packet": packet}
+
+
+def approve_a2a_work_packet(root: Path, app_id: str, packet_id: str, *, note: str = "") -> dict[str, Any]:
+    clean_app_id = slugify(app_id)
+    clean_packet_id = slugify(packet_id)
+    packets = load_a2a_work_packet_queue(root, clean_app_id, "inbox")
+    for packet in packets:
+        if packet["packet_id"] == clean_packet_id:
+            if packet["approval_required"]:
+                packet["approval_status"] = "approved"
+                packet["state"] = "approved"
+            validate_a2a_work_packet(packet)
+            write_a2a_work_packet_queue(root, clean_app_id, "inbox", packets)
+            append_a2a_ledger_event(
+                root,
+                clean_app_id,
+                new_a2a_ledger_event(
+                    "a2a.work_packet.approved",
+                    clean_app_id,
+                    f"Approved local A2A work packet {clean_packet_id} for bounded execution.",
+                    record_id=clean_packet_id,
+                    payload={"packet_id": clean_packet_id, "note": note},
+                    created_by="owner",
+                ),
+            )
+            return packet
+    raise RuntimeSliceError(f"A2A work packet not found: {clean_packet_id}")
+
+
+def append_a2a_work_packet_evidence(root: Path, app_id: str, evidence: dict[str, Any]) -> dict[str, Any]:
+    clean_app_id = slugify(app_id)
+    validate_a2a_work_packet_evidence(evidence)
+    if evidence["app_id"] != clean_app_id:
+        raise RuntimeSliceError("A2A work packet evidence app_id does not match target app")
+    records = list_a2a_work_packet_evidence(root, clean_app_id)
+    existing = next((record for record in records if record["packet_id"] == evidence["packet_id"]), None)
+    if existing:
+        return existing
+    records.append(evidence)
+    write_a2a_work_packet_evidence(root, clean_app_id, records)
+    append_a2a_ledger_event(
+        root,
+        clean_app_id,
+        new_a2a_ledger_event(
+            "a2a.work_packet.evidence_recorded",
+            clean_app_id,
+            f"Recorded local A2A work packet evidence {evidence['evidence_id']}.",
+            record_id=evidence["evidence_id"],
+            payload={"evidence": evidence},
+        ),
+    )
+    return evidence
+
+
+def enqueue_a2a_work_packet_outbox(root: Path, app_id: str, packet: dict[str, Any]) -> dict[str, Any]:
+    clean_app_id = slugify(app_id)
+    validate_a2a_work_packet(packet)
+    if packet["app_id"] != clean_app_id:
+        raise RuntimeSliceError("A2A outbox packet app_id does not match target app")
+    packets = load_a2a_work_packet_queue(root, clean_app_id, "outbox")
+    existing = next(
+        (
+            queued
+            for queued in packets
+            if queued["packet_id"] == packet["packet_id"] or queued["idempotency_key"] == packet["idempotency_key"]
+        ),
+        None,
+    )
+    if existing:
+        return existing
+    packets.append(packet)
+    write_a2a_work_packet_queue(root, clean_app_id, "outbox", packets)
+    append_a2a_ledger_event(
+        root,
+        clean_app_id,
+        new_a2a_ledger_event(
+            "a2a.work_packet.outbox_enqueued",
+            clean_app_id,
+            f"Enqueued local A2A outbox packet {packet['packet_id']}.",
+            record_id=packet["packet_id"],
+            payload={"packet": packet, "packet_sha256": a2a_work_packet_checksum(packet)},
+        ),
+    )
+    return packet
+
+
+def execute_a2a_work_packet(root: Path, app_id: str, packet_id: str) -> dict[str, Any]:
+    clean_app_id = slugify(app_id)
+    clean_packet_id = slugify(packet_id)
+    packets = load_a2a_work_packet_queue(root, clean_app_id, "inbox")
+    for index, packet in enumerate(packets):
+        if packet["packet_id"] != clean_packet_id:
+            continue
+        existing_evidence = next(
+            (record for record in list_a2a_work_packet_evidence(root, clean_app_id) if record["packet_id"] == clean_packet_id),
+            None,
+        )
+        if packet["execution_status"] == "completed" and existing_evidence:
+            return {"executed": False, "duplicate": True, "packet": packet, "evidence": existing_evidence}
+        if packet["approval_required"] and packet["approval_status"] != "approved":
+            raise RuntimeSliceError(f"A2A work packet requires owner approval before execution: {clean_packet_id}")
+        requested_action = str(packet["body"].get("requested_action") or "").strip()
+        if requested_action != "record_evidence_summary":
+            raise RuntimeSliceError(f"unsupported local A2A requested_action: {requested_action}")
+        summary = str(packet["body"].get("summary") or packet["body"].get("task") or "A2A work packet completed.").strip()
+        if not summary:
+            raise RuntimeSliceError("A2A work packet execution summary is required")
+        evidence_id = stable_a2a_id("evidence", clean_app_id, {"packet_id": clean_packet_id})
+        result_packet_id = stable_a2a_id("packet", clean_app_id, {"result_for": clean_packet_id, "type": "evidence_report"})
+        evidence = {
+            "schema": A2A_WORK_PACKET_EVIDENCE_SCHEMA,
+            "evidence_id": evidence_id,
+            "packet_id": clean_packet_id,
+            "app_id": clean_app_id,
+            "created_at": utc_now(),
+            "status": "completed",
+            "summary": summary,
+            "refs": normalize_refs(packet.get("refs", [])),
+            "result_packet_id": result_packet_id,
+            "input_packet_sha256": a2a_work_packet_checksum(packet),
+            "public_safe": True,
+            "secret_payload_allowed": False,
+        }
+        result_packet = new_a2a_work_packet(
+            root,
+            clean_app_id,
+            "evidence_report",
+            packet["target_peer_id"],
+            packet["source_peer_id"],
+            {
+                "result_for_packet_id": clean_packet_id,
+                "status": "completed",
+                "summary": summary,
+                "evidence_id": evidence_id,
+            },
+            refs=evidence["refs"],
+            packet_id=result_packet_id,
+            idempotency_key=f"evidence:{packet['idempotency_key']}",
+            approval_required=False,
+        )
+        result_packet["state"] = "send_ready"
+        result_packet["execution_status"] = "completed"
+        validate_a2a_work_packet(result_packet)
+        append_a2a_work_packet_evidence(root, clean_app_id, evidence)
+        enqueue_a2a_work_packet_outbox(root, clean_app_id, result_packet)
+        packet["execution_status"] = "completed"
+        packet["state"] = "executed"
+        packet["evidence_id"] = evidence_id
+        packet["result_packet_id"] = result_packet_id
+        validate_a2a_work_packet(packet)
+        packets[index] = packet
+        write_a2a_work_packet_queue(root, clean_app_id, "inbox", packets)
+        append_a2a_ledger_event(
+            root,
+            clean_app_id,
+            new_a2a_ledger_event(
+                "a2a.work_packet.executed",
+                clean_app_id,
+                f"Executed local A2A work packet {clean_packet_id} with evidence report {result_packet_id}.",
+                record_id=clean_packet_id,
+                payload={"packet_id": clean_packet_id, "evidence_id": evidence_id, "result_packet_id": result_packet_id},
+            ),
+        )
+        return {"executed": True, "duplicate": False, "packet": packet, "evidence": evidence, "outbox_packet": result_packet}
+    raise RuntimeSliceError(f"A2A work packet not found: {clean_packet_id}")
+
+
+def register_a2a_peer(
+    root: Path,
+    app_id: str,
+    alias: str,
+    address: str,
+    trust_tier: str,
+    allowed_packet_types: list[str],
+    *,
+    peer_id: str | None = None,
+    state: str | None = None,
+    paired: bool | None = None,
+    revoked: bool = False,
+) -> dict[str, Any]:
+    load_app(root, app_id)
+    packet_types = normalize_a2a_packet_types(allowed_packet_types)
+    clean_state = normalize_a2a_peer_state(state=state, paired=paired, revoked=revoked)
+    clean_address = str(address).strip()
+    material = {
+        "alias": str(alias).strip(),
+        "address": clean_address,
+        "trust_tier": str(trust_tier).strip(),
+    }
+    clean_peer_id = clean_a2a_id(peer_id, "peer", app_id, material)
+    peers = list_a2a_peers(root, app_id)
+    require_unique_a2a_id(peers, "peer_id", clean_peer_id, "peer")
+    if any(str(peer.get("address") or "") == clean_address for peer in peers):
+        raise RuntimeSliceError(f"duplicate A2A peer address: {clean_address}")
+    peer = {
+        "schema": A2A_PEER_SCHEMA,
+        "peer_id": clean_peer_id,
+        "alias": str(alias).strip(),
+        "address": clean_address,
+        "trust_tier": str(trust_tier).strip(),
+        "allowed_packet_types": packet_types,
+        "state": clean_state,
+        "paired": clean_state == "paired",
+        "revoked": clean_state == "revoked",
+        "created_at": utc_now(),
+        "transport": "local-only",
+        "live_xmtp": False,
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+    validate_a2a_peer(peer)
+    peers.append(peer)
+    write_a2a_collection(
+        a2a_peer_registry_path(root, app_id),
+        A2A_PEER_REGISTRY_SCHEMA,
+        "peers",
+        peers,
+        validate_a2a_peer,
+    )
+    append_a2a_ledger_event(
+        root,
+        app_id,
+        new_a2a_ledger_event(
+            "a2a.peer.registered",
+            app_id,
+            f"Registered local A2A peer {clean_peer_id}.",
+            record_id=clean_peer_id,
+            payload={"peer": peer},
+        ),
+    )
+    return peer
+
+
+def create_context_capsule(
+    root: Path,
+    app_id: str,
+    title: str,
+    summary: str,
+    permitted_peer_ids: list[str],
+    *,
+    redacted_fields: list[str] | None = None,
+    source_refs: list[dict[str, Any]] | None = None,
+    capsule_id: str | None = None,
+) -> dict[str, Any]:
+    load_app(root, app_id)
+    if not isinstance(permitted_peer_ids, list):
+        raise RuntimeSliceError("context capsule permitted_peer_ids must be a list")
+    if redacted_fields is not None and not isinstance(redacted_fields, list):
+        raise RuntimeSliceError("context capsule redacted_fields must be a list")
+    if source_refs is not None and not isinstance(source_refs, list):
+        raise RuntimeSliceError("context capsule source_refs must be a list")
+    clean_peer_ids: list[str] = []
+    for peer_id in permitted_peer_ids:
+        clean_peer_id = slugify(str(peer_id))
+        if clean_peer_id and clean_peer_id not in clean_peer_ids:
+            require_a2a_peer_can_receive(root, app_id, clean_peer_id, "context_capsule")
+            clean_peer_ids.append(clean_peer_id)
+    if not clean_peer_ids:
+        raise RuntimeSliceError("context capsule requires at least one permitted peer")
+    clean_redacted_fields = [str(field).strip() for field in (redacted_fields or []) if str(field).strip()]
+    clean_source_refs = normalize_refs(source_refs or [])
+    material = {
+        "title": str(title).strip(),
+        "summary": str(summary).strip(),
+        "permitted_peer_ids": clean_peer_ids,
+        "redacted_fields": clean_redacted_fields,
+        "source_refs": clean_source_refs,
+    }
+    clean_capsule_id = clean_a2a_id(capsule_id, "capsule", app_id, material)
+    capsules = list_context_capsules(root, app_id)
+    require_unique_a2a_id(capsules, "capsule_id", clean_capsule_id, "context capsule")
+    capsule = {
+        "schema": A2A_CONTEXT_CAPSULE_SCHEMA,
+        "capsule_id": clean_capsule_id,
+        "title": str(title).strip(),
+        "summary": str(summary).strip(),
+        "permitted_peer_ids": clean_peer_ids,
+        "redacted_fields": clean_redacted_fields,
+        "source_refs": clean_source_refs,
+        "created_at": utc_now(),
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+    validate_context_capsule(capsule)
+    capsules.append(capsule)
+    write_a2a_collection(
+        a2a_context_capsule_registry_path(root, app_id),
+        A2A_CONTEXT_CAPSULE_REGISTRY_SCHEMA,
+        "context_capsules",
+        capsules,
+        validate_context_capsule,
+    )
+    append_a2a_ledger_event(
+        root,
+        app_id,
+        new_a2a_ledger_event(
+            "a2a.context_capsule.created",
+            app_id,
+            f"Created local A2A context capsule {clean_capsule_id}.",
+            record_id=clean_capsule_id,
+            payload={"context_capsule": capsule},
+        ),
+    )
+    return capsule
+
+
+def open_discussion(
+    root: Path,
+    app_id: str,
+    title: str,
+    *,
+    peer_id: str | None = None,
+    capsule_id: str | None = None,
+    summary: str = "",
+    discussion_id: str | None = None,
+) -> dict[str, Any]:
+    load_app(root, app_id)
+    clean_peer_id = slugify(peer_id) if peer_id else ""
+    clean_capsule_id = slugify(capsule_id) if capsule_id else ""
+    capsule: dict[str, Any] | None = None
+    if clean_capsule_id:
+        capsule = context_capsule_by_id(root, app_id, clean_capsule_id)
+        if not clean_peer_id:
+            permitted = list(capsule["permitted_peer_ids"])
+            if len(permitted) != 1:
+                raise RuntimeSliceError("A2A discussion peer_id is required when capsule has zero or multiple permitted peers")
+            clean_peer_id = str(permitted[0])
+    if clean_peer_id:
+        require_a2a_peer_can_receive(root, app_id, clean_peer_id, "discussion")
+    if not clean_peer_id and not clean_capsule_id:
+        raise RuntimeSliceError("A2A discussion must be tied to a peer or capsule")
+    if capsule and clean_peer_id and clean_peer_id not in capsule["permitted_peer_ids"]:
+        raise RuntimeSliceError(f"A2A discussion peer is not permitted on capsule: {clean_peer_id}")
+    material = {
+        "title": str(title).strip(),
+        "peer_id": clean_peer_id,
+        "capsule_id": clean_capsule_id,
+        "summary": str(summary).strip(),
+    }
+    clean_discussion_id = clean_a2a_id(discussion_id, "discussion", app_id, material)
+    discussions = list_discussions(root, app_id)
+    require_unique_a2a_id(discussions, "discussion_id", clean_discussion_id, "discussion")
+    discussion = {
+        "schema": A2A_DISCUSSION_SCHEMA,
+        "discussion_id": clean_discussion_id,
+        "title": str(title).strip(),
+        "summary": str(summary).strip(),
+        "peer_id": clean_peer_id,
+        "capsule_id": clean_capsule_id,
+        "status": "open",
+        "created_at": utc_now(),
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+    validate_a2a_discussion(discussion)
+    discussions.append(discussion)
+    write_a2a_collection(
+        a2a_discussion_registry_path(root, app_id),
+        A2A_DISCUSSION_REGISTRY_SCHEMA,
+        "discussions",
+        discussions,
+        validate_a2a_discussion,
+    )
+    append_a2a_ledger_event(
+        root,
+        app_id,
+        new_a2a_ledger_event(
+            "a2a.discussion.opened",
+            app_id,
+            f"Opened local A2A discussion {clean_discussion_id}.",
+            record_id=clean_discussion_id,
+            payload={"discussion": discussion},
+        ),
+    )
+    return discussion
+
+
+def create_attention_request(
+    root: Path,
+    app_id: str,
+    discussion_id: str,
+    title: str,
+    *,
+    peer_id: str | None = None,
+    summary: str = "",
+    status: str = "pending",
+    attention_request_id: str | None = None,
+) -> dict[str, Any]:
+    load_app(root, app_id)
+    clean_discussion_id = slugify(discussion_id)
+    discussion = discussion_by_id(root, app_id, clean_discussion_id)
+    clean_peer_id = slugify(peer_id) if peer_id else str(discussion.get("peer_id") or "")
+    discussion_peer_id = str(discussion.get("peer_id") or "")
+    if not clean_peer_id and discussion.get("capsule_id"):
+        capsule = context_capsule_by_id(root, app_id, str(discussion["capsule_id"]))
+        if len(capsule["permitted_peer_ids"]) == 1:
+            clean_peer_id = capsule["permitted_peer_ids"][0]
+    if not clean_peer_id:
+        raise RuntimeSliceError("attention request peer_id is required")
+    require_a2a_peer_can_receive(root, app_id, clean_peer_id, "attention_request")
+    if discussion_peer_id and clean_peer_id != discussion_peer_id:
+        raise RuntimeSliceError(f"attention request peer must match discussion peer: {discussion_peer_id}")
+    if discussion.get("capsule_id"):
+        capsule = context_capsule_by_id(root, app_id, str(discussion["capsule_id"]))
+        if clean_peer_id not in capsule["permitted_peer_ids"]:
+            raise RuntimeSliceError(f"attention request peer is not permitted on capsule: {clean_peer_id}")
+    clean_status = slugify(status).replace("-", "_")
+    material = {
+        "discussion_id": clean_discussion_id,
+        "peer_id": clean_peer_id,
+        "title": str(title).strip(),
+        "summary": str(summary).strip(),
+    }
+    clean_request_id = clean_a2a_id(attention_request_id, "attention", app_id, material)
+    requests = list_attention_requests(root, app_id)
+    require_unique_a2a_id(requests, "attention_request_id", clean_request_id, "attention request")
+    request = {
+        "schema": A2A_ATTENTION_REQUEST_SCHEMA,
+        "attention_request_id": clean_request_id,
+        "discussion_id": clean_discussion_id,
+        "peer_id": clean_peer_id,
+        "title": str(title).strip(),
+        "summary": str(summary).strip(),
+        "status": clean_status,
+        "created_at": utc_now(),
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+    validate_attention_request(request)
+    requests.append(request)
+    write_a2a_collection(
+        a2a_attention_request_registry_path(root, app_id),
+        A2A_ATTENTION_REQUEST_REGISTRY_SCHEMA,
+        "attention_requests",
+        requests,
+        validate_attention_request,
+    )
+    append_a2a_ledger_event(
+        root,
+        app_id,
+        new_a2a_ledger_event(
+            "a2a.attention_request.created",
+            app_id,
+            f"Created local A2A attention request {clean_request_id}.",
+            record_id=clean_request_id,
+            payload={"attention_request": request},
+        ),
+    )
+    return request
+
+
+def a2a_disclosure_policy_summary(root: Path, app_id: str) -> dict[str, Any]:
+    load_app(root, app_id)
+    peers = list_a2a_peers(root, app_id)
+    capsules = list_context_capsules(root, app_id)
+    discussions = list_discussions(root, app_id)
+    attention_requests = list_attention_requests(root, app_id)
+    validate_a2a_relationships(peers, capsules, discussions, attention_requests)
+    peer_summaries: list[dict[str, Any]] = []
+    for peer in peers:
+        active = a2a_peer_is_active(peer)
+        permitted_capsules = [
+            capsule["capsule_id"]
+            for capsule in capsules
+            if active
+            and "context_capsule" in peer["allowed_packet_types"]
+            and peer["peer_id"] in capsule["permitted_peer_ids"]
+        ]
+        peer_summaries.append(
+            {
+                "peer_id": peer["peer_id"],
+                "alias": peer["alias"],
+                "trust_tier": peer["trust_tier"],
+                "state": peer["state"],
+                "paired": peer["paired"],
+                "revoked": peer["revoked"],
+                "allowed_packet_types": peer["allowed_packet_types"],
+                "permitted_context_capsule_ids": permitted_capsules,
+            }
+        )
+    return {
+        "schema": A2A_DISCLOSURE_POLICY_SUMMARY_SCHEMA,
+        "app_id": slugify(app_id),
+        "generated_at": utc_now(),
+        "policy": {
+            "local_only": True,
+            "live_xmtp": False,
+            "external_transport": "none",
+            "paired_active_peer_required_for": ["context_capsule", "discussion", "attention_request", "work_packet"],
+            "secret_payload_allowed": False,
+        },
+        "peer_count": len(peers),
+        "context_capsule_count": len(capsules),
+        "discussion_count": len(discussions),
+        "attention_request_count": len(attention_requests),
+        "peers": peer_summaries,
+    }
 
 
 def conversation_turn_path(root: Path, app_id: str) -> Path:
@@ -877,9 +2544,14 @@ def normalize_refs(values: Any) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = []
     for value in values:
         if isinstance(value, dict):
-            refs.append(value)
+            ref = dict(value)
         elif str(value).strip():
-            refs.append({"path": str(value)})
+            ref = {"path": str(value).strip()}
+        else:
+            continue
+        if contains_secret_like_value(ref):
+            raise RuntimeSliceError("reference contains secret-looking content")
+        refs.append(ref)
     return refs
 
 
@@ -1128,7 +2800,7 @@ def validate_conversation_turn(turn: dict[str, Any]) -> None:
         raise RuntimeSliceError(f"conversation turn missing required fields: {', '.join(missing)}")
     if turn["schema"] != CONVERSATION_TURN_SCHEMA:
         raise RuntimeSliceError(f"conversation turn schema must be {CONVERSATION_TURN_SCHEMA}")
-    if turn["created_by"] not in CREATORS and turn["created_by"] not in {"execution-agent"}:
+    if turn["created_by"] not in CONVERSATION_TURN_CREATORS:
         raise RuntimeSliceError(f"unsupported conversation turn creator: {turn['created_by']}")
     if turn["public_safe"] is not True:
         raise RuntimeSliceError("conversation turn must be public_safe=true")
@@ -1206,7 +2878,7 @@ def conversation_turn_from_partial_body(
 
 
 def append_conversation_turn(root: Path, app_id: str, turn: dict[str, Any]) -> dict[str, Any]:
-    load_app(root, app_id)
+    app = load_app(root, app_id)
     if turn.get("app_id") != slugify(app_id):
         raise RuntimeSliceError("conversation turn app_id does not match target app")
     validate_conversation_turn(turn)
@@ -1222,6 +2894,25 @@ def append_conversation_turn(root: Path, app_id: str, turn: dict[str, Any]) -> d
     with event_path.open("a", encoding="utf-8") as handle:
         for event in events:
             handle.write(json.dumps(event, sort_keys=True) + "\n")
+    transition = turn.get("state_transition", {})
+    to_state = str(transition.get("to_state") or "").strip() if isinstance(transition, dict) else ""
+    if to_state in STAGE_STATES and normalize_stage_id(str(app.get("current_stage") or turn["stage"]), default=turn["stage"]) == turn["stage"]:
+        app["stage_state"] = to_state
+        write_app(root, app)
+        update_registry_entry(root, app)
+    if to_state == "ready_for_review":
+        append_event(
+            root,
+            app_id,
+            new_event(
+                "lifecycle.stage_ready_for_review",
+                app_id,
+                turn["stage"],
+                f"{turn['stage']} stage marked ready for review.",
+                payload={"turn_id": turn["turn_id"], "state_transition": transition},
+            ),
+        )
+        run_evaluation_duty(root, app_id, turn["stage"])
     return turn
 
 
@@ -1353,6 +3044,7 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
     write_new(base / "ledger" / "events.jsonl", "", created, root)
     write_new(base / "ledger" / "conversation-turns.jsonl", "", created, root)
     write_new(base / "ledger" / "conversation-events.jsonl", "", created, root)
+    a2a_surface = ensure_a2a_surface(root, clean_id, created)
 
     now = utc_now()
     metadata = {
@@ -1377,6 +3069,18 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
         "ledger_path": "ledger/events.jsonl",
         "conversation_turns_path": "ledger/conversation-turns.jsonl",
         "conversation_events_path": "ledger/conversation-events.jsonl",
+        "collaboration_path": a2a_surface["path"],
+        "collaboration_ledger_path": a2a_surface["ledger_path"],
+        "local_a2a_peer_id": DEFAULT_LOCAL_A2A_PEER_ID,
+        "collaboration_paths": {
+            "peers": a2a_surface["peer_registry_path"],
+            "context_capsules": a2a_surface["context_capsule_registry_path"],
+            "discussions": a2a_surface["discussion_registry_path"],
+            "attention_requests": a2a_surface["attention_request_registry_path"],
+            "work_packet_inbox": a2a_surface["work_packet_inbox_path"],
+            "work_packet_outbox": a2a_surface["work_packet_outbox_path"],
+            "work_packet_evidence": a2a_surface["work_packet_evidence_path"],
+        },
         "decision_log_path": "context/decisions.md",
         "required_inputs": [],
         "owner_questions": [],
@@ -1391,6 +3095,8 @@ def create_app(root: Path, app_id: str, name: str) -> dict[str, Any]:
             "append-only-ledger",
             "conversation-turn-ledger",
             "conversation-event-ledger",
+            "local-a2a-collaboration",
+            "local-a2a-work-packets",
             "rest-dispatch-skeleton",
             "telegram-deterministic-slash-commands",
         ],
@@ -1500,7 +3206,7 @@ def validate_event(event: dict[str, Any]) -> None:
         raise RuntimeSliceError(f"event schema must be {EVENT_SCHEMA}")
     if event["type"] not in EVENT_TYPES:
         raise RuntimeSliceError(f"unsupported event type: {event['type']}")
-    if event["created_by"] not in CREATORS:
+    if event["created_by"] not in EVENT_CREATORS:
         raise RuntimeSliceError(f"unsupported event creator: {event['created_by']}")
     if not event["app_id"]:
         raise RuntimeSliceError("event app_id is required")
@@ -1836,11 +3542,13 @@ def setup_foundation_onboarding(
 
 
 def stage_has_artifacts(stage_root: Path) -> bool:
-    for child in ("artifacts", "refs"):
-        directory = stage_root / child
-        if directory.exists() and any(path.is_file() for path in directory.iterdir()):
-            return True
-    return False
+    """Return true only when a stage has proof artifacts.
+
+    Reference material such as stage contracts under refs/ is reviewable, but it
+    must not derive or advance lifecycle state by itself.
+    """
+    directory = stage_root / "artifacts"
+    return directory.exists() and any(path.is_file() for path in directory.iterdir())
 
 
 def stage_roots(base: Path, stage: Stage) -> list[Path]:
@@ -1902,6 +3610,752 @@ def list_artifacts(root: Path, app_id: str) -> list[dict[str, str]]:
                             }
                         )
     return artifacts
+
+
+def latest_stage_proof_artifact(root: Path, app_id: str, stage_id: str) -> dict[str, str] | None:
+    proofs = [artifact for artifact in artifacts_for_stage(root, app_id, stage_id) if artifact.get("kind") == "artifact"]
+    return proofs[-1] if proofs else None
+
+
+def load_stage_eval_contract(stage_id: str) -> tuple[dict[str, Any], Path]:
+    try:
+        return weave_eval.load_contract(normalize_stage_id(stage_id), None)
+    except weave_eval.EvalError as exc:
+        raise RuntimeSliceError(str(exc)) from exc
+
+
+def read_json_if_exists(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    data = load_json(path)
+    if not isinstance(data, dict):
+        raise RuntimeSliceError(f"expected JSON object: {path}")
+    return data
+
+
+def validate_public_safe_json_artifact(path: Path, data: dict[str, Any]) -> None:
+    artifact_name = path.name or "evaluation artifact"
+    if contains_secret_like_value(data):
+        raise RuntimeSliceError(f"refusing to write secret-looking evaluation artifact: {artifact_name}")
+    if contains_private_locator(data):
+        raise RuntimeSliceError(f"refusing to write private locator evaluation artifact: {artifact_name}")
+
+
+def write_json_artifact(path: Path, data: dict[str, Any]) -> None:
+    validate_public_safe_json_artifact(path, data)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def output_excerpt(stdout: str | bytes | None, stderr: str | bytes | None, limit: int = 1600) -> dict[str, str]:
+    def clean(value: str | bytes | None) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="replace")
+        text = str(value).strip()
+        if len(text) > limit:
+            return text[:limit] + f"... <truncated {len(text) - limit} chars>"
+        return text
+
+    return {"stdout": clean(stdout), "stderr": clean(stderr)}
+
+
+def public_safe_output_excerpt(stdout: str | bytes | None, stderr: str | bytes | None, limit: int = 1600) -> dict[str, str]:
+    excerpt = output_excerpt(stdout, stderr, limit=limit)
+    for key, value in list(excerpt.items()):
+        if contains_secret_like_value(value) or contains_private_locator(value):
+            excerpt[key] = "[redacted by public-safe evaluation boundary]"
+    return excerpt
+
+
+def public_safe_error_message(exc: BaseException, fallback: str) -> str:
+    message = str(exc).strip() or fallback
+    if contains_secret_like_value(message) or contains_private_locator(message):
+        return fallback
+    return message
+
+
+def redact_private_gate_output(result: dict[str, Any]) -> dict[str, Any]:
+    """Keep persisted eval results public-safe without weakening gate status/exit evidence."""
+    for gate in result.get("hard_gates", []):
+        if not isinstance(gate, dict):
+            continue
+        excerpt = gate.get("output_excerpt")
+        if excerpt and (contains_secret_like_value(excerpt) or contains_private_locator(excerpt)):
+            gate["output_excerpt"] = "[redacted by public-safe evaluation boundary]"
+    return result
+
+
+def evaluation_result_matches_request(
+    result: dict[str, Any],
+    duty: dict[str, Any] | None,
+    request: dict[str, Any] | None,
+) -> bool:
+    if request:
+        request_id = str(request.get("request_id") or "")
+        if not request_id or str(result.get("request_id") or "") != request_id:
+            return False
+        if str(result.get("artifact") or "") != str(request.get("artifact") or "current"):
+            return False
+        request_refs = request.get("artifact_refs", [])
+        if request_refs and result.get("artifact_refs", []) != request_refs:
+            return False
+    if duty:
+        if duty.get("status") != "completed":
+            return False
+        if request and str(duty.get("request_id") or "") != str(request.get("request_id") or ""):
+            return False
+        if result.get("request_id") and str(duty.get("request_id") or "") != str(result.get("request_id") or ""):
+            return False
+    return True
+
+
+def evaluation_review_matches_request(review: dict[str, Any], request: dict[str, Any], stage_id: str) -> bool:
+    if review.get("schema") != "weave.eval-review/v0.1":
+        return False
+    try:
+        contract, _contract_path = load_stage_eval_contract(stage_id)
+        weave_eval.validate_review_binding(contract, review, artifact=str(request.get("artifact") or "current"))
+    except (RuntimeSliceError, weave_eval.EvalError):
+        return False
+    return True
+
+
+def evaluation_request_artifact_checksum_matches(root: Path, request: dict[str, Any] | None) -> bool:
+    if not request:
+        return False
+    artifact_path = str(request.get("artifact") or "current")
+    if artifact_path == "current":
+        return True
+    artifact_refs = request.get("artifact_refs", [])
+    if not isinstance(artifact_refs, list):
+        return False
+    matching_refs = [ref for ref in artifact_refs if isinstance(ref, dict) and str(ref.get("path") or "") == artifact_path]
+    if not matching_refs:
+        return False
+    expected_checksum = str(matching_refs[-1].get("checksum") or "")
+    if not expected_checksum:
+        return False
+    relative_path = Path(artifact_path)
+    if relative_path.is_absolute() or any(part == ".." for part in relative_path.parts):
+        return False
+    current_path = root / relative_path
+    if not current_path.is_file():
+        return False
+    return artifact_checksum(current_path) == expected_checksum
+
+
+def evaluation_artifact_checksums_match(root: Path, app_id: str, stage_id: str, duty: dict[str, Any] | None) -> bool:
+    if not duty:
+        return False
+    review_path = evaluation_review_path(root, app_id, stage_id)
+    result_path = evaluation_result_path(root, app_id, stage_id)
+    if not review_path.exists() or not result_path.exists():
+        return False
+    expected_review = str(duty.get("review_checksum") or "")
+    expected_result = str(duty.get("result_checksum") or "")
+    if not expected_review or not expected_result:
+        return False
+    return expected_review == artifact_checksum(review_path) and expected_result == artifact_checksum(result_path)
+
+
+def stored_gate_results_from_result(contract: dict[str, Any], result: dict[str, Any], *, run_gates: bool) -> list[weave_eval.GateResult] | None:
+    stored = result.get("hard_gates", [])
+    if not isinstance(stored, list):
+        return None
+    by_id: dict[str, dict[str, Any]] = {}
+    for entry in stored:
+        if not isinstance(entry, dict) or contains_secret_like_value(entry) or contains_private_locator(entry):
+            return None
+        gate_id = str(entry.get("gate_id") or "")
+        if not gate_id or gate_id in by_id:
+            return None
+        by_id[gate_id] = entry
+    expected_ids: set[str] = set()
+    gates: list[weave_eval.GateResult] = []
+    for gate in contract.get("hard_gates", []):
+        if not isinstance(gate, dict):
+            continue
+        gate_id = str(gate.get("id", "unnamed_gate"))
+        expected_ids.add(gate_id)
+        entry = by_id.get(gate_id)
+        if entry is None:
+            return None
+        required = bool(gate.get("required", True))
+        if bool(entry.get("required", True)) != required:
+            return None
+        status = str(entry.get("status") or "")
+        passed = entry.get("passed")
+        if status not in {"passed", "failed", "manual", "not_run"}:
+            return None
+        if passed is not None and not isinstance(passed, bool):
+            return None
+        if status == "passed" and passed is not True:
+            return None
+        if status == "failed" and passed is not False:
+            return None
+        if status in {"manual", "not_run"} and passed is not None:
+            return None
+        kind = str(gate.get("kind", "manual"))
+        command = entry.get("command")
+        exit_code = entry.get("exit_code")
+        if exit_code is not None and not isinstance(exit_code, int):
+            return None
+        if kind == "command":
+            expected_command = str(gate.get("command") or "")
+            if str(command or "") != expected_command:
+                return None
+            if not run_gates and status != "not_run":
+                return None
+            if run_gates and status == "not_run":
+                return None
+            if status == "passed" and exit_code != 0:
+                return None
+            if status == "failed" and exit_code == 0:
+                return None
+        elif command not in (None, ""):
+            return None
+        detail = str(entry.get("detail") or "")
+        excerpt = entry.get("output_excerpt")
+        if excerpt is not None:
+            excerpt = str(excerpt)
+        gates.append(
+            weave_eval.GateResult(
+                gate_id=gate_id,
+                status=status,
+                passed=passed,
+                required=required,
+                detail=detail,
+                command=str(command) if command not in (None, "") else None,
+                exit_code=exit_code,
+                output_excerpt=excerpt,
+            )
+        )
+    if set(by_id) != expected_ids:
+        return None
+    return gates
+
+
+def evaluation_result_consistent_with_review(result: dict[str, Any], review: dict[str, Any], request: dict[str, Any], duty: dict[str, Any], stage_id: str) -> bool:
+    try:
+        contract, contract_path = load_stage_eval_contract(stage_id)
+        artifact = str(request.get("artifact") or "current")
+        weave_eval.validate_review_binding(contract, review, artifact=artifact)
+        run_gates = bool(duty.get("run_gates", False))
+        if not run_gates:
+            expected = evaluate_review_artifact(stage_id, review, artifact, run_gates=False)
+            for key in ("schema", "stage", "slug", "artifact", "contract", "state", "hard_gates", "rubric_score", "decision", "blockers", "next_actions"):
+                if result.get(key) != expected.get(key):
+                    return False
+            return True
+        stored_gates = stored_gate_results_from_result(contract, result, run_gates=True)
+        if stored_gates is None:
+            return False
+        stored_by_id = {gate.gate_id: gate for gate in stored_gates}
+        review_gates = weave_eval.evaluate_gates(contract, run_gates=False, repo_root=weave_eval.REPO_ROOT, review=review)
+        review_by_id = {gate.gate_id: gate for gate in review_gates}
+        gates: list[weave_eval.GateResult] = []
+        for gate in contract.get("hard_gates", []):
+            if not isinstance(gate, dict):
+                continue
+            gate_id = str(gate.get("id", "unnamed_gate"))
+            kind = str(gate.get("kind", "manual"))
+            stored_gate = stored_by_id.get(gate_id)
+            if stored_gate is None:
+                return False
+            if kind == "command":
+                gates.append(stored_gate)
+                continue
+            review_gate = review_by_id.get(gate_id)
+            if review_gate is None:
+                return False
+            if stored_gate.__dict__ != review_gate.__dict__:
+                return False
+            gates.append(review_gate)
+        score = weave_eval.score_review(contract, review)
+        decision, blockers, next_actions = weave_eval.decide(contract, gates, score)
+        expected_static = weave_eval.result_payload(
+            contract,
+            contract_path,
+            artifact=artifact,
+            gates=gates,
+            score=score,
+            decision=decision,
+            blockers=blockers,
+            next_actions=next_actions,
+        )
+        for key in ("schema", "stage", "slug", "artifact", "contract", "state", "hard_gates", "rubric_score", "decision", "blockers", "next_actions"):
+            if result.get(key) != expected_static.get(key):
+                return False
+    except (RuntimeSliceError, weave_eval.EvalError):
+        return False
+    return True
+
+
+def stage_evaluation_status(root: Path, app_id: str, stage_id: str) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id)
+    duty = read_json_if_exists(evaluation_duty_path(root, app_id, stage))
+    request = read_json_if_exists(evaluation_request_path(root, app_id, stage))
+    result = read_json_if_exists(evaluation_result_path(root, app_id, stage))
+    review = read_json_if_exists(evaluation_review_path(root, app_id, stage))
+    artifacts_public_safe = not any(
+        artifact and (contains_secret_like_value(artifact) or contains_private_locator(artifact))
+        for artifact in (duty, request, result, review)
+    )
+    result_matches = bool(result and request and duty and evaluation_result_matches_request(result, duty, request))
+    review_matches = bool(review and request and evaluation_review_matches_request(review, request, stage))
+    checksum_matches = bool(duty and evaluation_artifact_checksums_match(root, app_id, stage, duty))
+    request_artifact_matches = bool(request and evaluation_request_artifact_checksum_matches(root, request))
+    result_consistent = bool(result and review and request and duty and evaluation_result_consistent_with_review(result, review, request, duty, stage))
+    if result and artifacts_public_safe and result_matches and review_matches and checksum_matches and request_artifact_matches and result_consistent:
+        decision = str(result.get("decision") or "")
+        passed = decision in EVALUATION_PASS_DECISIONS
+        return {
+            "schema": "weave-stage-evaluation-status/v0.1",
+            "app_id": slugify(app_id),
+            "stage": stage,
+            "status": "completed",
+            "passed": passed,
+            "decision": decision,
+            "state": result.get("state", ""),
+            "blockers": result.get("blockers", []),
+            "next_actions": result.get("next_actions", []),
+            "review_path": relative(evaluation_review_path(root, app_id, stage), root) if review else "",
+            "result_path": relative(evaluation_result_path(root, app_id, stage), root),
+            "duty_path": relative(evaluation_duty_path(root, app_id, stage), root) if duty else "",
+            "request_path": relative(evaluation_request_path(root, app_id, stage), root) if request else "",
+        }
+    if duty:
+        status = str(duty.get("status") or "requested")
+        state = duty.get("state", status)
+        blockers = duty.get("blockers", [])
+        next_actions = duty.get("next_actions", [])
+        if status == "completed":
+            status = "stale_result"
+            state = "evaluation-result-does-not-match-current-review-request"
+            if not request:
+                blockers = ["evaluation request artifact is missing for the completed duty"]
+            elif not review:
+                blockers = ["evaluation review artifact is missing for the current request"]
+            elif not review_matches:
+                blockers = ["evaluation review artifact is invalid for the current request"]
+            elif not checksum_matches:
+                blockers = ["evaluation review/result checksum does not match the completed duty"]
+            elif not request_artifact_matches:
+                blockers = ["evaluation request artifact checksum does not match current artifact"]
+            elif not artifacts_public_safe:
+                blockers = ["evaluation artifacts contain non-public-safe content"]
+            elif not result_consistent:
+                blockers = ["evaluation result is inconsistent with the current review artifact"]
+            else:
+                blockers = ["evaluation result is stale for the current request"]
+            next_actions = ["rerun evaluation duty or submit a review for the current request"]
+        return {
+            "schema": "weave-stage-evaluation-status/v0.1",
+            "app_id": slugify(app_id),
+            "stage": stage,
+            "status": status,
+            "passed": False,
+            "decision": "",
+            "state": state,
+            "blockers": blockers,
+            "next_actions": next_actions,
+            "review_path": "",
+            "result_path": "",
+            "duty_path": relative(evaluation_duty_path(root, app_id, stage), root),
+            "request_path": relative(evaluation_request_path(root, app_id, stage), root) if request else "",
+        }
+    return {
+        "schema": "weave-stage-evaluation-status/v0.1",
+        "app_id": slugify(app_id),
+        "stage": stage,
+        "status": "not_requested",
+        "passed": False,
+        "decision": "",
+        "state": "not_requested",
+        "blockers": ["evaluation duty has not run"],
+        "next_actions": [f"transition {stage} to ready_for_review or POST /apps/{slugify(app_id)}/evaluation/run"],
+        "review_path": "",
+        "result_path": "",
+        "duty_path": "",
+        "request_path": "",
+    }
+
+
+def build_evaluation_request(root: Path, app_id: str, stage_id: str, gate: dict[str, Any]) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id)
+    app = load_app(root, app_id)
+    contract, contract_path = load_stage_eval_contract(stage)
+    transcript = gate.get("transcript_capture", {}) if isinstance(gate, dict) else {}
+    linked_artifact = transcript.get("latest_artifact_ref") if isinstance(transcript, dict) else None
+    artifact = linked_artifact if isinstance(linked_artifact, dict) else latest_stage_proof_artifact(root, app_id, stage)
+    artifact_path = artifact["path"] if artifact else "current"
+    material = json.dumps(
+        {
+            "app_id": slugify(app_id),
+            "stage": stage,
+            "artifact": artifact_path,
+            "artifact_checksum": artifact.get("checksum", "") if artifact else "",
+            "turn_id": transcript.get("latest_turn_id", ""),
+            "contract": weave_eval.rel_path(contract_path),
+        },
+        sort_keys=True,
+    )
+    request_id = hashlib.sha256(material.encode("utf-8")).hexdigest()[:24]
+    return {
+        "schema": EVALUATION_REQUEST_SCHEMA,
+        "request_id": request_id,
+        "app_id": slugify(app_id),
+        "app_name": app.get("name", ""),
+        "stage": stage,
+        "created_at": utc_now(),
+        "contract": weave_eval.rel_path(contract_path),
+        "contract_schema": contract.get("schema", ""),
+        "artifact": artifact_path,
+        "artifact_refs": [artifact] if artifact else [],
+        "transcript_turn_id": transcript.get("latest_turn_id", ""),
+        "stage_gate": gate,
+        "rubric_dimensions": [str(dim.get("id", "unnamed_dimension")) for dim in contract.get("rubric", []) if isinstance(dim, dict)],
+        "hard_gates": [str(item.get("id", "unnamed_gate")) for item in contract.get("hard_gates", []) if isinstance(item, dict)],
+        "instructions": [
+            "Fill review.json with schema weave.eval-review/v0.1.",
+            "Every rubric score and manual gate pass must cite concrete evidence.",
+            "Do not include secrets, credentials, private locators, or hidden chain-of-thought.",
+        ],
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+
+
+def evaluator_agent_command() -> str:
+    return str(os.environ.get("WEAVE_EVALUATOR_AGENT_COMMAND") or "").strip()
+
+
+def run_evaluator_agent(command: str, root: Path, request_path: Path, review_path: Path, *, timeout: int) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env.update(
+        {
+            "WEAVE_ROOT": str(root),
+            "WEAVE_EVAL_REQUEST_FILE": str(request_path),
+            "WEAVE_EVAL_REVIEW_FILE": str(review_path),
+        }
+    )
+    args = shlex.split(command)
+    if not args:
+        raise RuntimeSliceError("evaluator agent command is required")
+    return subprocess.run(args, cwd=root, shell=False, text=True, capture_output=True, timeout=timeout, check=False, env=env)
+
+
+def evaluate_review_artifact(stage_id: str, review: dict[str, Any], artifact: str, *, run_gates: bool) -> dict[str, Any]:
+    if not isinstance(review, dict):
+        raise RuntimeSliceError("evaluation review artifact must be a JSON object")
+    contract, contract_path = load_stage_eval_contract(stage_id)
+    try:
+        weave_eval.validate_review_binding(contract, review, artifact=artifact)
+        gates = weave_eval.evaluate_gates(contract, run_gates=run_gates, repo_root=weave_eval.REPO_ROOT, review=review)
+        score = weave_eval.score_review(contract, review)
+        decision, blockers, next_actions = weave_eval.decide(contract, gates, score)
+        return weave_eval.result_payload(
+            contract,
+            contract_path,
+            artifact=artifact,
+            gates=gates,
+            score=score,
+            decision=decision,
+            blockers=blockers,
+            next_actions=next_actions,
+        )
+    except weave_eval.EvalError as exc:
+        raise RuntimeSliceError(str(exc)) from exc
+
+
+def deterministic_evaluation_review(
+    stage_id: str,
+    artifact: str,
+    *,
+    reviewer: str = "deterministic-local-evaluator",
+    notes: str = "Deterministic local evaluation cites the linked stage proof artifact.",
+) -> dict[str, Any]:
+    """Build a valid review object for local tests/rehearsals that already have proof artifacts.
+
+    This does not approve a stage by itself. Callers still have to persist the review
+    through complete_evaluation_from_review(), which runs the same eval validator used
+    by the REST review endpoint.
+    """
+    stage = normalize_stage_id(stage_id)
+    contract, _contract_path = load_stage_eval_contract(stage)
+    evidence = [artifact] if artifact else ["current"]
+    return {
+        "schema": "weave.eval-review/v0.1",
+        "stage": contract.get("stage") or stage,
+        "reviewer": reviewer,
+        "artifact": artifact or "current",
+        "scores": {
+            str(dim.get("id", "unnamed_dimension")): {
+                "score": float(dim.get("max_score", 4)),
+                "evidence": evidence,
+                "notes": notes,
+            }
+            for dim in weave_eval.rubric_dimensions(contract)
+        },
+        "hard_gates": {
+            str(gate.get("id", "unnamed_gate")): {
+                "passed": True,
+                "evidence": evidence,
+                "notes": str(gate.get("description") or notes),
+            }
+            for gate in contract.get("hard_gates", [])
+            if isinstance(gate, dict) and str(gate.get("kind", "manual")) == "manual"
+        },
+        "overall_notes": notes,
+    }
+
+
+def complete_evaluation_from_latest_artifact(
+    root: Path,
+    app_id: str,
+    stage_id: str | None,
+    *,
+    reviewer: str = "deterministic-local-evaluator",
+    run_gates: bool = False,
+) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
+    request = read_json_if_exists(evaluation_request_path(root, app_id, stage))
+    artifact = str(request.get("artifact") or "") if request else ""
+    if not artifact:
+        latest = latest_stage_proof_artifact(root, app_id, stage)
+        artifact = str(latest.get("path") or "current") if latest else "current"
+    review = deterministic_evaluation_review(stage, artifact, reviewer=reviewer)
+    return complete_evaluation_from_review(root, app_id, stage, review, run_gates=run_gates)
+
+
+def complete_evaluation_from_review(
+    root: Path,
+    app_id: str,
+    stage_id: str | None,
+    review: dict[str, Any],
+    *,
+    run_gates: bool = False,
+) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
+    if not isinstance(review, dict):
+        raise RuntimeSliceError("evaluation review artifact must be a JSON object")
+    if contains_secret_like_value(review):
+        raise RuntimeSliceError("evaluation review contains secret-looking content")
+    if contains_private_locator(review):
+        raise RuntimeSliceError("evaluation review contains private locator content")
+    gate = stage_gate_status(root, app_id, stage, include_evaluation=False)
+    stage_dir = evaluation_stage_dir(root, app_id, stage)
+    request_path = evaluation_request_path(root, app_id, stage)
+    request_exists = request_path.exists()
+    if request_exists:
+        request = load_json(request_path)
+        if not isinstance(request, dict):
+            raise RuntimeSliceError(f"expected evaluation request object: {request_path}")
+    else:
+        request = build_evaluation_request(root, app_id, stage, gate)
+    review_path = evaluation_review_path(root, app_id, stage)
+    result_path = evaluation_result_path(root, app_id, stage)
+    duty_path = evaluation_duty_path(root, app_id, stage)
+    result = evaluate_review_artifact(stage, review, str(request.get("artifact", "current")), run_gates=run_gates)
+    result.update(
+        {
+            "request_id": request.get("request_id", ""),
+            "transcript_turn_id": request.get("transcript_turn_id", ""),
+            "artifact_refs": request.get("artifact_refs", []),
+            "proof_scope": "local_deterministic_runtime",
+        }
+    )
+    redact_private_gate_output(result)
+    validate_public_safe_json_artifact(review_path, review)
+    validate_public_safe_json_artifact(result_path, result)
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    if not request_exists:
+        write_json_artifact(request_path, request)
+    write_json_artifact(review_path, review)
+    write_json_artifact(result_path, result)
+    now = utc_now()
+    duty = {
+        "schema": EVALUATION_DUTY_SCHEMA,
+        "request_id": request.get("request_id", ""),
+        "app_id": slugify(app_id),
+        "stage": stage,
+        "created_at": now,
+        "updated_at": now,
+        "request_path": relative(request_path, root),
+        "review_path": relative(review_path, root),
+        "result_path": relative(result_path, root),
+        "review_checksum": artifact_checksum(review_path),
+        "result_checksum": artifact_checksum(result_path),
+        "run_gates": run_gates,
+        "status": "completed",
+        "decision": result.get("decision", ""),
+        "state": result.get("state", ""),
+        "blockers": result.get("blockers", []),
+        "next_actions": result.get("next_actions", []),
+        "agent_command_configured": bool(evaluator_agent_command()),
+        "completed_by": str(review.get("reviewer") or "submitted-review-artifact"),
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+    write_json_artifact(duty_path, duty)
+    record_evaluation_status(root, app_id, stage, duty)
+    append_event(root, app_id, new_event("evaluation.review_recorded", app_id, stage, f"Evaluator review recorded for {stage}.", payload={"review_path": relative(review_path, root)}))
+    append_event(root, app_id, new_event("evaluation.completed", app_id, stage, f"Evaluation completed for {stage}: {result.get('decision')}.", payload={"result_path": relative(result_path, root), "decision": result.get("decision"), "state": result.get("state")}))
+    return {"schema": REST_SCHEMA, "completed": True, "app_id": slugify(app_id), "stage": stage, "duty": duty, "result": result}
+
+
+def record_evaluation_status(root: Path, app_id: str, stage_id: str, duty: dict[str, Any]) -> None:
+    app = load_app(root, app_id)
+    statuses = app.get("evaluation_statuses", {})
+    if not isinstance(statuses, dict):
+        statuses = {}
+    stage = normalize_stage_id(stage_id)
+    completed = duty.get("status") == "completed"
+    statuses[stage] = {
+        "status": duty.get("status", "unknown"),
+        "decision": duty.get("decision", ""),
+        "updated_at": duty.get("updated_at", duty.get("created_at", utc_now())),
+        "duty_path": relative(evaluation_duty_path(root, app_id, stage), root),
+        "request_path": relative(evaluation_request_path(root, app_id, stage), root),
+        "review_path": relative(evaluation_review_path(root, app_id, stage), root) if completed and evaluation_review_path(root, app_id, stage).exists() else "",
+        "result_path": relative(evaluation_result_path(root, app_id, stage), root) if completed and evaluation_result_path(root, app_id, stage).exists() else "",
+    }
+    app["evaluation_statuses"] = statuses
+    write_app(root, app)
+    update_registry_entry(root, app)
+
+
+def run_evaluation_duty(root: Path, app_id: str, stage_id: str | None = None, *, run_gates: bool = False) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
+    gate = stage_gate_status(root, app_id, stage, include_evaluation=False)
+    stage_dir = evaluation_stage_dir(root, app_id, stage)
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    request = build_evaluation_request(root, app_id, stage, gate)
+    request_path = evaluation_request_path(root, app_id, stage)
+    review_path = evaluation_review_path(root, app_id, stage)
+    result_path = evaluation_result_path(root, app_id, stage)
+    duty_path = evaluation_duty_path(root, app_id, stage)
+    write_json_artifact(request_path, request)
+    append_event(
+        root,
+        app_id,
+        new_event(
+            "evaluation.requested",
+            app_id,
+            stage,
+            f"Evaluation requested for {stage} stage.",
+            payload={"request_path": relative(request_path, root), "stage_gate_passed": gate["passed"]},
+        ),
+    )
+    now = utc_now()
+    duty = {
+        "schema": EVALUATION_DUTY_SCHEMA,
+        "request_id": request["request_id"],
+        "app_id": slugify(app_id),
+        "stage": stage,
+        "created_at": now,
+        "updated_at": now,
+        "request_path": relative(request_path, root),
+        "review_path": relative(review_path, root),
+        "result_path": relative(result_path, root),
+        "run_gates": run_gates,
+        "status": "requested",
+        "decision": "",
+        "state": "requested",
+        "blockers": [],
+        "next_actions": [],
+        "agent_command_configured": bool(evaluator_agent_command()),
+        "public_safe": True,
+        "secret_payload_allowed": False,
+    }
+    if not gate["passed"]:
+        duty.update({"status": "blocked", "state": "stage-gate-blocking-before-evaluation", "blockers": gate["missing"], "next_actions": ["complete deterministic stage gate before evaluator-agent dispatch"]})
+        write_json_artifact(duty_path, duty)
+        record_evaluation_status(root, app_id, stage, duty)
+        return duty
+    command = evaluator_agent_command()
+    if not command:
+        duty.update({"status": "waiting_for_agent", "state": "evaluator-agent-command-missing", "blockers": ["WEAVE_EVALUATOR_AGENT_COMMAND is not configured"], "next_actions": ["configure evaluator agent command or POST a completed eval review artifact"]})
+        write_json_artifact(duty_path, duty)
+        record_evaluation_status(root, app_id, stage, duty)
+        append_event(
+            root,
+            app_id,
+            new_event(
+                "evaluation.waiting_for_agent",
+                app_id,
+                stage,
+                f"Evaluation for {stage} is waiting for an evaluator agent command.",
+                payload={"request_path": relative(request_path, root), "duty_path": relative(duty_path, root)},
+            ),
+        )
+        return duty
+    timeout = int(os.environ.get("WEAVE_EVALUATOR_AGENT_TIMEOUT_SECONDS", "300"))
+    with tempfile.TemporaryDirectory(prefix="weave-eval-review-") as temp_review_dir:
+        candidate_review_path = Path(temp_review_dir) / "review.json"
+        try:
+            completed = run_evaluator_agent(command, root, request_path, candidate_review_path, timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            duty.update({"status": "failed", "state": "evaluator-agent-timeout", "blockers": [f"evaluator agent timed out after {timeout}s"], "next_actions": ["retry evaluation duty or inspect evaluator agent logs"], "agent_output_excerpt": public_safe_output_excerpt(exc.stdout or "", exc.stderr or "")})
+            write_json_artifact(duty_path, duty)
+            record_evaluation_status(root, app_id, stage, duty)
+            append_event(root, app_id, new_event("evaluation.failed", app_id, stage, f"Evaluation for {stage} timed out.", payload={"duty": duty}))
+            return duty
+        duty["agent_exit_code"] = completed.returncode
+        duty["agent_output_excerpt"] = public_safe_output_excerpt(completed.stdout, completed.stderr)
+        if completed.returncode != 0 or not candidate_review_path.exists():
+            duty.update({"status": "failed", "state": "evaluator-agent-failed", "blockers": ["evaluator agent did not produce a review artifact"], "next_actions": ["fix evaluator agent and retry evaluation duty"]})
+            write_json_artifact(duty_path, duty)
+            record_evaluation_status(root, app_id, stage, duty)
+            append_event(root, app_id, new_event("evaluation.failed", app_id, stage, f"Evaluation for {stage} failed.", payload={"duty": duty}))
+            return duty
+        try:
+            review = load_json(candidate_review_path)
+            if not isinstance(review, dict):
+                raise RuntimeSliceError("evaluator review artifact must be a JSON object")
+            if contains_secret_like_value(review):
+                raise RuntimeSliceError("evaluator review contains secret-looking content")
+            if contains_private_locator(review):
+                raise RuntimeSliceError("evaluator review contains private locator content")
+            result = evaluate_review_artifact(stage, review, str(request["artifact"]), run_gates=run_gates)
+            result.update(
+                {
+                    "request_id": request.get("request_id", ""),
+                    "transcript_turn_id": request.get("transcript_turn_id", ""),
+                    "artifact_refs": request.get("artifact_refs", []),
+                    "proof_scope": "local_deterministic_runtime",
+                }
+            )
+            redact_private_gate_output(result)
+            validate_public_safe_json_artifact(review_path, review)
+            validate_public_safe_json_artifact(result_path, result)
+        except RuntimeSliceError as exc:
+            blocker = public_safe_error_message(exc, "evaluator review artifact is invalid")
+            duty.update({"status": "failed", "state": "evaluator-review-invalid", "blockers": [blocker], "next_actions": ["fix evaluator review artifact and retry evaluation duty"], "updated_at": utc_now()})
+            write_json_artifact(duty_path, duty)
+            record_evaluation_status(root, app_id, stage, duty)
+            append_event(
+                root,
+                app_id,
+                new_event(
+                    "evaluation.failed",
+                    app_id,
+                    stage,
+                    f"Evaluation review for {stage} was rejected.",
+                    payload={"duty_path": relative(duty_path, root), "state": duty["state"], "blockers": duty["blockers"]},
+                ),
+            )
+            return duty
+    write_json_artifact(review_path, review)
+    write_json_artifact(result_path, result)
+    duty.update({"status": "completed", "state": result.get("state", ""), "decision": result.get("decision", ""), "blockers": result.get("blockers", []), "next_actions": result.get("next_actions", []), "review_checksum": artifact_checksum(review_path), "result_checksum": artifact_checksum(result_path), "updated_at": utc_now()})
+    write_json_artifact(duty_path, duty)
+    record_evaluation_status(root, app_id, stage, duty)
+    append_event(root, app_id, new_event("evaluation.review_recorded", app_id, stage, f"Evaluator review recorded for {stage}.", payload={"review_path": relative(review_path, root)}))
+    append_event(root, app_id, new_event("evaluation.completed", app_id, stage, f"Evaluation completed for {stage}: {result.get('decision')}.", payload={"result_path": relative(result_path, root), "decision": result.get("decision"), "state": result.get("state")}))
+    return duty
 
 
 def latest_changes(root: Path, app_id: str) -> dict[str, Any]:
@@ -1982,6 +4436,131 @@ STAGE_REQUIREMENTS = {
     ],
 }
 
+STAGE_CONTRACTS = {
+    "intent": {
+        "purpose": "Define the owner intent, target user, success definition, authority boundaries, and first proof shape.",
+        "required_inputs": ["owner intent", "target user", "success definition", "hard non-goals"],
+        "output_artifacts": ["intent artifact", "open questions or explicit no-blocker statement"],
+        "exit_criteria": ["owner can recognize the app being built", "launch, credential, and payment boundaries are explicit"],
+        "review_obligations": ["show what the owner asked", "show how Hermes interpreted it", "do not advance without owner-reviewable rationale"],
+    },
+    "research": {
+        "purpose": "Gather and synthesize evidence before choosing a build direction.",
+        "required_inputs": ["research questions", "source policy", "source freshness needs", "candidate opportunities"],
+        "output_artifacts": ["research source log", "source synthesis", "unknowns and risks"],
+        "exit_criteria": ["volatile/current claims have source records", "non-web local-proof assumptions are labeled", "candidate opportunities are grounded in the recorded sources"],
+        "review_obligations": ["link source artifacts", "separate evidence from model preference", "name what was not researched"],
+    },
+    "selection": {
+        "purpose": "Choose one shippable wedge from the intent plus research synthesis.",
+        "required_inputs": ["candidate options", "selection criteria", "research basis", "constraints"],
+        "output_artifacts": ["selection matrix", "selected wedge", "rejected alternatives"],
+        "exit_criteria": ["selected wedge is the smallest credible proof", "rejected options have concrete reasons", "plan can trace back to the selected wedge"],
+        "review_obligations": ["show the matrix", "show the decision basis", "avoid silently selecting implementation details before research"],
+    },
+    "plan": {
+        "purpose": "Translate the selected wedge into scoped implementation work.",
+        "required_inputs": ["selected wedge", "files or systems to touch", "acceptance checks", "stop boundaries"],
+        "output_artifacts": ["implementation plan", "task list", "expected evidence"],
+        "exit_criteria": ["work can begin without inventing scope", "credentials and public effects remain gated", "acceptance checks are runnable or explicitly deferred"],
+        "review_obligations": ["make tasks reviewable", "name file targets", "name what will not be claimed"],
+    },
+    "engineering": {
+        "purpose": "Create or modify the app according to the selected wedge and plan.",
+        "required_inputs": ["repo/worktree target", "implementation packet", "planned files", "verification command expectations"],
+        "output_artifacts": ["implementation notes", "source files", "implementation output index", "local verification evidence"],
+        "exit_criteria": ["actual product files exist", "source files are linked for review", "local verification evidence is recorded"],
+        "review_obligations": ["link generated source, not only summaries", "record checksums", "do not claim deploys, payments, or analytics"],
+    },
+    "qa": {
+        "purpose": "Verify the implemented app and separate proven behavior from unproven claims.",
+        "required_inputs": ["source files", "acceptance checks", "browser or localhost proof target", "known boundaries"],
+        "output_artifacts": ["test results", "localhost proof", "known issues", "owner review request"],
+        "exit_criteria": ["deterministic checks pass", "localhost/browser proof is linked when relevant", "known issues and not-proven items are explicit"],
+        "review_obligations": ["link test artifacts", "link visual or localhost evidence", "do not hide skipped proof"],
+    },
+    "kpi": {
+        "purpose": "Define measurable proof signals without pretending local counters are live-market analytics.",
+        "required_inputs": ["success metrics", "local counters", "future analytics needs"],
+        "output_artifacts": ["KPI plan", "instrumentation boundary", "credential deferral record if needed"],
+        "exit_criteria": ["local proof metrics are distinct from hosted analytics", "credential needs are gated"],
+        "review_obligations": ["separate local and live metrics", "name missing analytics capability"],
+    },
+    "marketing": {
+        "purpose": "Prepare distribution work inside owner-approved boundaries.",
+        "required_inputs": ["marketing goal", "channels", "approval boundaries", "credential needs"],
+        "output_artifacts": ["marketing plan", "launch-readiness boundaries", "credential deferral record if needed"],
+        "exit_criteria": ["no public send or deploy is performed without approval", "credential needs are explicit"],
+        "review_obligations": ["gate public actions", "do not imply launch happened"],
+    },
+    "iteration": {
+        "purpose": "Use feedback and evidence to propose or perform a concrete next change.",
+        "required_inputs": ["feedback", "observed issue", "iteration goal", "review target"],
+        "output_artifacts": ["iteration proposal", "before/after references", "next QA target"],
+        "exit_criteria": ["change or proposal traces to evidence", "review target is clear"],
+        "review_obligations": ["link before/after artifacts", "separate owner feedback from agent preference"],
+    },
+    "analysis": {
+        "purpose": "Read the lifecycle evidence and recommend continue, change, park, or reject.",
+        "required_inputs": ["outcome evidence", "proof boundaries", "credential deferrals", "next decision"],
+        "output_artifacts": ["outcome analysis", "lessons learned", "next decision packet"],
+        "exit_criteria": ["proof claims are separated from live-market claims", "next owner decision is explicit"],
+        "review_obligations": ["cite evidence artifacts", "do not overclaim market validation"],
+    },
+}
+
+
+def stage_contract(stage_id: str) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id)
+    stage_info = stage_by_id(stage)
+    contract = STAGE_CONTRACTS.get(stage, {})
+    return {
+        "schema": "weave-lifecycle-stage-contract/v0.1",
+        "stage": stage,
+        "directory": stage_info.directory,
+        "purpose": contract.get("purpose", "Complete the current lifecycle stage with reviewable evidence."),
+        "required_inputs": list(contract.get("required_inputs", STAGE_REQUIREMENTS.get(stage, []))),
+        "runtime_requirements": STAGE_REQUIREMENTS.get(stage, []),
+        "output_artifacts": list(contract.get("output_artifacts", [STAGE_PROOF_LABELS.get(stage, "stage artifact")])),
+        "exit_criteria": list(contract.get("exit_criteria", [])),
+        "review_obligations": list(contract.get("review_obligations", [])),
+        "owner_review_required": True,
+        "secret_policy": "public-safe artifacts only; secrets, tokens, credentials, and private payloads are not allowed",
+        "state_policy": "stage approval requires a current-stage proof artifact plus a linked transcript turn",
+    }
+
+
+def stage_contract_markdown(stage_id: str) -> str:
+    contract = stage_contract(stage_id)
+    lines = [
+        f"# {contract['stage'].title()} Stage Contract",
+        "",
+        f"Schema: `{contract['schema']}`",
+        f"Stage directory: `{contract['directory']}`",
+        "",
+        "## Purpose",
+        str(contract["purpose"]),
+        "",
+        "## Required Inputs",
+    ]
+    lines.extend(f"- {item}" for item in contract["required_inputs"])
+    lines.extend(["", "## Output Artifacts"])
+    lines.extend(f"- {item}" for item in contract["output_artifacts"])
+    lines.extend(["", "## Exit Criteria"])
+    lines.extend(f"- {item}" for item in contract["exit_criteria"])
+    lines.extend(["", "## Review Obligations"])
+    lines.extend(f"- {item}" for item in contract["review_obligations"])
+    lines.extend(
+        [
+            "",
+            "## Runtime Policies",
+            f"- {contract['secret_policy']}",
+            f"- {contract['state_policy']}",
+            "- Hidden chain-of-thought is not captured; only owner-reviewable rationale summaries are recorded.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
 
 def short_list(values: list[Any], limit: int = 5) -> list[str]:
     items = [str(value) for value in values if str(value).strip()]
@@ -2027,12 +4606,34 @@ def artifacts_for_stage(root: Path, app_id: str, stage_id: str) -> list[dict[str
     return [artifact for artifact in list_artifacts(root, app_id) if artifact["stage"] == clean_stage]
 
 
+def credential_requirement_relevant_to_stage(item: dict[str, Any], stage_id: str) -> bool:
+    stages = item.get("stages")
+    if not stages:
+        return True
+    if isinstance(stages, str):
+        raw_stages = [stages]
+    elif isinstance(stages, list):
+        raw_stages = stages
+    else:
+        return True
+    normalized: set[str] = set()
+    for raw in raw_stages:
+        try:
+            normalized.add(normalize_stage_id(str(raw)))
+        except RuntimeSliceError:
+            continue
+    return normalize_stage_id(stage_id) in normalized
+
+
 def credential_blockers_for_stage(app: dict[str, Any], stage_id: str) -> list[str]:
-    if normalize_stage_id(stage_id) not in {"kpi", "marketing", "analysis"}:
+    stage = normalize_stage_id(stage_id)
+    if stage not in {"kpi", "marketing", "analysis"}:
         return []
     blockers: list[str] = []
     for item in app.get("credential_requirements", []):
         if not isinstance(item, dict):
+            continue
+        if not credential_requirement_relevant_to_stage(item, stage):
             continue
         if item.get("required") is False:
             continue
@@ -2042,43 +4643,48 @@ def credential_blockers_for_stage(app: dict[str, Any], stage_id: str) -> list[st
     return blockers
 
 
-def conversation_turn_linked_to_stage(turn: dict[str, Any], stage_id: str, stage_artifacts: list[dict[str, str]]) -> bool:
+def conversation_turn_stage_proof_artifact(
+    turn: dict[str, Any],
+    stage_id: str,
+    stage_proof_artifacts: list[dict[str, str]],
+) -> dict[str, str] | None:
     stage = stage_by_id(stage_id)
-    artifact_paths = {artifact["path"] for artifact in stage_artifacts}
+    artifacts_by_path = {artifact["path"]: artifact for artifact in stage_proof_artifacts if artifact.get("kind") == "artifact"}
     for ref in turn.get("artifact_refs", []):
         path = str(ref.get("path") or ref.get("canonical_path") or "")
-        if path in artifact_paths or f"/lifecycle/{stage.directory}/" in f"/{path}":
-            return True
-    for ref in turn.get("event_refs", []):
-        if str(ref.get("event_id") or ref.get("type") or "").strip():
-            return True
+        if path in artifacts_by_path and f"/lifecycle/{stage.directory}/artifacts/" in f"/{path}":
+            return artifacts_by_path[path]
+    return None
+
+
+def conversation_turn_linked_to_stage(turn: dict[str, Any], stage_id: str, stage_proof_artifacts: list[dict[str, str]]) -> bool:
+    return conversation_turn_stage_proof_artifact(turn, stage_id, stage_proof_artifacts) is not None
+
+
+def conversation_turn_ready_for_review(turn: dict[str, Any]) -> bool:
     transition = turn.get("state_transition", {})
-    if isinstance(transition, dict) and transition:
-        stages = {
-            str(transition.get("from_stage") or ""),
-            str(transition.get("to_stage") or ""),
-            str(transition.get("stage") or ""),
-        }
-        if stage_id in stages:
-            return True
-    return False
+    if not isinstance(transition, dict):
+        return False
+    return str(transition.get("to_state") or "").strip() == "ready_for_review"
 
 
 def transcript_capture_status(root: Path, app_id: str, stage_id: str) -> dict[str, Any]:
     stage = normalize_stage_id(stage_id)
     stage_artifacts = artifacts_for_stage(root, app_id, stage)
+    stage_proof_artifacts = [artifact for artifact in stage_artifacts if artifact.get("kind") == "artifact"]
     turns = [turn for turn in read_conversation_turns(root, app_id) if normalize_stage_id(str(turn.get("stage") or stage)) == stage]
     linked_turns = [
         turn
         for turn in turns
-        if conversation_turn_linked_to_stage(turn, stage, stage_artifacts)
+        if conversation_turn_ready_for_review(turn) and conversation_turn_linked_to_stage(turn, stage, stage_proof_artifacts)
     ]
     missing: list[str] = []
     if not turns:
         missing.append("current-stage conversation turn")
-    elif stage_artifacts and not linked_turns:
-        missing.append("conversation turn linked to stage artifact, event, or transition")
-    latest = (linked_turns or turns)[-1] if turns else None
+    elif stage_proof_artifacts and not linked_turns:
+        missing.append("ready-for-review conversation turn linked to current-stage proof artifact")
+    latest = linked_turns[-1] if linked_turns else None
+    latest_artifact_ref = conversation_turn_stage_proof_artifact(latest, stage, stage_proof_artifacts) if latest else None
     return {
         "schema": "weave-transcript-capture-gate/v0.1",
         "app_id": slugify(app_id),
@@ -2090,12 +4696,13 @@ def transcript_capture_status(root: Path, app_id: str, stage_id: str) -> dict[st
         "linked_turn_count": len(linked_turns),
         "latest_turn_id": latest.get("turn_id") if latest else "",
         "latest_turn_at": latest.get("created_at") if latest else "",
-        "policy": "Hermes app-work replies must append a current-stage conversation turn before lifecycle approval or advance.",
+        "latest_artifact_ref": latest_artifact_ref or {},
+        "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
     }
 
 
-def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> dict[str, Any]:
-    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None, *, include_evaluation: bool = True) -> dict[str, Any]:
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
     app = load_app(root, app_id)
     gate = foundation_gate(root, app_id)
     missing: list[str] = []
@@ -2108,7 +4715,8 @@ def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> d
     if missing_previous:
         missing.append("previous stage approval: " + ", ".join(missing_previous))
     stage_artifacts = artifacts_for_stage(root, app_id, stage)
-    if not stage_artifacts:
+    stage_proof_artifacts = [artifact for artifact in stage_artifacts if artifact.get("kind") == "artifact"]
+    if not stage_proof_artifacts:
         missing.append(STAGE_PROOF_LABELS.get(stage, "stage artifact"))
     transcript_capture = transcript_capture_status(root, app_id, stage)
     if gate["passed"] and not transcript_capture["passed"]:
@@ -2125,6 +4733,10 @@ def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> d
     capability_blockers = credential_blockers_for_stage(app, stage)
     if capability_blockers:
         missing.append("credential capability: " + ", ".join(capability_blockers))
+    evaluation_status = stage_evaluation_status(root, app_id, stage) if include_evaluation else None
+    if include_evaluation and transcript_capture["passed"] and evaluation_status and not evaluation_status["passed"]:
+        reason = evaluation_status.get("decision") or evaluation_status.get("status") or "not_passed"
+        missing.append(f"evaluation: {reason}")
     if stage in PROOF_CRITICAL_STAGES and stage_artifacts:
         warnings.append(f"{stage} approval depends on reviewer confidence that recorded artifact proves the claim.")
     return {
@@ -2138,14 +4750,16 @@ def stage_gate_status(root: Path, app_id: str, stage_id: str | None = None) -> d
         "approved_previous_stages": sorted(approved.intersection(previous_ids), key=stage_index),
         "missing_previous_stages": missing_previous,
         "artifact_refs": stage_artifacts,
+        "proof_artifact_refs": stage_proof_artifacts,
         "transcript_capture": transcript_capture,
+        "evaluation": evaluation_status,
         "credential_blockers": capability_blockers,
         "proof_label": STAGE_PROOF_LABELS.get(stage, "stage artifact"),
     }
 
 
 def conversation_capture_form(root: Path, app_id: str, stage_id: str | None = None) -> dict[str, Any]:
-    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
     app = load_app(root, app_id)
     artifacts = artifacts_for_stage(root, app_id, stage)
     events = [event for event in read_events(root, app_id) if event.get("stage") == stage]
@@ -2255,7 +4869,7 @@ def approve_stage(
     defer_capability: bool = False,
     defer_reason: str = "",
 ) -> dict[str, Any]:
-    stage = normalize_stage_id(stage_id, default=derive_stage(root, app_id)["stage"])
+    stage = normalize_stage_id(stage_id) if stage_id is not None else normalize_stage_id(derive_stage(root, app_id)["stage"])
     if defer_capability:
         defer_stage_credentials(root, app_id, stage, defer_reason or note)
     gate = stage_gate_status(root, app_id, stage)
@@ -2408,8 +5022,12 @@ def app_stage_state(root: Path, app_id: str, state: dict[str, Any] | None = None
         stage_state = "blocked"
         next_action = f"Provide or defer credential capability: {capability_blockers[0]}"
     elif not stage_gate["passed"]:
-        stage_state = "blocked" if stage_gate["missing_previous_stages"] else "collecting"
-        next_action = f"Complete current-stage gate: {stage_gate['missing'][0]}"
+        evaluation_missing = [item for item in stage_gate["missing"] if str(item).startswith("evaluation:")]
+        if evaluation_missing and stage_state == "ready_for_review":
+            next_action = f"Complete evaluator duty: {evaluation_missing[0]}"
+        else:
+            stage_state = "blocked" if stage_gate["missing_previous_stages"] else "collecting"
+            next_action = f"Complete current-stage gate: {stage_gate['missing'][0]}"
     elif stage in approved or stage_state == "approved":
         stage_state = "approved"
         next_action = "Hermes may continue to the next admitted lifecycle stage."
@@ -2631,6 +5249,7 @@ def html_artifact_cards(root: Path, app_id: str, refs: Any) -> str:
         if not raw_path:
             continue
         action = str(ref.get("action") or ref.get("kind") or "referenced")
+        kind = str(ref.get("kind") or "")
         exists = bool(target and target.exists())
         size = target.stat().st_size if target and target.exists() and target.is_file() else 0
         checksum = runtime_checksum = ""
@@ -2643,8 +5262,10 @@ def html_artifact_cards(root: Path, app_id: str, refs: Any) -> str:
         preview = artifact_preview(target) if target else ""
         meta_items = [
             f"<span>{html.escape(action)}</span>",
+            f"<span>{html.escape(kind)}</span>" if kind and kind != action else "",
             f"<span>{'exists' if exists else 'missing'}</span>",
         ]
+        meta_items = [item for item in meta_items if item]
         if size:
             meta_items.append(f"<span>{size} bytes</span>")
         if checksum:
@@ -3538,6 +6159,18 @@ def advance_command(root: Path, args: list[str]) -> dict[str, Any]:
     if not result["advanced"]:
         if result.get("error") == "no_next_stage":
             text = f"No next lifecycle stage exists for {app_id}; current stage is {result['stage']}."
+        elif result.get("error") == "current_stage_gate_not_passing":
+            gate = result.get("gate", {}) if isinstance(result.get("gate"), dict) else {}
+            missing = gate.get("missing", []) if isinstance(gate.get("missing"), list) else []
+            text = "\n".join(
+                [
+                    f"Stage advance blocked: {app_id} / {result['stage']}",
+                    "Reason: current stage gate is not passing.",
+                    "Missing:",
+                    *[f"- {item}" for item in missing],
+                    "Next: complete the missing gate evidence, then use /approve_stage before /advance.",
+                ]
+            )
         else:
             text = "\n".join(
                 [
@@ -3955,6 +6588,27 @@ def dispatch_rest(root: Path, method: str, request_path: str, body: dict[str, An
         if method == "POST" and parts[2:] == ["advance"]:
             result = advance_stage(root, app_id, note=str(body.get("note", "")))
             return (200 if result["advanced"] else 409), result
+        if method == "GET" and parts[2:] in (["evaluation"], ["evaluation", "status"]):
+            app = load_app(root, app_id)
+            stage = str(body.get("stage") or app.get("current_stage") or "intent")
+            return 200, {"schema": REST_SCHEMA, "evaluation": stage_evaluation_status(root, app_id, stage)}
+        if method == "POST" and parts[2:] == ["evaluation", "run"]:
+            stage = str(body.get("stage") or "") or None
+            result = run_evaluation_duty(root, app_id, stage, run_gates=bool(body.get("run_gates", False)))
+            status_code = 200 if result.get("status") == "completed" else 202 if result.get("status") in {"requested", "waiting_for_agent"} else 409
+            return status_code, {"schema": REST_SCHEMA, "evaluation_duty": result}
+        if method == "POST" and parts[2:] == ["evaluation", "review"]:
+            review = body.get("review", body)
+            if not isinstance(review, dict):
+                return 400, {"schema": REST_SCHEMA, "error": "invalid_review", "detail": "review must be a JSON object"}
+            result = complete_evaluation_from_review(
+                root,
+                app_id,
+                str(body.get("stage") or review.get("stage") or "") or None,
+                review,
+                run_gates=bool(body.get("run_gates", False)),
+            )
+            return 200, result
         if method == "POST" and parts[2:] == ["events"]:
             return 201, {"schema": REST_SCHEMA, "event": append_event(root, app_id, body)}
         if method == "GET" and parts[2:] == ["artifacts"]:

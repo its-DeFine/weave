@@ -10,12 +10,14 @@ conversation transcript requests to the current runtime slice.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import re
 import socket
 import subprocess
 import sys
+import threading
 import uuid
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -23,6 +25,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX fallback
+    fcntl = None  # type: ignore[assignment]
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 RUNTIME_REPO = os.environ.get("WEAVE_RUNTIME_REPO")
@@ -50,6 +57,9 @@ DEFAULT_COMMAND_LEDGER = DEFAULT_STATE_DIR / "command-bus.jsonl"
 DEFAULT_CONVERSATION_LEDGER = DEFAULT_STATE_DIR / "conversation.jsonl"
 DEFAULT_EVENTS_LEDGER = DEFAULT_STATE_DIR / "events.jsonl"
 DEFAULT_LANE_CLAIMS_LEDGER = DEFAULT_STATE_DIR / "project-lane-claims.json"
+DEFAULT_HOST = "127.0.0.1"
+AUTH_POLICY_LOOPBACK_BEARER = "loopback_bearer"
+AUTH_POLICY_TEST_ONLY_NONE = "test_only_none"
 
 ALLOWED_COMMAND_TYPES = {
     "brief_stage_context",
@@ -106,6 +116,8 @@ SENSITIVE_ASSIGNMENT_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+_JSONL_APPEND_LOCK = threading.Lock()
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -113,8 +125,18 @@ def utc_now() -> str:
 
 def append_jsonl(path: Path, event: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(event, sort_keys=True) + "\n")
+    encoded = json.dumps(event, sort_keys=True) + "\n"
+    with _JSONL_APPEND_LOCK:
+        with path.open("a", encoding="utf-8") as handle:
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                handle.write(encoded)
+                handle.flush()
+                os.fsync(handle.fileno())
+            finally:
+                if fcntl is not None:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
     try:
         path.chmod(0o600)
     except PermissionError:
@@ -308,12 +330,19 @@ class RuntimeState:
         conversation_ledger: Path,
         events_ledger: Path,
         lane_claims_ledger: Path,
+        *,
+        bind_host: str = DEFAULT_HOST,
+        auth_policy: str = AUTH_POLICY_TEST_ONLY_NONE,
+        auth_token: str | None = None,
     ) -> None:
         self.root = root
         self.command_ledger = command_ledger
         self.conversation_ledger = conversation_ledger
         self.events_ledger = events_ledger
         self.lane_claims_ledger = lane_claims_ledger
+        self.bind_host = bind_host
+        self.auth_policy = auth_policy
+        self.auth_token = auth_token
 
     def setup(self) -> None:
         weave_runtime_slice.setup_weave_root(self.root)
@@ -353,6 +382,12 @@ class RuntimeState:
                 "secrets": "rejected",
                 "payments": "blocked",
                 "paperclip": "excluded",
+            },
+            "transport": {
+                "bind_host": self.bind_host,
+                "auth_policy": self.auth_policy,
+                "auth_required": self.auth_policy != AUTH_POLICY_TEST_ONLY_NONE,
+                "cors_origin": "none" if self.auth_policy != AUTH_POLICY_TEST_ONLY_NONE else "*",
             },
             "execution": {
                 "executor_lane": "external_executor_required_for_mutating_work",
@@ -525,6 +560,20 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     def state(self) -> RuntimeState:
         return self.server.runtime_state  # type: ignore[attr-defined]
 
+    def authorized(self) -> bool:
+        if self.state.auth_policy == AUTH_POLICY_TEST_ONLY_NONE:
+            return True
+        if self.state.auth_policy == AUTH_POLICY_LOOPBACK_BEARER:
+            expected = f"Bearer {self.state.auth_token or ''}"
+            return bool(self.state.auth_token) and self.headers.get("Authorization") == expected
+        return False
+
+    def require_authorized(self) -> bool:
+        if self.authorized():
+            return True
+        self.respond(HTTPStatus.UNAUTHORIZED, {"ok": False, "error": "unauthorized", "auth_policy": self.state.auth_policy})
+        return False
+
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         return
 
@@ -536,6 +585,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         path = parsed.path
         params = parse_qs(parsed.query)
         self.state.setup()
+        if not self.require_authorized():
+            return
         if path == "/health":
             self.respond(HTTPStatus.OK, self.state.health())
             return
@@ -579,7 +630,18 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         path = parsed.path
-        body = self.read_json_body()
+        self.state.setup()
+        if not self.require_authorized():
+            return
+        try:
+            body = self.read_json_body()
+        except json.JSONDecodeError as exc:
+            self.respond(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "invalid_json", "detail": str(exc)})
+            return
+        except ValueError as exc:
+            status = HTTPStatus.REQUEST_ENTITY_TOO_LARGE if "too large" in str(exc) else HTTPStatus.BAD_REQUEST
+            self.respond(status, {"ok": False, "error": "invalid_request_body", "detail": str(exc)})
+            return
         if path in {"/", "/command", "/runtime-command"}:
             status, payload = self.state.append_legacy_command(body)
             self.respond(HTTPStatus(status), payload)
@@ -626,7 +688,12 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         self.respond(HTTPStatus(status), payload)
 
     def read_json_body(self) -> dict[str, Any]:
-        length = int(self.headers.get("content-length", "0") or "0")
+        try:
+            length = int(self.headers.get("content-length", "0") or "0")
+        except (TypeError, ValueError) as exc:
+            raise ValueError("content-length must be an integer") from exc
+        if length < 0:
+            raise ValueError("content-length must be non-negative")
         if length > 256_000:
             raise ValueError("request too large")
         if length == 0:
@@ -641,9 +708,10 @@ class RuntimeHandler(BaseHTTPRequestHandler):
 
     def respond(self, status: HTTPStatus, payload: dict[str, Any] | None) -> None:
         self.send_response(int(status))
-        self.send_header("access-control-allow-origin", "*")
+        if self.state.auth_policy == AUTH_POLICY_TEST_ONLY_NONE:
+            self.send_header("access-control-allow-origin", "*")
         self.send_header("access-control-allow-methods", "GET,POST,OPTIONS")
-        self.send_header("access-control-allow-headers", "content-type")
+        self.send_header("access-control-allow-headers", "content-type,authorization")
         self.send_header("cache-control", "no-store")
         if payload is None:
             self.end_headers()
@@ -659,25 +727,48 @@ class RuntimeHTTPServer(ThreadingHTTPServer):
     runtime_state: RuntimeState
 
 
+def is_loopback_bind_host(host: str) -> bool:
+    clean = str(host or "").strip().lower()
+    if clean in {"", "localhost"}:
+        return True
+    try:
+        return ipaddress.ip_address(clean).is_loopback
+    except ValueError:
+        return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--host", default=os.environ.get("WEAVE_RUNTIME_HOST", "0.0.0.0"))
+    parser.add_argument("--host", default=os.environ.get("WEAVE_RUNTIME_HOST", DEFAULT_HOST))
     parser.add_argument("--port", type=int, default=int(os.environ.get("WEAVE_RUNTIME_PORT", "18788")))
     parser.add_argument("--root", type=Path, default=DEFAULT_STATE_DIR)
     parser.add_argument("--command-ledger", type=Path, default=DEFAULT_COMMAND_LEDGER)
     parser.add_argument("--conversation-ledger", type=Path, default=DEFAULT_CONVERSATION_LEDGER)
     parser.add_argument("--events-ledger", type=Path, default=DEFAULT_EVENTS_LEDGER)
     parser.add_argument("--lane-claims-ledger", type=Path, default=DEFAULT_LANE_CLAIMS_LEDGER)
+    parser.add_argument("--auth-token-file", type=Path, default=None, help="bearer token file; defaults to <root>/runtime/tokens/local-api-token")
+    parser.add_argument("--allow-unauthenticated-local", action="store_true", help="test/dev only: disable bearer auth for this local service")
     args = parser.parse_args()
 
+    if args.allow_unauthenticated_local and not is_loopback_bind_host(args.host):
+        raise SystemExit("--allow-unauthenticated-local may only bind to a loopback host")
+
+    root = args.root.expanduser().resolve()
     state = RuntimeState(
-        root=args.root.expanduser().resolve(),
+        root=root,
         command_ledger=args.command_ledger.expanduser().resolve(),
         conversation_ledger=args.conversation_ledger.expanduser().resolve(),
         events_ledger=args.events_ledger.expanduser().resolve(),
         lane_claims_ledger=args.lane_claims_ledger.expanduser().resolve(),
+        bind_host=args.host,
+        auth_policy=AUTH_POLICY_TEST_ONLY_NONE if args.allow_unauthenticated_local else AUTH_POLICY_LOOPBACK_BEARER,
     )
     state.setup()
+    if state.auth_policy == AUTH_POLICY_LOOPBACK_BEARER:
+        token_file = (args.auth_token_file or (root / "runtime" / "tokens" / "local-api-token")).expanduser().resolve()
+        state.auth_token = token_file.read_text(encoding="utf-8").strip() if token_file.exists() else ""
+        if not state.auth_token:
+            raise SystemExit(f"auth token missing at {token_file}; rerun setup or use --allow-unauthenticated-local for tests")
     server = RuntimeHTTPServer((args.host, args.port), RuntimeHandler)
     server.runtime_state = state
     print(json.dumps({"schema": SERVICE_SCHEMA, "event": "started", "host": args.host, "port": args.port, "root": str(state.root)}, sort_keys=True))

@@ -1,0 +1,820 @@
+{
+  "app_entrypoint": "apps/learning-loop/index.html",
+  "app_id": "learning-loop",
+  "app_name": "Learning Loop",
+  "artifact_manifest": [
+    {
+      "id": "index-html",
+      "kind": "generated_app_file",
+      "path": "index.html",
+      "required": true,
+      "sha256": "sha256:e32b4749ae00d69f04058978fc7172a41b1e19233e9a604b9703a2274d02c88b"
+    },
+    {
+      "id": "src-app-js",
+      "kind": "generated_app_file",
+      "path": "src/app.js",
+      "required": true,
+      "sha256": "sha256:d3ebc0596065a08ebc62bd9345ee8ecdf339ff8d1fd2a94ed716b3d4b8f82bfb"
+    },
+    {
+      "id": "src-styles-css",
+      "kind": "generated_app_file",
+      "path": "src/styles.css",
+      "required": true,
+      "sha256": "sha256:cc01750ae21a60ba8b344a4544caf8b3696d65128f4cfcbc67e76b0c16c310e2"
+    },
+    {
+      "id": "public-app-data-json",
+      "kind": "generated_app_file",
+      "path": "public/app-data.json",
+      "required": true,
+      "sha256": "sha256:6c0329301cc7b79d7795d41f74d8e0f38987dcc115b847525d5af8b82a9ae068"
+    },
+    {
+      "id": "readme-md",
+      "kind": "generated_app_file",
+      "path": "README.md",
+      "required": true,
+      "sha256": "sha256:752851688329454c6cfc7191597ba0ab4de76434d301d7fbb204019edf48b8a6"
+    },
+    {
+      "id": "intent-frame-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/intent-frame.json",
+      "required": true,
+      "sha256": "sha256:bd709e0c3673bf29d0b93bb353721d6f56a39e8e78b9fa0caaa9e607affafaa9"
+    },
+    {
+      "id": "profile-selection-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/profile-selection.json",
+      "required": true,
+      "sha256": "sha256:d9d0ba46527827497fe79b5593266d76bad36d17f452ff2206ed9084538ae7ac"
+    },
+    {
+      "id": "intake-state-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/intake-state.json",
+      "required": true,
+      "sha256": "sha256:4a1784a2574b6cf6243b33ae782334ac9e7cd8764123d1a3e583de69a9bbeb35"
+    },
+    {
+      "id": "cwa-work-domain-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/cwa-work-domain.json",
+      "required": true,
+      "sha256": "sha256:25f7f17e214c266419d1ddd9bc7bcef51469b08632cc4590cdc599992de75146"
+    },
+    {
+      "id": "information-requirements-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/information-requirements.json",
+      "required": true,
+      "sha256": "sha256:cc31d84b3d3d7f4f915e413ad2388ea1b8ef8f072481fbd2204038976a59a8bc"
+    },
+    {
+      "id": "missing-information-assessment-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/missing-information-assessment.json",
+      "required": true,
+      "sha256": "sha256:d9a6cdd7c388ccdb264a0d001013b226772992ae948aa76b6965f65a75a131bc"
+    },
+    {
+      "id": "dmn-routing-table-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/dmn-routing-table.json",
+      "required": true,
+      "sha256": "sha256:36f9d73f12841ba3406cf44b7a7350791fbe4cda0967851e7bdd25cbc30f510e"
+    },
+    {
+      "id": "decision-evaluation-log-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/decision-evaluation-log.json",
+      "required": true,
+      "sha256": "sha256:b23120ea9b6f337e61e324c253bd61091b6eef015a2f07f8a36401aa50b33788"
+    },
+    {
+      "id": "ibis-issue-map-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/ibis-issue-map.json",
+      "required": true,
+      "sha256": "sha256:655947f62ec0258c2953a9070f4e7d8b1b7a41f55fa4f4a3158e1c965a39f1c8"
+    },
+    {
+      "id": "open-issues-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/open-issues.json",
+      "required": true,
+      "sha256": "sha256:6a90aa10034c37c42283753b38592bd8e0f87d55ec7f9d11983290ddf0f67b24"
+    },
+    {
+      "id": "adr-0001-local-private-first-md",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/adr-0001-local-private-first.md",
+      "required": true,
+      "sha256": "sha256:a36a3b21a26ccb3ff94857e24efdd7bba187b805c437d17a0a83db5d818f63d3"
+    },
+    {
+      "id": "decision-register-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/decision-register.json",
+      "required": true,
+      "sha256": "sha256:b11a77d4b6f9a742ac8265f4fa8195df70cda34dd7b96a8c83f94040b1612ea9"
+    },
+    {
+      "id": "premortem-report-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/premortem-report.json",
+      "required": true,
+      "sha256": "sha256:1412b5f07d9680a36265da877afb64ad24595768c186ea13f17d001a4089d4dc"
+    },
+    {
+      "id": "risk-to-test-map-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/risk-to-test-map.json",
+      "required": true,
+      "sha256": "sha256:df8bbd0904d22644f755396facbddd7d3da7d301d67ca70f57a7625570aab24e"
+    },
+    {
+      "id": "action-intent-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/action-intent.json",
+      "required": true,
+      "sha256": "sha256:2153a56c885ea644b1c901180669334d39fa385c5bd43a4c6f31f8db3f008b0d"
+    },
+    {
+      "id": "action-result-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/action-result.json",
+      "required": true,
+      "sha256": "sha256:9d4fbbc6c0c95c843dcabe17a5b784e22e484e77bb2239d4f364aefefc490e07"
+    },
+    {
+      "id": "proof-boundary-report-json",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/proof-boundary-report.json",
+      "required": true,
+      "sha256": "sha256:ee084f902990bd526361f8fada05a2ea871258f5473c04f7f814c713af89b0b7"
+    },
+    {
+      "id": "lifecycle-transition-log-jsonl",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/lifecycle-transition-log.jsonl",
+      "required": true,
+      "sha256": "sha256:b3c6c4bbd233a8a12607e84912eeae98131b0ab6f10cc544a8403218abe191be"
+    },
+    {
+      "id": "prov-ledger-jsonl",
+      "kind": "framework_gate_artifact",
+      "path": "cognitive-artifacts/prov-ledger.jsonl",
+      "required": true,
+      "sha256": "sha256:1185e19cfe4cc3a858ac2b7192419034dbe500c73df23e599b331c53a07b7102"
+    }
+  ],
+  "authority_mode": "recommend_only",
+  "data_boundary": {
+    "deployment_allowed": false,
+    "external_send_allowed": false,
+    "marketing_included": false,
+    "model_provider_private_data_boundary": "not_exercised_synthetic_only",
+    "real_private_data_allowed": false,
+    "synthetic_private_data_allowed": true
+  },
+  "explicit_non_claims": [
+    "deterministic local fixture/runtime proof only; not live Hermes CLI proof",
+    "not Telegram, deployed gateway, or hosted application proof",
+    "no public marketing, analytics calls, payments, auth changes, or external sends",
+    "uses synthetic private-domain sample data only; no real personal or customer data"
+  ],
+  "gate_summary": {
+    "critical_failed": 0,
+    "critical_passed": 53,
+    "waived": 0,
+    "warnings": 0
+  },
+  "human_review_focus": [
+    "Inspect failed gates first.",
+    "Read PROV ledger before accepting proof-surface claims.",
+    "Verify CWA/DMN/IBIS/ADR/Premortem/PROV artifacts are consumed by gates."
+  ],
+  "not_proven": [
+    "live Hermes-agent lifecycle",
+    "Codex/Hermes goal-loop execution until acceptance",
+    "Telegram/deployed-gateway adapter behavior",
+    "hosted/private-app runtime behavior",
+    "real user requirement intake",
+    "real private/customer data handling",
+    "production/customer/market validation"
+  ],
+  "proof_surface": "local deterministic private-app fixture with generated static apps and reviewable framework-gate evidence",
+  "review_gates": [
+    {
+      "detail": "index.html, src/app.js, src/styles.css, public/app-data.json, README.md",
+      "framework": "Evidence",
+      "name": "required_app_files",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "index.html",
+        "src/app.js",
+        "src/styles.css",
+        "public/app-data.json",
+        "README.md"
+      ]
+    },
+    {
+      "detail": "19",
+      "framework": "Evidence",
+      "name": "framework_artifacts_complete",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/intent-frame.json",
+        "cognitive-artifacts/profile-selection.json",
+        "cognitive-artifacts/intake-state.json",
+        "cognitive-artifacts/cwa-work-domain.json",
+        "cognitive-artifacts/information-requirements.json",
+        "cognitive-artifacts/missing-information-assessment.json",
+        "cognitive-artifacts/dmn-routing-table.json",
+        "cognitive-artifacts/decision-evaluation-log.json",
+        "cognitive-artifacts/ibis-issue-map.json",
+        "cognitive-artifacts/open-issues.json",
+        "cognitive-artifacts/adr-0001-local-private-first.md",
+        "cognitive-artifacts/decision-register.json",
+        "cognitive-artifacts/premortem-report.json",
+        "cognitive-artifacts/risk-to-test-map.json",
+        "cognitive-artifacts/action-intent.json",
+        "cognitive-artifacts/action-result.json",
+        "cognitive-artifacts/proof-boundary-report.json",
+        "cognitive-artifacts/lifecycle-transition-log.jsonl",
+        "cognitive-artifacts/prov-ledger.jsonl"
+      ]
+    },
+    {
+      "detail": "fetch(, XMLHttpRequest, sendBeacon, localStorage, innerHTML",
+      "framework": "QA",
+      "name": "no_network_or_dom_injection_terms",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "src/app.js"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Evidence",
+      "name": "app_data_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "public/app-data.json"
+      ]
+    },
+    {
+      "detail": "external_actions_enabled=false",
+      "framework": "DMN",
+      "name": "external_actions_disabled",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "public/app-data.json"
+      ]
+    },
+    {
+      "detail": "marketing_included=false",
+      "framework": "DMN",
+      "name": "marketing_excluded",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "public/app-data.json"
+      ]
+    },
+    {
+      "detail": "3",
+      "framework": "CWA",
+      "name": "enough_private_sample_signals",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "public/app-data.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Intent",
+      "name": "intent_frame_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/intent-frame.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Profile",
+      "name": "profile_selection_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/profile-selection.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Evidence",
+      "name": "intake_state_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/intake-state.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "CWA",
+      "name": "cwa_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/cwa-work-domain.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "CWA",
+      "name": "information_requirements_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/information-requirements.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "CWA",
+      "name": "missing_information_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/missing-information-assessment.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "DMN",
+      "name": "dmn_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/dmn-routing-table.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "DMN",
+      "name": "decision_log_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/decision-evaluation-log.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "IBIS",
+      "name": "ibis_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/ibis-issue-map.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "IBIS",
+      "name": "open_issues_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/open-issues.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "ADR",
+      "name": "decision_register_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/decision-register.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Premortem",
+      "name": "premortem_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/premortem-report.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Premortem",
+      "name": "risk_to_test_map_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/risk-to-test-map.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Action",
+      "name": "action_intent_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/action-intent.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Action",
+      "name": "action_result_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/action-result.json"
+      ]
+    },
+    {
+      "detail": "parseable JSON",
+      "framework": "Proof",
+      "name": "proof_boundary_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/proof-boundary-report.json"
+      ]
+    },
+    {
+      "detail": "5 JSONL events",
+      "framework": "DMN",
+      "name": "lifecycle_transition_log_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/lifecycle-transition-log.jsonl"
+      ]
+    },
+    {
+      "detail": "14 JSONL events",
+      "framework": "PROV",
+      "name": "prov_ledger_parseable",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/prov-ledger.jsonl"
+      ]
+    },
+    {
+      "detail": "learning-loop",
+      "framework": "Evidence",
+      "name": "cross_artifact_identity_consistency",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/*.json"
+      ]
+    },
+    {
+      "detail": "local deterministic private-app fixture with generated static apps and reviewable framework-gate evidence",
+      "framework": "Proof",
+      "name": "intent_frame_proof_boundary",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/intent-frame.json"
+      ]
+    },
+    {
+      "detail": "recommend_only",
+      "framework": "DMN",
+      "name": "recommend_only_authority",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/profile-selection.json"
+      ]
+    },
+    {
+      "detail": "cwa_discovery, dmn_decision_table, ibis_issue_map, adr_decision_record, premortem_review, prov_ledger",
+      "framework": "Profile",
+      "name": "required_framework_stack_selected",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/profile-selection.json"
+      ]
+    },
+    {
+      "detail": "selected=['cwa_discovery', 'dmn_decision_table', 'ibis_issue_map', 'adr_decision_record', 'premortem_review', 'prov_ledger']; optional=['gestalt']",
+      "framework": "Profile",
+      "name": "gestalt_optional_deferred",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/profile-selection.json"
+      ]
+    },
+    {
+      "detail": "local-only, no public claims, reviewable artifacts, synthetic sample data",
+      "framework": "CWA",
+      "name": "cwa_private_constraints_consumed",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/cwa-work-domain.json"
+      ]
+    },
+    {
+      "detail": "observations match sample_data",
+      "framework": "CWA",
+      "name": "cwa_observations_match_app_data",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/cwa-work-domain.json",
+        "public/app-data.json"
+      ]
+    },
+    {
+      "detail": "present, present_synthetic",
+      "framework": "CWA",
+      "name": "information_requirements_classified",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/information-requirements.json"
+      ]
+    },
+    {
+      "detail": "required_missing=[]",
+      "framework": "CWA",
+      "name": "cwa_missing_information_gate",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/missing-information-assessment.json"
+      ]
+    },
+    {
+      "detail": "{'id': 'DMN-002', 'if': 'private data domain and no approval for external actions', 'result': 'passed', 'then': 'generate local static app only'}",
+      "framework": "DMN",
+      "name": "dmn_local_only_routing",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/dmn-routing-table.json"
+      ]
+    },
+    {
+      "detail": "{'id': 'DMN-004', 'if': 'marketing stage requested in this evaluation', 'result': 'not_requested', 'then': 'block and record non-claim'}",
+      "framework": "DMN",
+      "name": "dmn_marketing_block",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/dmn-routing-table.json"
+      ]
+    },
+    {
+      "detail": "DMN-001, DMN-002, DMN-003, DMN-004, DMN-005",
+      "framework": "DMN",
+      "name": "dmn_reviewable_proof_rule",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/dmn-routing-table.json"
+      ]
+    },
+    {
+      "detail": "5 evaluations",
+      "framework": "DMN",
+      "name": "dmn_transition_gate",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/decision-evaluation-log.json"
+      ]
+    },
+    {
+      "detail": "local static app",
+      "framework": "IBIS",
+      "name": "ibis_local_static_preferred",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/ibis-issue-map.json"
+      ]
+    },
+    {
+      "detail": "[]",
+      "framework": "IBIS",
+      "name": "ibis_no_unwaived_blockers",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/ibis-issue-map.json"
+      ]
+    },
+    {
+      "detail": "[]",
+      "framework": "IBIS",
+      "name": "open_issues_no_blocking_without_waiver",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/open-issues.json"
+      ]
+    },
+    {
+      "detail": "Status: accepted",
+      "framework": "ADR",
+      "name": "adr_accepted",
+      "passed": true,
+      "severity": "major",
+      "source_artifacts": [
+        "cognitive-artifacts/adr-0001-local-private-first.md"
+      ]
+    },
+    {
+      "detail": "local/static/non-claim text present",
+      "framework": "ADR",
+      "name": "adr_local_private_decision",
+      "passed": true,
+      "severity": "major",
+      "source_artifacts": [
+        "cognitive-artifacts/adr-0001-local-private-first.md"
+      ]
+    },
+    {
+      "detail": "[{'artifact': 'adr-0001-local-private-first.md', 'covers': ['implementation_surface', 'data_boundary', 'external_action_boundary'], 'decision': 'build a dependency-free local static app from synthetic private-domain rows', 'id': 'ADR-0001', 'status': 'accepted'}]",
+      "framework": "ADR",
+      "name": "decision_register_covers_implementation",
+      "passed": true,
+      "severity": "major",
+      "source_artifacts": [
+        "cognitive-artifacts/decision-register.json"
+      ]
+    },
+    {
+      "detail": "3",
+      "framework": "Premortem",
+      "name": "premortem_failure_modes_classified",
+      "passed": true,
+      "severity": "major",
+      "source_artifacts": [
+        "cognitive-artifacts/premortem-report.json"
+      ]
+    },
+    {
+      "detail": "[{'risk_id': 'RISK-001', 'test_gate': 'proof_boundary_non_claims'}, {'risk_id': 'RISK-002', 'test_gate': 'no_network_or_dom_injection_terms'}, {'risk_id': 'RISK-003', 'test_gate': 'cwa_missing_information_gate'}]",
+      "framework": "Premortem",
+      "name": "risk_to_test_map_complete",
+      "passed": true,
+      "severity": "major",
+      "source_artifacts": [
+        "cognitive-artifacts/risk-to-test-map.json"
+      ]
+    },
+    {
+      "detail": "write local files under scenario output run syntax and artifact checks",
+      "framework": "Action",
+      "name": "action_intent_scope_local_only",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/action-intent.json"
+      ]
+    },
+    {
+      "detail": "deployment, external sends, marketing publish, network calls, payments, real private data",
+      "framework": "Action",
+      "name": "action_intent_blocks_external_actions",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/action-intent.json"
+      ]
+    },
+    {
+      "detail": "README.md, index.html, public/app-data.json, src/app.js, src/styles.css",
+      "framework": "Action",
+      "name": "action_result_generated_files_match",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/action-result.json"
+      ]
+    },
+    {
+      "detail": "['deterministic local fixture/runtime proof only; not live Hermes CLI proof', 'not Telegram, deployed gateway, or hosted application proof', 'no public marketing, analytics calls, payments, auth changes, or external sends', 'uses synthetic private-domain sample data only; no real personal or customer data']",
+      "framework": "Proof",
+      "name": "action_result_claim_limits",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/action-result.json"
+      ]
+    },
+    {
+      "detail": "local deterministic private-app fixture with generated static apps and reviewable framework-gate evidence",
+      "framework": "Proof",
+      "name": "proof_boundary_highest_surface",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/proof-boundary-report.json"
+      ]
+    },
+    {
+      "detail": "['deterministic local fixture/runtime proof only; not live Hermes CLI proof', 'not Telegram, deployed gateway, or hosted application proof', 'no public marketing, analytics calls, payments, auth changes, or external sends', 'uses synthetic private-domain sample data only; no real personal or customer data']",
+      "framework": "Proof",
+      "name": "proof_boundary_non_claims",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/proof-boundary-report.json"
+      ]
+    },
+    {
+      "detail": "['live Hermes-agent lifecycle', 'Codex/Hermes goal-loop execution until acceptance', 'Telegram/deployed-gateway adapter behavior', 'hosted/private-app runtime behavior', 'real user requirement intake', 'real private/customer data handling', 'production/customer/market validation']",
+      "framework": "Proof",
+      "name": "proof_boundary_not_proven",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/proof-boundary-report.json"
+      ]
+    },
+    {
+      "detail": "5 transitions",
+      "framework": "DMN",
+      "name": "lifecycle_transitions_cite_dmn",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/lifecycle-transition-log.jsonl"
+      ]
+    },
+    {
+      "detail": "input.normalized, intent.framed, profile.selected, cwa.produced, missing_information.assessed, dmn.evaluated, ibis.produced, premortem.produced, adr.accepted, action.intent_recorded, app.generated, qa.verified, proof.reported, action.result_recorded",
+      "framework": "PROV",
+      "name": "prov_ledger_required_events",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/prov-ledger.jsonl"
+      ]
+    },
+    {
+      "detail": "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]",
+      "framework": "PROV",
+      "name": "prov_ledger_event_order",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/prov-ledger.jsonl"
+      ]
+    },
+    {
+      "detail": "[]",
+      "framework": "PROV",
+      "name": "prov_ledger_entities_exist",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "cognitive-artifacts/prov-ledger.jsonl"
+      ]
+    },
+    {
+      "detail": "node --check ok",
+      "framework": "QA",
+      "name": "javascript_syntax",
+      "passed": true,
+      "severity": "critical",
+      "source_artifacts": [
+        "src/app.js"
+      ]
+    }
+  ],
+  "review_json": "apps/learning-loop/review.json",
+  "schema": "weave-private-app-case-review/v0.2",
+  "status": "pass",
+  "trigger_mode": "reactive"
+}

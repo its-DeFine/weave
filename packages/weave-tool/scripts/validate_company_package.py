@@ -27,6 +27,35 @@ REQUIRED_STAGES = [
     "iteration",
 ]
 
+CANONICAL_LIFECYCLE_STAGES = {
+    "intent": "Intent",
+    "research": "Research",
+    "selection": "Selection",
+    "plan": "Plan",
+    "engineering": "Engineering",
+    "qa": "QA",
+    "kpi-setup": "KPI Setup",
+    "marketing": "Marketing",
+    "iteration": "Iteration",
+    "analysis": "Analysis",
+}
+LIFECYCLE_STAGE_ALIASES = {
+    "intent": "intent",
+    "research": "research",
+    "research-analysis": "research",
+    "selection": "selection",
+    "plan": "plan",
+    "engineering": "engineering",
+    "engineering-integration": "engineering",
+    "qa": "qa",
+    "qa-readiness": "qa",
+    "kpi-setup": "kpi-setup",
+    "marketing": "marketing",
+    "iteration": "iteration",
+    "analysis": "analysis",
+}
+REQUIRED_EVAL_LIFECYCLE_SLUGS = set(CANONICAL_LIFECYCLE_STAGES)
+
 REQUIRED_DEPENDENCIES = {
     "research-gate": "intent-contract",
     "selection-gate": "research-gate",
@@ -53,6 +82,31 @@ REQUIRED_SKILLS = {
     "gestalt-runtime",
 }
 
+REQUIRED_EVAL_CONTRACTS = [
+    "lifecycle/intent.yaml",
+    "lifecycle/research.yaml",
+    "lifecycle/selection.yaml",
+    "lifecycle/plan.yaml",
+    "lifecycle/engineering.yaml",
+    "lifecycle/qa.yaml",
+    "lifecycle/kpi-setup.yaml",
+    "lifecycle/marketing.yaml",
+    "lifecycle/iteration.yaml",
+    "lifecycle/analysis.yaml",
+    "release_readiness.yaml",
+]
+REQUIRED_RUNTIME_QA_RESOURCE_STATES = {
+    "created",
+    "running",
+    "completed",
+    "teardown_requested",
+    "stopped",
+    "removed",
+    "phased_out",
+}
+RUNTIME_QA_MANIFEST_SCHEMA = "weave.runtime-qa-manifest/v0.1"
+RUNTIME_QA_CLEANUP_POLICY_SCHEMA = "weave.runtime-cleanup-policy/v0.1"
+
 EXPECTED_VERSION = "2026.05.13-console"
 EXPECTED_RELEASE_DATE = "2026-05-13"
 EXPECTED_RELEASE_TAG = "v2026.05.13-console"
@@ -65,6 +119,8 @@ FALLBACK_AGENT_SLUG = "ceo-fallback"
 FALLBACK_ADAPTER = "local_fallback_gateway"
 GESTALT_PROMPT_PACK = "hermes-gestalt-runtime-pack"
 PROMPT_PACK_SCHEMA = "weave-hermes-gestalt-runtime-pack/v0.1"
+PRIMITIVE_REGISTRY_APPLICATION = "weave-lifecycle-runtime"
+PRIMITIVE_REGISTRY_SCOPE = "cross-application-lifecycle-primitives"
 
 ABSOLUTE_PATH_PATTERN = r"(?:/" + "Users/|/" + "home/|/" + "var/lib/|/" + "tmp/)"
 LOOPBACK_PATTERN = r"\b(?:" + r"127\.0\.0\.1|" + "local" + "host|" + "host" + r"\.docker\.internal)\b"
@@ -92,6 +148,7 @@ class PackageSummary:
     skill_count: int
     primitive_count: int
     prompt_pack_count: int
+    eval_contract_count: int
 
 
 def parse_frontmatter(path: Path) -> dict[str, str]:
@@ -312,6 +369,13 @@ def validate_prompt_packs(package_root: Path) -> int:
     return 1
 
 
+def canonical_lifecycle_slug(stage: str, *, context: str) -> str:
+    canonical = LIFECYCLE_STAGE_ALIASES.get(stage)
+    if canonical is None:
+        raise PackageValidationError(f"{context}: invalid lifecycle stage {stage}")
+    return canonical
+
+
 def validate_tasks(package_root: Path) -> list[dict[str, str]]:
     task_paths = sorted((package_root / "projects").glob("*/tasks/*/TASK.md"))
     if not task_paths:
@@ -330,6 +394,7 @@ def validate_tasks(package_root: Path) -> list[dict[str, str]]:
             raise PackageValidationError(f"duplicate task slug: {slug}")
         if stage not in REQUIRED_STAGES:
             raise PackageValidationError(f"{path}: invalid lifecycleStage {stage}")
+        canonical_lifecycle_slug(stage, context=str(path))
         slugs.add(slug)
         stages[stage] = slug
         tasks.append(fields)
@@ -359,9 +424,73 @@ def validate_primitives(package_root: Path) -> int:
     ids = [item.get("id") for item in primitives if isinstance(item, dict)]
     if len(ids) != len(set(ids)):
         raise PackageValidationError("primitive ids must be unique")
-    if data.get("application") != "askuno-runtime-proof":
-        raise PackageValidationError("primitive registry must target askuno-runtime-proof")
+    if data.get("application") != PRIMITIVE_REGISTRY_APPLICATION:
+        raise PackageValidationError(f"primitive registry must target {PRIMITIVE_REGISTRY_APPLICATION}")
+    if data.get("registryScope") != PRIMITIVE_REGISTRY_SCOPE:
+        raise PackageValidationError(f"primitive registry must declare scope {PRIMITIVE_REGISTRY_SCOPE}")
     return len(primitives)
+
+
+def validate_runtime_qa_eval_contract(relative_name: str, contract: dict[str, object]) -> None:
+    runtime_qa = contract.get("runtime_agent_qa")
+    if not isinstance(runtime_qa, dict):
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa requirements are required")
+    if runtime_qa.get("teardown_policy_required") is not True:
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.teardown_policy_required must be true")
+    if runtime_qa.get("manifest_schema") != RUNTIME_QA_MANIFEST_SCHEMA:
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.manifest_schema must be {RUNTIME_QA_MANIFEST_SCHEMA}")
+    if runtime_qa.get("cleanup_policy_schema") != RUNTIME_QA_CLEANUP_POLICY_SCHEMA:
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.cleanup_policy_schema must be {RUNTIME_QA_CLEANUP_POLICY_SCHEMA}")
+    states = runtime_qa.get("resource_states_required")
+    if not isinstance(states, list) or not all(isinstance(item, str) for item in states):
+        raise PackageValidationError(f"evals/{relative_name}: runtime_agent_qa.resource_states_required must be a list of strings")
+    missing_states = sorted(REQUIRED_RUNTIME_QA_RESOURCE_STATES - set(states))
+    if missing_states:
+        raise PackageValidationError(f"evals/{relative_name}: missing runtime QA resource states: {', '.join(missing_states)}")
+    required_inputs = contract.get("required_inputs")
+    input_text = "\n".join(required_inputs) if isinstance(required_inputs, list) else ""
+    for marker in ("runtime resource lifecycle manifest", "teardown policy"):
+        if marker not in input_text:
+            raise PackageValidationError(f"evals/{relative_name}: required_inputs must mention {marker}")
+    gate_text = json.dumps(contract.get("hard_gates", []), sort_keys=True)
+    if "teardown policy" not in gate_text or "lifecycle cleanup states" not in gate_text:
+        raise PackageValidationError(f"evals/{relative_name}: hard_gates must require teardown/lifecycle cleanup evidence")
+
+
+def validate_eval_contracts(package_root: Path) -> int:
+    eval_root = package_root / "evals"
+    seen_slugs: set[str] = set()
+    for relative_name in REQUIRED_EVAL_CONTRACTS:
+        path = eval_root / relative_name
+        if not path.exists():
+            raise PackageValidationError(f"missing eval contract: evals/{relative_name}")
+        try:
+            contract = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise PackageValidationError(f"evals/{relative_name}: invalid JSON-compatible contract: {exc}") from exc
+        if contract.get("schema") not in {"weave.lifecycle-eval/v0.1", "weave.release-eval/v0.1"}:
+            raise PackageValidationError(f"evals/{relative_name}: schema must be weave.lifecycle-eval/v0.1 or weave.release-eval/v0.1")
+        slug = contract.get("slug")
+        if not isinstance(slug, str) or not slug:
+            raise PackageValidationError(f"evals/{relative_name}: slug is required")
+        if slug in seen_slugs:
+            raise PackageValidationError(f"duplicate eval contract slug: {slug}")
+        seen_slugs.add(slug)
+        if not contract.get("stage"):
+            raise PackageValidationError(f"evals/{relative_name}: stage is required")
+        if not isinstance(contract.get("hard_gates"), list):
+            raise PackageValidationError(f"evals/{relative_name}: hard_gates must be a list")
+        if not isinstance(contract.get("rubric"), list) or not contract["rubric"]:
+            raise PackageValidationError(f"evals/{relative_name}: rubric must be a non-empty list")
+        for gate in contract["hard_gates"]:
+            if not isinstance(gate, dict) or not gate.get("id") or not gate.get("kind"):
+                raise PackageValidationError(f"evals/{relative_name}: every hard gate needs id and kind")
+        for dimension in contract["rubric"]:
+            if not isinstance(dimension, dict) or not dimension.get("id") or not dimension.get("max_score"):
+                raise PackageValidationError(f"evals/{relative_name}: every rubric dimension needs id and max_score")
+        if relative_name == "lifecycle/qa.yaml":
+            validate_runtime_qa_eval_contract(relative_name, contract)
+    return len(REQUIRED_EVAL_CONTRACTS)
 
 
 def validate_package(package_root: Path) -> PackageSummary:
@@ -375,6 +504,7 @@ def validate_package(package_root: Path) -> PackageSummary:
     agents = validate_agents(root, skill_slugs)
     tasks = validate_tasks(root)
     primitive_count = validate_primitives(root)
+    eval_contract_count = validate_eval_contracts(root)
     return PackageSummary(
         slug=company["slug"],
         version=company["version"],
@@ -383,6 +513,7 @@ def validate_package(package_root: Path) -> PackageSummary:
         skill_count=len(skill_slugs),
         primitive_count=primitive_count,
         prompt_pack_count=prompt_pack_count,
+        eval_contract_count=eval_contract_count,
     )
 
 
@@ -402,6 +533,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"skills: {summary.skill_count}")
     print(f"primitives: {summary.primitive_count}")
     print(f"prompt_packs: {summary.prompt_pack_count}")
+    print(f"eval_contracts: {summary.eval_contract_count}")
     return 0
 
 

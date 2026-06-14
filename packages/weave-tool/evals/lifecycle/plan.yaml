@@ -1,0 +1,68 @@
+{
+  "advance_min_score_percent": 80,
+  "blockers": [
+    "no acceptance criteria",
+    "no verification commands",
+    "approval-gated action hidden as normal task",
+    "agent-runtime feature lacks isolated runtime QA contract",
+    "runtime/tool/transport proof surface not named"
+  ],
+  "description": "Evaluate whether the implementation plan is executable and proof-oriented.",
+  "hard_gates": [
+    {
+      "description": "Plan contains concrete acceptance criteria.",
+      "id": "acceptance_criteria_present",
+      "kind": "manual"
+    },
+    {
+      "description": "Plan names the tests/smokes/readbacks needed to prove completion.",
+      "id": "verification_surface_present",
+      "kind": "manual"
+    },
+    {
+      "description": "Agent-runtime plans name isolated runtime topology, tools, scenario matrix, evidence, and allowed claim boundary when applicable.",
+      "id": "runtime_agent_qa_contract_present",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "task list",
+    "acceptance criteria",
+    "dependencies",
+    "verification commands",
+    "runtime-agent QA contract when applicable",
+    "target proof surface and allowed claim boundary"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "task_granularity",
+      "max_score": 4,
+      "question": "Are tasks small enough for an agent to execute and verify?"
+    },
+    {
+      "id": "path_specificity",
+      "max_score": 4,
+      "question": "Does the plan name files, commands, or target surfaces where possible?"
+    },
+    {
+      "id": "dependency_awareness",
+      "max_score": 4,
+      "question": "Are prerequisites, credentials, and blockers identified?"
+    },
+    {
+      "id": "proof_quality",
+      "max_score": 4,
+      "question": "Can the plan prove done without overclaiming?"
+    },
+    {
+      "id": "runtime_qa_specificity",
+      "max_score": 4,
+      "question": "If runtime agents, MCP, gateways, or A2A/XMTP transport are involved, does the plan specify isolated runtimes, model/tool parity, communication scenarios, parallel lanes, and readback artifacts?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "plan",
+  "stage": "Plan"
+}

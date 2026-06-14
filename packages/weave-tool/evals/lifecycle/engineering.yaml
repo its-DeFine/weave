@@ -1,0 +1,78 @@
+{
+  "advance_min_score_percent": 84,
+  "blockers": [
+    "failing tests",
+    "secret leakage",
+    "untested external side effect",
+    "unsafe auth/bind policy",
+    "diff does not match plan"
+  ],
+  "description": "Evaluate whether implementation is correct, maintainable, tested, and trust-boundary safe.",
+  "hard_gates": [
+    {
+      "command": "python3 -m unittest discover -s tests -p 'test_*.py'",
+      "description": "Full Python unit suite passes.",
+      "id": "unit_tests_pass",
+      "kind": "command",
+      "timeout_seconds": 300
+    },
+    {
+      "command": "git diff --check",
+      "description": "Git whitespace/conflict-marker check passes.",
+      "id": "diff_check_clean",
+      "kind": "command",
+      "timeout_seconds": 60
+    },
+    {
+      "command": "python3 scripts/check_no_secrets.py",
+      "description": "Secret scanner passes.",
+      "id": "no_secret_leakage",
+      "kind": "command",
+      "redact_output": true,
+      "timeout_seconds": 120
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "accepted plan",
+    "implementation diff",
+    "tests",
+    "user-facing docs when behavior changes"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "correctness",
+      "max_score": 4,
+      "question": "Does the code satisfy the accepted behavior and edge cases?"
+    },
+    {
+      "id": "maintainability",
+      "max_score": 4,
+      "question": "Is the implementation cohesive, readable, and not overbuilt?"
+    },
+    {
+      "id": "user_experience",
+      "max_score": 4,
+      "question": "Is the human/operator interface understandable and useful?"
+    },
+    {
+      "id": "trust_boundary",
+      "max_score": 4,
+      "question": "Are auth, secrets, public claims, and side effects bounded?"
+    },
+    {
+      "id": "test_coverage",
+      "max_score": 4,
+      "question": "Do tests cover success, failure, and regression-prone paths?"
+    },
+    {
+      "id": "documentation",
+      "max_score": 4,
+      "question": "Are changed user-facing behaviors documented?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "engineering",
+  "stage": "Engineering"
+}

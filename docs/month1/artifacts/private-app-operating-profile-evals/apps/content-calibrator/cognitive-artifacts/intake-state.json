@@ -1,0 +1,30 @@
+{
+  "app_id": "content-calibrator",
+  "app_name": "Content Calibrator",
+  "authority_mode": "recommend_only",
+  "created_at": "2026-06-09T18:01:18Z",
+  "input_surface": "synthetic_fixture",
+  "known_fields": {
+    "affected_user": "solo marketer",
+    "features": [
+      "content queue",
+      "objection mapping",
+      "publish-readiness warning",
+      "JSON export"
+    ],
+    "private_data_domain": "draft ideas, audience objections, launch constraints",
+    "sample_data_rows": 3,
+    "success_metrics": [
+      "best draft selected",
+      "publish blocked until review",
+      "no social post sent"
+    ]
+  },
+  "marketing_excluded": true,
+  "next_state": "cwa_information_assessment",
+  "normalized_intent": "Organize private content ideas into a local review queue without publishing.",
+  "private_local_only": true,
+  "schema": "weave-intake-state/v0.1",
+  "status": "sufficient_for_fixture_runtime",
+  "trigger_mode": "reactive"
+}
