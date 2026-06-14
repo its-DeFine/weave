@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 import weave_runtime_slice as runtime
+import weave_agent_runtime_contract
 
 
 APP_ID = "lantern-archive-live"
@@ -977,6 +978,12 @@ def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
     final_state = runtime.app_state(root, APP_ID)
     app_snapshot = report_dir / "app-source-snapshot"
     copy_tree_snapshot(app_repo, app_snapshot)
+    adapter_contract = weave_agent_runtime_contract.hermes_contract(
+        binary={"found": hermes_bin.exists(), "name": hermes_bin.name, "path": str(hermes_bin)},
+        hermes_setup_state="operator_confirmed_ready",
+    )
+    adapter_contract["current_probe"]["live_qa_completed"] = True
+    weave_agent_runtime_contract.validate_contract(adapter_contract)
     qa_report = {
         "schema": "weave-live-hermes-lifecycle-qa/v0.1",
         "run_id": run_id,
@@ -988,6 +995,7 @@ def run_live_qa(args: argparse.Namespace) -> dict[str, Any]:
         "model": args.model,
         "provider": args.provider,
         "reasoning_effort": args.reasoning_effort,
+        "agent_runtime_contract": adapter_contract,
         "hermes_bin_exists": hermes_bin.exists(),
         "conversation_turn_model": "multi-turn per lifecycle stage: draft turn, work/verification, completion turn, then approval",
         "max_turns_note": "Hermes --max-turns controls internal tool iterations per model call; it is not the number of owner/Hermes messages allowed per lifecycle stage.",
