@@ -60,10 +60,11 @@ Runtime surfaces:
 - `bin/weave hermes status`: reports non-secret Hermes setup readiness.
 - `bin/weave hermes confirm-ready`: records that Hermes itself has already been
   installed, authenticated, and verified for normal chat by the operator.
-- `bin/weave dashboard`: shows a read-only local TUI operator console for the
-  intended WEAVE flow: onboarding, runtime readiness, Hermes setup, gateway
-  attachment, app portfolio, lifecycle stage, transcript capture, proof/eval
-  state, inconsistencies, and next action.
+- `bin/weave dashboard`: shows a read-only local terminal control deck for the
+  intended WEAVE flow. It opens with a framed state/next/safety header, action
+  map, progress rail, focus queue, and then app/proof/runtime panes for deeper
+  inspection. Color is automatic in terminals; use `--color always` or
+  `--color never` to force a mode.
 - `bin/weave start`: starts the containerized Hermes gateway from the generated
   gateway workdir.
 - `bin/weave stop`: stops the gateway container.
@@ -212,8 +213,10 @@ Minimum runtime-home QA:
    understandable before token entry.
 2. Run `bin/weave onboard` in a disposable runtime home and confirm token input
    is hidden and not printed.
-3. Run `bin/weave dashboard` and `bin/weave status` before starting the gateway
-   and confirm local state is visible without side effects.
+3. Run `bin/weave dashboard --color never` and `bin/weave status` before
+   starting the gateway and confirm local state is visible without side effects.
+   For human review in a terminal, also run `bin/weave dashboard --color always`
+   and confirm severity/status groups are easy to scan.
 4. Run `bin/weave export-runtime`, `bin/weave import-runtime`, and
    `bin/weave verify-runtime` on a fresh runtime home.
 5. Start the gateway only after credentials are intentionally linked.

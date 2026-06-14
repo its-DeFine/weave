@@ -231,11 +231,19 @@ bin/weave status
 bin/weave stop
 ```
 
-Use the read-only TUI operator console before or after the gateway starts to see
-the intended WEAVE flow in one place: onboarding, runtime readiness, Hermes
-setup, gateway attachment, app portfolio, lifecycle stage, transcript capture,
-proof/eval state, inconsistencies, and the next deterministic action. It does
-not send messages or start services.
+Use the read-only terminal control deck before or after the gateway starts to
+stay oriented in the intended WEAVE flow. The first viewport frames the current
+state, next command, safety boundary, attention queue, progress rail, and action
+map before the deeper app/proof/runtime panes. It does not send messages or
+start services.
+
+Color is automatic in an interactive terminal and plain when piped. Use
+`--color always` for demos or screenshots and `--color never` for plain logs:
+
+```bash
+bin/weave dashboard --color always
+bin/weave dashboard --color never
+```
 
 Move reviewable local state without exporting credentials:
 

@@ -172,15 +172,46 @@ class WeaveCliTests(unittest.TestCase):
 
             text = output.getvalue()
             self.assertEqual(rc, 0, text)
-            self.assertIn("WEAVE TUI Operator Console (read-only)", text)
-            self.assertIn("WEAVE Dashboard (read-only)", text)
-            self.assertIn("[Operator Flow]", text)
-            self.assertIn("[Inconsistency Radar]", text)
-            self.assertIn("Onboarding: missing", text)
-            self.assertIn("root_ready=false", text)
+            self.assertIn("WEAVE CONTROL DECK", text)
+            self.assertIn("STATE SETUP NEEDED   MODE READ-ONLY   EFFECTS none", text)
+            self.assertIn("ACTION MAP", text)
+            self.assertIn("Copy commands; this dashboard is not interactive.", text)
+            self.assertIn("PROGRESS RAIL", text)
+            self.assertIn("FOCUS QUEUE", text)
+            self.assertIn("> HIGH   MISSING     Runtime profile missing", text)
+            self.assertIn("FLOW BOARD", text)
+            self.assertIn("01 -- Onboarding", text)
+            self.assertIn("Profile missing; WEAVE state root not initialized", text)
             self.assertIn("runtime profile missing or unreadable", text)
             self.assertIn("WEAVE state root is not initialized", text)
-            self.assertIn("run weave onboard", text)
+            self.assertIn("NEXT COMMAND: run bin/weave onboard", text)
+            self.assertNotIn("\033[", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_dashboard_color_can_be_forced_for_terminal_ux(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "missing-runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "dashboard",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--no-container-check",
+                    "--color",
+                    "always",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("\033[", text)
+            self.assertIn("WEAVE CONTROL DECK", text)
+            self.assertIn("STATE SETUP NEEDED", text)
+            self.assertIn("FOCUS QUEUE", text)
+            self.assertIn("> HIGH   MISSING", text)
             self.assertFalse(runtime_home.exists())
 
     def test_dashboard_reports_runtime_apps_adapter_and_proof_gaps(self) -> None:

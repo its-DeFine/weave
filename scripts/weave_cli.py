@@ -382,7 +382,7 @@ def dashboard(args: argparse.Namespace, output: TextIO) -> int:
         container_name=args.container_name,
         check_container=not args.no_container_check,
     )
-    weave_dashboard.print_dashboard(snapshot, output=output, as_json=args.json)
+    weave_dashboard.print_dashboard(snapshot, output=output, as_json=args.json, color_mode=args.color)
     return 0
 
 def docker_status(container_name: str) -> str:
@@ -1215,6 +1215,12 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
     dashboard_parser.add_argument("--no-container-check", action="store_true", help="skip the read-only container status probe")
     dashboard_parser.add_argument("--json", action="store_true", help="print dashboard snapshot as JSON")
+    dashboard_parser.add_argument(
+        "--color",
+        choices=("auto", "always", "never"),
+        default="auto",
+        help="control ANSI color in the human-readable dashboard",
+    )
 
     command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
     command_parser.add_argument("--runtime-home", type=Path, default=None)
