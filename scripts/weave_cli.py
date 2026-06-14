@@ -23,6 +23,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 
 import setup_gateway
 import setup_runtime
+import weave_dashboard
 import weave_hermes_setup
 
 
@@ -308,6 +309,19 @@ def status_container_runtime(args: argparse.Namespace, output: TextIO) -> int:
     else:
         print_line(output, "- root_ready: false")
         print_line(output, "- next: run weave onboard")
+    return 0
+
+
+def dashboard(args: argparse.Namespace, output: TextIO) -> int:
+    snapshot = weave_dashboard.dashboard_snapshot(
+        runtime_home=args.runtime_home,
+        weave_root=args.weave_root,
+        hermes_home=args.hermes_home,
+        profile_path=args.profile_out,
+        container_name=args.container_name,
+        check_container=not args.no_container_check,
+    )
+    weave_dashboard.print_dashboard(snapshot, output=output, as_json=args.json)
     return 0
 
 
@@ -764,6 +778,15 @@ def build_parser() -> argparse.ArgumentParser:
         runtime_parser.add_argument("--container-image", default=DEFAULT_CONTAINER_IMAGE)
         runtime_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
 
+    dashboard_parser = subparsers.add_parser("dashboard", help="show a read-only WEAVE control dashboard")
+    dashboard_parser.add_argument("--runtime-home", type=Path, default=None)
+    dashboard_parser.add_argument("--weave-root", type=Path, default=None)
+    dashboard_parser.add_argument("--hermes-home", type=Path, default=None)
+    dashboard_parser.add_argument("--profile-out", type=Path, default=None)
+    dashboard_parser.add_argument("--container-name", default=DEFAULT_CONTAINER_NAME)
+    dashboard_parser.add_argument("--no-container-check", action="store_true", help="skip the read-only container status probe")
+    dashboard_parser.add_argument("--json", action="store_true", help="print dashboard snapshot as JSON")
+
     export_parser = subparsers.add_parser("export-runtime", help="export reviewable runtime state without secrets")
     export_parser.add_argument("--runtime-home", type=Path, default=None)
     export_parser.add_argument("--weave-root", type=Path, default=None)
@@ -820,6 +843,8 @@ def main(
             return stop_container_runtime(args, output)
         if args.command == "status":
             return status_container_runtime(args, output)
+        if args.command == "dashboard":
+            return dashboard(args, output)
         if args.command == "export-runtime":
             return export_runtime(args, output)
         if args.command == "import-runtime":

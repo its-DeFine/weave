@@ -96,9 +96,15 @@ After onboarding, run the containerized gateway:
 
 ```bash
 bin/weave start
+bin/weave dashboard
 bin/weave status
 bin/weave stop
 ```
+
+Use the read-only dashboard before or after the gateway starts to see runtime
+home state, Hermes readiness, adapter truth, app blockers, transcript counts,
+proof gaps, and the next deterministic action without sending messages or
+starting services.
 
 Move reviewable local state without exporting credentials:
 
