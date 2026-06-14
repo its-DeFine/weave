@@ -231,10 +231,11 @@ bin/weave status
 bin/weave stop
 ```
 
-Use the read-only dashboard before or after the gateway starts to see runtime
-home state, Hermes readiness, adapter truth, app blockers, transcript counts,
-proof gaps, and the next deterministic action without sending messages or
-starting services.
+Use the read-only TUI operator console before or after the gateway starts to see
+the intended WEAVE flow in one place: onboarding, runtime readiness, Hermes
+setup, gateway attachment, app portfolio, lifecycle stage, transcript capture,
+proof/eval state, inconsistencies, and the next deterministic action. It does
+not send messages or start services.
 
 Move reviewable local state without exporting credentials:
 

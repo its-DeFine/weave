@@ -60,9 +60,10 @@ Runtime surfaces:
 - `bin/weave hermes status`: reports non-secret Hermes setup readiness.
 - `bin/weave hermes confirm-ready`: records that Hermes itself has already been
   installed, authenticated, and verified for normal chat by the operator.
-- `bin/weave dashboard`: shows a read-only local control dashboard for runtime
-  home, Hermes readiness, gateway configuration, adapter truth, app state,
-  transcript counts, proof gaps, and next action.
+- `bin/weave dashboard`: shows a read-only local TUI operator console for the
+  intended WEAVE flow: onboarding, runtime readiness, Hermes setup, gateway
+  attachment, app portfolio, lifecycle stage, transcript capture, proof/eval
+  state, inconsistencies, and next action.
 - `bin/weave start`: starts the containerized Hermes gateway from the generated
   gateway workdir.
 - `bin/weave stop`: stops the gateway container.

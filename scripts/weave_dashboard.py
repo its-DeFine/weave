@@ -20,6 +20,7 @@ import weave_runtime_slice
 
 
 DASHBOARD_SCHEMA = "weave-dashboard/v0.1"
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def utc_now() -> str:
@@ -50,6 +51,13 @@ def count_jsonl(path: Path) -> int:
     if not path.exists():
         return 0
     return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+
+
+def count_eval_contracts() -> int:
+    eval_root = REPO_ROOT / "packages" / "weave-tool" / "evals"
+    if not eval_root.exists():
+        return 0
+    return sum(1 for path in eval_root.rglob("*.yaml") if path.is_file())
 
 
 def short_list(values: list[Any], limit: int = 3) -> list[str]:
@@ -147,6 +155,41 @@ def app_next_action(*, foundation_passed: bool, blockers: list[str], stage_gate_
     return "No deterministic blocker is recorded for this app."
 
 
+def flow_step(
+    step_id: str,
+    label: str,
+    state: str,
+    detail: str,
+    next_action: str,
+    *,
+    command: str = "",
+) -> dict[str, str]:
+    return {
+        "id": step_id,
+        "label": label,
+        "state": state,
+        "detail": detail,
+        "next_action": next_action,
+        "command": command,
+    }
+
+
+def inconsistency(
+    item_id: str,
+    severity: str,
+    state: str,
+    detail: str,
+    next_action: str,
+) -> dict[str, str]:
+    return {
+        "id": item_id,
+        "severity": severity,
+        "state": state,
+        "detail": detail,
+        "next_action": next_action,
+    }
+
+
 def collect_app_rows(root: Path) -> tuple[list[dict[str, Any]], list[str]]:
     errors: list[str] = []
     if not weave_runtime_slice.root_ready(root):
@@ -202,6 +245,219 @@ def collect_app_rows(root: Path) -> tuple[list[dict[str, Any]], list[str]]:
     return rows, errors
 
 
+def build_operator_flow(
+    *,
+    profile_state: str,
+    root_ready: bool,
+    hermes_setup: dict[str, Any],
+    gateway: dict[str, Any],
+    adapter: dict[str, Any],
+    product_apps: list[dict[str, Any]],
+    blocked_apps: list[dict[str, Any]],
+    active_app_id: str,
+    total_turns: int,
+    eval_contract_count: int,
+    next_action: str,
+) -> list[dict[str, str]]:
+    selected_app = next((row for row in product_apps if row["app_id"] == active_app_id), None)
+    if selected_app is None and product_apps:
+        selected_app = product_apps[0]
+    onboarding_ready = root_ready and profile_state == "loaded"
+    gateway_state = "running" if gateway["container"]["state"] == "found" else "configured" if gateway["configured"] else "missing"
+    if gateway_state == "configured" and not gateway["token_loaded"]:
+        gateway_state = "blocked"
+    lifecycle_state = "missing"
+    lifecycle_detail = "no product app workspace"
+    lifecycle_next = "create a product app workspace"
+    if selected_app:
+        lifecycle_state = "blocked" if selected_app["blocked"] else "ready"
+        lifecycle_detail = (
+            f"{selected_app['app_id']} stage={selected_app['stage']} "
+            f"state={selected_app['stage_state']} foundation={selected_app['foundation']} "
+            f"gate_passed={selected_app['stage_gate_passed']}"
+        )
+        lifecycle_next = selected_app["next_action"]
+    return [
+        flow_step(
+            "onboarding",
+            "Onboarding",
+            "ready" if onboarding_ready else "missing",
+            f"profile={profile_state}; root_ready={str(root_ready).lower()}",
+            "continue" if onboarding_ready else "run bin/weave onboard",
+            command="bin/weave onboard",
+        ),
+        flow_step(
+            "hermes_setup",
+            "Hermes Setup",
+            "ready" if hermes_setup.get("normal_chat_assumed_ready") else "blocked",
+            f"state={hermes_setup.get('state', 'unknown')}; route_owner={hermes_setup.get('route_verification_owner', 'hermes')}",
+            "continue" if hermes_setup.get("normal_chat_assumed_ready") else "confirm Hermes chat or use slash-only mode",
+            command="bin/weave hermes status",
+        ),
+        flow_step(
+            "gateway",
+            "Gateway Attachment",
+            gateway_state,
+            (
+                f"configured={str(gateway['configured']).lower()}; token_loaded={str(gateway['token_loaded']).lower()}; "
+                f"container={gateway['container']['state']}"
+            ),
+            "continue" if gateway_state == "running" else "pair/start gateway when live Telegram is intentionally needed",
+            command="bin/weave status",
+        ),
+        flow_step(
+            "app_portfolio",
+            "App Portfolio",
+            "ready" if product_apps else "missing",
+            f"product_apps={len(product_apps)}; active_app={active_app_id or 'none'}; blocked={len(blocked_apps)}",
+            "continue" if product_apps else "create a product app workspace",
+            command="bin/weave command /apps",
+        ),
+        flow_step(
+            "lifecycle",
+            "Current App Lifecycle",
+            lifecycle_state,
+            lifecycle_detail,
+            lifecycle_next,
+            command="bin/weave command /app",
+        ),
+        flow_step(
+            "transcript",
+            "Transcript Capture",
+            "ready" if total_turns else "missing",
+            f"conversation_turns={total_turns}",
+            "continue" if total_turns else "capture a current-stage owner/Hermes turn before approval",
+            command="bin/weave command /transcript",
+        ),
+        flow_step(
+            "proof_evals",
+            "Proof And Evals",
+            "not_proven" if adapter["present"] and not adapter["live_qa_completed"] else "ready" if adapter["live_qa_completed"] else "missing",
+            (
+                f"eval_contracts={eval_contract_count}; adapter={adapter['support_state']}; "
+                f"live_qa_completed={adapter['live_qa_completed']}"
+            ),
+            "run owner-gated adapter proof later" if not adapter["live_qa_completed"] else "continue",
+            command="bin/weave eval --list",
+        ),
+        flow_step(
+            "next_action",
+            "Next Action",
+            "attention" if next_action else "ready",
+            next_action or "none",
+            next_action or "none",
+        ),
+    ]
+
+
+def build_inconsistencies(
+    *,
+    profile_state: str,
+    root_ready: bool,
+    hermes_setup: dict[str, Any],
+    gateway: dict[str, Any],
+    adapter: dict[str, Any],
+    product_apps: list[dict[str, Any]],
+    active_app_id: str,
+    total_turns: int,
+    app_errors: list[str],
+) -> list[dict[str, str]]:
+    items: list[dict[str, str]] = []
+    if profile_state != "loaded":
+        items.append(
+            inconsistency(
+                "runtime_profile_missing",
+                "high",
+                "missing",
+                "runtime-profile.json is missing or unreadable",
+                "run bin/weave onboard",
+            )
+        )
+    if not root_ready:
+        items.append(
+            inconsistency(
+                "weave_root_not_initialized",
+                "high",
+                "missing",
+                "WEAVE state root has no app registry",
+                "run bin/weave onboard",
+            )
+        )
+    if not hermes_setup.get("normal_chat_assumed_ready"):
+        items.append(
+            inconsistency(
+                "hermes_chat_not_confirmed",
+                "medium",
+                "blocked",
+                f"Hermes setup state is {hermes_setup.get('state', 'unknown')}",
+                "confirm normal Hermes chat or mark slash-only intentionally",
+            )
+        )
+    if gateway["configured"] and not gateway["token_loaded"]:
+        items.append(
+            inconsistency(
+                "gateway_configured_without_token",
+                "medium",
+                "blocked",
+                "gateway runtime config exists but Telegram token is not loaded",
+                "pair a dedicated bot only when Telegram operation is intended",
+            )
+        )
+    if adapter["present"] and not adapter["live_qa_completed"]:
+        items.append(
+            inconsistency(
+                "live_hermes_adapter_proof_missing",
+                "high",
+                "not_proven",
+                "adapter contract is present but no live Hermes adapter proof is recorded",
+                "run owner-gated live adapter QA later",
+            )
+        )
+    if adapter["present"]:
+        items.append(
+            inconsistency(
+                "full_adapter_bridge_not_proven",
+                "high",
+                "not_proven",
+                "invoke/capture/post-event bridge is not proven end to end",
+                "build Hermes adapter bridge after console truth surface",
+            )
+        )
+    if not product_apps:
+        items.append(
+            inconsistency(
+                "no_product_app",
+                "medium",
+                "missing",
+                "no product app workspace is registered",
+                "create or import a product app workspace",
+            )
+        )
+    if product_apps and active_app_id == "none":
+        items.append(
+            inconsistency(
+                "active_app_not_selected",
+                "low",
+                "missing",
+                "product apps exist but no active app is selected",
+                "select an active app before guided app work",
+            )
+        )
+    if product_apps and total_turns == 0:
+        items.append(
+            inconsistency(
+                "transcript_capture_missing",
+                "high",
+                "missing",
+                "no app conversation turns are captured",
+                "capture the owner/Hermes turn before lifecycle approval",
+            )
+        )
+    for error in app_errors:
+        items.append(inconsistency("app_state_error", "high", "invalid", error, "repair app state"))
+    return items
+
+
 def dashboard_snapshot(
     *,
     runtime_home: Path,
@@ -234,6 +490,7 @@ def dashboard_snapshot(
     )
     total_turns = sum(row["conversation_turn_count"] for row in app_rows)
     total_conversation_events = sum(row["conversation_event_count"] for row in app_rows)
+    eval_contract_count = count_eval_contracts()
     gaps: list[str] = []
     if profile_state != "loaded":
         gaps.append("runtime profile missing or unreadable")
@@ -253,11 +510,38 @@ def dashboard_snapshot(
     next_action = "run weave onboard" if not root_ready else "review gaps and complete the first blocking item"
     if product_apps and not blocked_apps and adapter["live_qa_completed"]:
         next_action = "no dashboard blocker is visible"
+    active_app_id = active_app.get("app_id") or "none"
+    operator_flow = build_operator_flow(
+        profile_state=profile_state,
+        root_ready=root_ready,
+        hermes_setup=hermes_setup,
+        gateway=gateway,
+        adapter=adapter,
+        product_apps=product_apps,
+        blocked_apps=blocked_apps,
+        active_app_id=active_app_id,
+        total_turns=total_turns,
+        eval_contract_count=eval_contract_count,
+        next_action=next_action,
+    )
+    inconsistencies = build_inconsistencies(
+        profile_state=profile_state,
+        root_ready=root_ready,
+        hermes_setup=hermes_setup,
+        gateway=gateway,
+        adapter=adapter,
+        product_apps=product_apps,
+        active_app_id=active_app_id,
+        total_turns=total_turns,
+        app_errors=app_errors,
+    )
     return {
         "schema": DASHBOARD_SCHEMA,
         "generated_at": utc_now(),
         "read_only": True,
         "live_effects": False,
+        "operator_flow": operator_flow,
+        "inconsistencies": inconsistencies,
         "runtime": {
             "runtime_home": str(runtime_home),
             "runtime_home_state": path_state(runtime_home),
@@ -286,6 +570,11 @@ def dashboard_snapshot(
             "live_hermes_adapter_proof": "present" if adapter["live_qa_completed"] else "missing",
             "full_adapter_bridge": "not_proven",
         },
+        "evals": {
+            "contract_count": eval_contract_count,
+            "state": "available" if eval_contract_count else "missing",
+            "command": "bin/weave eval --list",
+        },
         "gaps": gaps,
         "next_action": next_action,
     }
@@ -304,45 +593,69 @@ def render_dashboard(snapshot: dict[str, Any]) -> str:
     gateway = runtime["gateway"]
     container = gateway["container"]
     lines = [
-        "WEAVE Dashboard (read-only)",
+        "WEAVE TUI Operator Console (read-only)",
+        "surface: WEAVE Dashboard (read-only)",
         f"schema: {snapshot['schema']}",
         f"generated_at: {snapshot['generated_at']}",
         f"live_effects: {bool_text(snapshot['live_effects'])}",
         "",
-        "[Runtime]",
-        f"runtime_home: {runtime['runtime_home']} ({runtime['runtime_home_state']})",
-        f"weave_state: {runtime['weave_root']} ({runtime['weave_root_state']}; root_ready={bool_text(runtime['root_ready'])})",
-        f"hermes_home: {runtime['hermes_home']} ({runtime['hermes_home_state']})",
-        f"profile: {runtime['profile_path']} ({runtime['profile_state']})",
-        "",
-        "[Hermes]",
-        f"setup_state: {hermes_setup.get('state', 'unknown')}",
-        f"normal_chat_assumed_ready: {bool_text(hermes_setup.get('normal_chat_assumed_ready'))}",
-        f"route_verification_owner: {hermes_setup.get('route_verification_owner', 'hermes')}",
-        f"secret_value_printed: {bool_text(hermes_setup.get('secret_value_printed'))}",
-        "",
-        "[Gateway]",
-        f"configured: {bool_text(gateway['configured'])}",
-        f"token_loaded: {bool_text(gateway['token_loaded'])}",
-        f"allowlist_mode: {gateway['allowlist_mode']}",
-        f"env_state: {gateway['env_state']}; secret_value_printed={bool_text(gateway['env_secret_value_printed'])}",
-        f"workdir_state: {gateway['workdir_state']}",
-        f"plugin: installed={bool_text(gateway['plugin_installed'])}; enabled={bool_text(gateway['plugin_enabled'])}",
-        f"container: {container['state']}; checked={bool_text(container['checked'])}; detail={container['detail'] or 'none'}",
-        "",
-        "[Adapter]",
-        f"present: {bool_text(adapter['present'])}",
-        f"runtime_id: {adapter['runtime_id']}",
-        f"support_state: {adapter['support_state']}",
-        f"invoke_state: {adapter['invoke_state']}",
-        f"live_qa_completed: {bool_text(adapter['live_qa_completed'])}",
-        "",
-        "[Apps]",
-        f"active_app: {apps['active_app']}",
-        f"product_apps: {apps['product_count']}",
-        f"system_apps_hidden: {apps['system_count']}",
-        f"blocked_product_apps: {apps['blocked_count']}",
+        "[Operator Flow]",
     ]
+    for step in snapshot.get("operator_flow", []):
+        command = f"; command={step['command']}" if step.get("command") else ""
+        lines.append(f"- {step['label']}: {step['state']}; {step['detail']}{command}")
+        lines.append(f"  next: {step['next_action']}")
+    lines.extend(
+        [
+            "",
+            "[Inconsistency Radar]",
+        ]
+    )
+    inconsistencies = snapshot.get("inconsistencies", [])
+    if inconsistencies:
+        for item in inconsistencies:
+            lines.append(f"- {item['severity']} {item['id']}: {item['state']}; {item['detail']}")
+            lines.append(f"  next: {item['next_action']}")
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+            "[Runtime]",
+            f"runtime_home: {runtime['runtime_home']} ({runtime['runtime_home_state']})",
+            f"weave_state: {runtime['weave_root']} ({runtime['weave_root_state']}; root_ready={bool_text(runtime['root_ready'])})",
+            f"hermes_home: {runtime['hermes_home']} ({runtime['hermes_home_state']})",
+            f"profile: {runtime['profile_path']} ({runtime['profile_state']})",
+            "",
+            "[Hermes]",
+            f"setup_state: {hermes_setup.get('state', 'unknown')}",
+            f"normal_chat_assumed_ready: {bool_text(hermes_setup.get('normal_chat_assumed_ready'))}",
+            f"route_verification_owner: {hermes_setup.get('route_verification_owner', 'hermes')}",
+            f"secret_value_printed: {bool_text(hermes_setup.get('secret_value_printed'))}",
+            "",
+            "[Gateway]",
+            f"configured: {bool_text(gateway['configured'])}",
+            f"token_loaded: {bool_text(gateway['token_loaded'])}",
+            f"allowlist_mode: {gateway['allowlist_mode']}",
+            f"env_state: {gateway['env_state']}; secret_value_printed={bool_text(gateway['env_secret_value_printed'])}",
+            f"workdir_state: {gateway['workdir_state']}",
+            f"plugin: installed={bool_text(gateway['plugin_installed'])}; enabled={bool_text(gateway['plugin_enabled'])}",
+            f"container: {container['state']}; checked={bool_text(container['checked'])}; detail={container['detail'] or 'none'}",
+            "",
+            "[Adapter]",
+            f"present: {bool_text(adapter['present'])}",
+            f"runtime_id: {adapter['runtime_id']}",
+            f"support_state: {adapter['support_state']}",
+            f"invoke_state: {adapter['invoke_state']}",
+            f"live_qa_completed: {bool_text(adapter['live_qa_completed'])}",
+            "",
+            "[Apps]",
+            f"active_app: {apps['active_app']}",
+            f"product_apps: {apps['product_count']}",
+            f"system_apps_hidden: {apps['system_count']}",
+            f"blocked_product_apps: {apps['blocked_count']}",
+        ]
+    )
     product_rows = [row for row in apps["rows"] if row["app_type"] != "system"]
     if product_rows:
         for row in product_rows[:10]:
@@ -368,6 +681,7 @@ def render_dashboard(snapshot: dict[str, Any]) -> str:
             f"conversation_events: {proof['conversation_event_count']}",
             f"live_hermes_adapter_proof: {proof['live_hermes_adapter_proof']}",
             f"full_adapter_bridge: {proof['full_adapter_bridge']}",
+            f"eval_contracts: {snapshot['evals']['contract_count']}",
             "",
             "[Gaps]",
         ]
