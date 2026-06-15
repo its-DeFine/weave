@@ -20,6 +20,7 @@ This `docs/` tree is the public documentation subset for WEAVE.
 - [External Skill Security Review: codex-dynamic-workflows](weave-runtime-external-skill-security-review-2026-05-30.md)
 - [WEAVE Runtime One-Shot Implementation Prompt v0.1](weave-runtime-one-shot-implementation-prompt-v0.1.md)
 - [WEAVE Capability Context](capability-context.md)
+- [WEAVE Capability Broker Contract v0.1](capability-broker-contract-v0.1.md)
 - [Month 1 Overview](month1/README.md)
 - [Private App Operating Profile Evaluations](month1/private-app-operating-profile-evals.md)
 - [Month 1 Review Evidence Pack](month1/review-evidence-pack.md)

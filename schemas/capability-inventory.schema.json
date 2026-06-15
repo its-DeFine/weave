@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weave.dev/schemas/capability-inventory.schema.json",
+  "title": "WEAVE Capability Inventory",
+  "type": "object",
+  "required": ["schema", "updated_at", "capabilities"],
+  "properties": {
+    "schema": {
+      "const": "weave/capability-inventory/v0.1"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "display_name", "type", "status", "owner_approval_policy"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/$defs/capability_type"
+          },
+          "status": {
+            "$ref": "#/$defs/capability_status"
+          },
+          "lifecycle_stages": {
+            "$ref": "#/$defs/stage_list"
+          },
+          "allowed_actions": {
+            "$ref": "#/$defs/action_list"
+          },
+          "blocked_actions": {
+            "$ref": "#/$defs/action_list"
+          },
+          "owner_approval_policy": {
+            "type": "string",
+            "enum": ["always_required", "required_for_external_effects", "required_for_high_risk", "not_required_for_read_only"]
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "capability_ref": {
+            "type": "string"
+          },
+          "secret_ref": {
+            "$ref": "#/$defs/secret_ref"
+          },
+          "evidence_refs": {
+            "$ref": "#/$defs/ref_list"
+          },
+          "non_claims": {
+            "$ref": "#/$defs/string_list"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "$defs": {
+    "capability_type": {
+      "type": "string",
+      "enum": ["web", "email", "cloud", "domain", "analytics", "ads", "social", "repo", "task_tracker", "messaging", "payment", "database", "storage", "runtime", "custom"]
+    },
+    "capability_status": {
+      "type": "string",
+      "enum": ["unavailable", "available_unconnected", "connection_requested", "connected", "owner_provided", "agent_created_pending_owner", "granted", "suspended", "revoked", "deferred", "failed"]
+    },
+    "stage_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["first_run", "owner_profile", "create_app", "intent", "research", "selection", "plan", "engineering", "qa", "deployment", "kpi", "marketing", "iteration", "analysis"]
+      }
+    },
+    "action_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      }
+    },
+    "secret_ref": {
+      "type": "string",
+      "pattern": "^secret_ref:[a-z0-9][a-z0-9_.:-]*$"
+    },
+    "ref_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": true
+}
