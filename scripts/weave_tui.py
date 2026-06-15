@@ -38,6 +38,7 @@ import weave_runtime_slice
 
 
 TUI_SCHEMA = "weave-tui-session/v0.1"
+COCKPIT_SESSION_SCHEMA = "weave-tui-cockpit-session/v0.1"
 CODEX_PROOF_SCHEMA = "weave-codex-adapter-proof/v0.1"
 APP_EXECUTOR_SCHEMA = "weave-app-executor/v0.1"
 SEO_ARTIFACT_SCHEMA = "weave-seo-artifact/v0.1"
@@ -66,12 +67,182 @@ DEFAULT_ENGINEERING_DECISION = "Proceed with local-safe engineering scaffold and
 DEFAULT_QA_COMMAND = "bin/weave tui --scripted-demo --no-color"
 DEFAULT_CODEX_COMMAND = "codex --help"
 DEFAULT_CODEX_TIMEOUT = 600
+COCKPIT_VIEWS = ("overview", "stages", "artifacts", "files", "reviews", "help", "resume")
+COCKPIT_RECENT_LIMIT = 8
 SAFE_CODEX_PROBE_ARGS = {("--version",), ("-V",), ("--help",), ("help",)}
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTROL_MODE_ALIASES = {
     "hands-on": "hands-on",
     "hands-off": "hands-off",
     "handoff": "hands-off",
+}
+
+# These scripts are the user-facing contract from the service blueprint. They
+# are intentionally separate from the executor code so the TUI can be reviewed
+# for "what does the owner see and how can they answer?" without reading the
+# lifecycle implementation.
+BLUEPRINT_STAGE_SCRIPTS: dict[str, dict[str, Any]] = {
+    "first-run": {
+        "label": "First Run / Environment Detection",
+        "visible_prompt": "I will inspect local WEAVE/Hermes/Codex surfaces and ask which environment to attach to.",
+        "choices": [
+            "[1] Attach existing local environment",
+            "[2] Create local WEAVE/Hermes environment",
+            "[3] Connect remote environment",
+            "[4] Skip setup and keep local state only",
+            "[i] Inspect detected environment",
+        ],
+        "review_question": "Do you want this environment selection, or should I revise it?",
+        "stop_boundary": "Remote attach may be blocked until an authenticated connector is explicitly provided.",
+    },
+    "owner-profile": {
+        "label": "Owner Profile",
+        "visible_prompt": "Tell me your engineering/product experience and the coworker style you want from the agent.",
+        "choices": ["[s] Save profile", "[e] Edit answers", "[k] Skip for now"],
+        "review_question": "Is this the right collaboration profile for future lifecycle work?",
+        "stop_boundary": "Profile text is local context only and must not contain secrets.",
+    },
+    "intent": {
+        "label": "Intent",
+        "visible_prompt": "Define the app, users, flows, constraints, deployment posture, region, budget, and non-goals.",
+        "choices": [
+            "[y] Intent is ready",
+            "[n] Continue editing",
+            "[v] Ask agent to validate sufficiency",
+            "[i] Inspect saved intent artifact",
+            "[f] Add free-form feedback",
+        ],
+        "review_question": "Does this intent contain enough coherent material to produce the application?",
+        "stop_boundary": "The agent must ask for clarification instead of inventing missing intent.",
+    },
+    "research": {
+        "label": "Research",
+        "visible_prompt": "I will unpack the intent into research questions and show the research plan before running it.",
+        "choices": [
+            "[y] Accept research plan",
+            "[e] Edit plan",
+            "[a] Add or remove research questions",
+            "[r] Ask agent to revise plan",
+            "[g] Start research",
+            "[i] Inspect research artifacts",
+        ],
+        "review_question": "Do we have enough research, or should the agent continue/correct it?",
+        "stop_boundary": "Public-web research must cite sources and avoid credentialed/private resources unless authorized.",
+    },
+    "selection": {
+        "label": "Selection",
+        "visible_prompt": "I will examine research artifacts and present the strongest product/technical options.",
+        "choices": [
+            "[1] Select option A",
+            "[2] Select option B",
+            "[3] Select option C",
+            "[c] Create your own option",
+            "[m] Ask for more options",
+            "[d] Discuss/edit selected option",
+            "[y] Proceed with selected option",
+        ],
+        "review_question": "Which option should become the chosen direction?",
+        "stop_boundary": "Selection cannot proceed without a clear selected option or an explicit owner-created alternative.",
+    },
+    "plan": {
+        "label": "Plan",
+        "visible_prompt": "I will convert intent, research, and selection into business, engineering, QA, KPI, marketing, and iteration plans.",
+        "choices": [
+            "[y] Approve plan",
+            "[b] Edit business plan",
+            "[e] Edit engineering plan",
+            "[f] Add feedback",
+            "[r] Ask agent to remake plan",
+            "[i] Inspect plan artifacts",
+        ],
+        "review_question": "Do the business and engineering plans match the app we intend to build?",
+        "stop_boundary": "Credential/provider requirements are recorded as placeholders, never collected as raw secrets here.",
+    },
+    "engineering": {
+        "label": "Engineering",
+        "visible_prompt": "I will execute the approved technical plan with Codex, show files/artifacts, and stop on hard gates.",
+        "choices": [
+            "[g] Start or continue engineering",
+            "[i] Inspect generated files",
+            "[p] Attach feedback to a file",
+            "[q] Approve for QA",
+            "[r] Request changes",
+            "[x] View executor manifest",
+        ],
+        "review_question": "Do the implementation changes satisfy the approved plan?",
+        "stop_boundary": "Hands-on mode stops for high-impact direction changes; handoff proceeds only through local-safe gates.",
+    },
+    "qa": {
+        "label": "QA",
+        "visible_prompt": "I will present a QA plan adapted to the app surface, then run and show evidence for owner review.",
+        "choices": [
+            "[y] Run QA plan",
+            "[e] Edit QA plan",
+            "[a] Add scenario",
+            "[i] Inspect QA artifacts",
+            "[f] Send feedback to engineering",
+            "[r] Rerun QA",
+        ],
+        "review_question": "Did the app and the QA process both behave correctly?",
+        "stop_boundary": "QA adapts to website, CLI, backend/API, or mixed apps; browser-only proof is not enough for non-browser surfaces.",
+    },
+    "deployment": {
+        "label": "Deployment Planning",
+        "visible_prompt": "I will plan staging/production, domain/provider needs, and credential placeholders without live setup.",
+        "choices": [
+            "[s] Save deployment plan",
+            "[d] Add provider/domain preference",
+            "[u] Mark credentials unavailable",
+            "[h] Hold before live setup",
+        ],
+        "review_question": "Is this the correct deployment path once credentials/providers are available?",
+        "stop_boundary": "No credential entry, domain purchase, provider mutation, or production deploy occurs in this TUI path.",
+    },
+    "kpi": {
+        "label": "KPI Setup",
+        "visible_prompt": "I will propose 3-5 base KPIs and explain whether they measure local preview, staging, or production.",
+        "choices": ["[y] Accept KPIs", "[e] Edit KPIs", "[a] Add KPI", "[r] Remove KPI", "[b] Mark blocked by deployment"],
+        "review_question": "Are these the first metrics we should track for the application?",
+        "stop_boundary": "Production KPI wiring waits until deployment/provider access is explicitly authorized.",
+    },
+    "marketing": {
+        "label": "Marketing",
+        "visible_prompt": "I will ask for budget/channel posture, then produce organic and paid-channel plans with hard gates.",
+        "choices": [
+            "[o] Organic only/no budget",
+            "[b] Record budget plan",
+            "[a] Add channel",
+            "[r] Remove channel",
+            "[h] Hold before public send or spend",
+        ],
+        "review_question": "Is this marketing plan ready for authorized execution later?",
+        "stop_boundary": "No public post, ad spend, email, or third-party mutation happens without separate approval.",
+    },
+    "iteration": {
+        "label": "Iteration",
+        "visible_prompt": "I will turn feedback into proposed issues, stage them, and route accepted work back through engineering/QA.",
+        "choices": [
+            "[y] Approve proposed issue",
+            "[n] Reject issue",
+            "[f] Add feedback",
+            "[i] Inspect evidence",
+            "[g] Send accepted issue to engineering loop",
+        ],
+        "review_question": "Which feedback should become actual product changes?",
+        "stop_boundary": "Recurring jobs remain planned until the operator authorizes live schedules/connectors.",
+    },
+    "analysis": {
+        "label": "Analysis",
+        "visible_prompt": "I will summarize feedback, competitors, sentiment, and suggested improvements as recurring analysis plans.",
+        "choices": [
+            "[y] Accept analysis plan",
+            "[e] Edit cadence/sources",
+            "[i] Inspect evidence",
+            "[g] Generate improvement candidates",
+        ],
+        "review_question": "Do these analysis loops produce useful improvement candidates?",
+        "stop_boundary": "Automated external scanning or connector use waits for explicit authorization and configured tools.",
+    },
 }
 
 
@@ -151,6 +322,13 @@ class TuiInputs:
     write: bool
 
 
+@dataclass(frozen=True)
+class CockpitCommandResult:
+    exit_requested: bool
+    message: str
+    persist_session: bool = False
+
+
 def color_enabled(args: Any, output: TextIO) -> bool:
     return not getattr(args, "no_color", False) and hasattr(output, "isatty") and output.isatty()
 
@@ -193,6 +371,629 @@ def render_intro(inputs: TuiInputs, palette: Palette) -> str:
         "Boundary: local writes only; no credentials, deploys, public sends, or paid spend",
     ]
     return frame("WEAVE TUI", "local operator cockpit for the product lifecycle", rows, palette)
+
+
+def cockpit_session_path(root: Path, app_id: str) -> Path:
+    return weave_runtime_slice.app_root(root, app_id) / "ui" / "tui-session.json"
+
+
+def cockpit_session_ref(app_id: str) -> str:
+    return f"apps/{weave_runtime_slice.slugify(app_id)}/ui/tui-session.json"
+
+
+def list_public_files(base: Path, root: Path, *, limit: int = 40) -> list[str]:
+    if not base.exists():
+        return []
+    files = sorted(path for path in base.rglob("*") if path.is_file())
+    return [rel(path, root) for path in files[:limit]]
+
+
+def lifecycle_artifacts(root: Path, app_id: str) -> list[str]:
+    base = weave_runtime_slice.app_root(root, app_id) / "lifecycle"
+    return list_public_files(base, root)
+
+
+def generated_files(root: Path, app_id: str) -> list[str]:
+    base = generated_app_dir(root, app_id)
+    return list_public_files(base, root)
+
+
+def stage_rows(app: dict[str, Any] | None) -> list[dict[str, str]]:
+    current_stage = str((app or {}).get("current_stage") or "intent")
+    approved = set((app or {}).get("approved_stages") or [])
+    rows: list[dict[str, str]] = []
+    for stage in weave_runtime_slice.STAGES:
+        if stage.id in approved:
+            state = "approved"
+        elif stage.id == current_stage:
+            state = str((app or {}).get("stage_state") or "active")
+        else:
+            state = "not_started"
+        rows.append(
+            {
+                "id": stage.id,
+                "directory": stage.directory,
+                "state": state,
+                "script": BLUEPRINT_STAGE_SCRIPTS[stage.id]["label"],
+            }
+        )
+    return rows
+
+
+def review_queue(app: dict[str, Any] | None, *, app_exists: bool) -> list[dict[str, str]]:
+    if not app_exists:
+        return [
+            {
+                "kind": "setup",
+                "state": "needs_owner_choice",
+                "summary": "No local app state exists yet; choose attach/create/connect/skip from first-run.",
+            }
+        ]
+    items: list[dict[str, str]] = []
+    for blocker in app.get("blockers") or []:
+        items.append({"kind": "blocker", "state": "blocked", "summary": str(blocker)})
+    for question in app.get("owner_questions") or []:
+        items.append({"kind": "owner_question", "state": "pending", "summary": str(question)})
+    if app.get("stage_completion_requires_owner_review", True):
+        stage_id = str(app.get("current_stage") or "intent")
+        script = BLUEPRINT_STAGE_SCRIPTS.get(stage_id, BLUEPRINT_STAGE_SCRIPTS["intent"])
+        items.append(
+            {
+                "kind": "stage_review",
+                "state": str(app.get("stage_state") or "active"),
+                "summary": script["review_question"],
+            }
+        )
+    return items
+
+
+def cockpit_snapshot(root: Path, args: Any) -> dict[str, Any]:
+    app_id = weave_runtime_slice.slugify(args.app_id)
+    app_path = weave_runtime_slice.app_metadata_path(root, app_id)
+    app_exists = app_path.exists()
+    app = weave_runtime_slice.load_app(root, app_id) if app_exists else None
+    current_stage = str((app or {}).get("current_stage") or "first-run")
+    script_key = current_stage if app_exists else "first-run"
+    script = BLUEPRINT_STAGE_SCRIPTS.get(script_key, BLUEPRINT_STAGE_SCRIPTS["first-run"])
+    snapshot = {
+        "schema": "weave-tui-cockpit-snapshot/v0.1",
+        "app_exists": app_exists,
+        "app_id": app_id,
+        "app_name": str((app or {}).get("name") or args.app_name),
+        "current_stage": current_stage,
+        "stage_state": str((app or {}).get("stage_state") or ("needs_setup" if not app_exists else "active")),
+        "script_key": script_key,
+        "script": script,
+        "stages": stage_rows(app),
+        "artifacts": lifecycle_artifacts(root, app_id) if app_exists else [],
+        "files": generated_files(root, app_id) if app_exists else [],
+        "reviews": review_queue(app, app_exists=app_exists),
+        "feedback": read_cockpit_feedback(root, app_id) if app_exists else [],
+        "session_ref": cockpit_session_ref(app_id),
+    }
+    # The snapshot contains display labels such as "First Run / Environment
+    # Detection"; those are not persisted as proof artifacts and should not be
+    # interpreted as filesystem locators by the stricter JSON artifact scanner.
+    return snapshot
+
+
+def default_cockpit_session(args: Any, snapshot: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema": COCKPIT_SESSION_SCHEMA,
+        "app_id": snapshot["app_id"],
+        "app_name": snapshot["app_name"],
+        "view": "overview",
+        "current_stage": snapshot["current_stage"],
+        "control_mode": normalize_control_mode(args.control_mode),
+        "app_surface": args.app_surface,
+        "created_at": utc_now(),
+        "updated_at": utc_now(),
+        "recent_actions": [],
+        "external_effects_executed": [],
+        "hard_boundaries": [
+            "credentials",
+            "deployment",
+            "public sends",
+            "paid spend",
+            "destructive changes",
+            "live third-party mutation",
+        ],
+        "available_views": list(COCKPIT_VIEWS),
+    }
+
+
+def load_cockpit_session(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    session = weave_runtime_slice.load_json(path)
+    if session.get("schema") != COCKPIT_SESSION_SCHEMA:
+        raise weave_runtime_slice.RuntimeSliceError(f"cockpit session schema must be {COCKPIT_SESSION_SCHEMA}")
+    return session
+
+
+def prepare_cockpit_session(root: Path, args: Any, snapshot: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    path = cockpit_session_path(root, snapshot["app_id"])
+    existing = load_cockpit_session(path)
+    restored = bool(existing and (args.resume or args.view == "resume"))
+    session = dict(existing or default_cockpit_session(args, snapshot))
+
+    # Resume restores the last operator view instead of replacing it with a new
+    # default; normal navigation intentionally records the requested view.
+    requested_view = session.get("view", "overview") if restored else args.view
+    if requested_view == "resume":
+        requested_view = "overview"
+    session["view"] = requested_view
+    session["app_name"] = snapshot["app_name"]
+    session["current_stage"] = snapshot["current_stage"]
+    session["updated_at"] = utc_now()
+    recent = list(session.get("recent_actions") or [])
+    recent.append(f"{'resume' if restored else 'open'}:{requested_view}")
+    session["recent_actions"] = recent[-COCKPIT_RECENT_LIMIT:]
+    session["resume_restored"] = restored
+    ensure_public_safe("cockpit session", session)
+    return session, restored
+
+
+def write_cockpit_session(root: Path, session: dict[str, Any]) -> None:
+    weave_runtime_slice.write_json_artifact(cockpit_session_path(root, session["app_id"]), session)
+
+
+def tui_inputs_from_args(args: Any, *, write: bool) -> TuiInputs:
+    inputs = TuiInputs(
+        app_id=weave_runtime_slice.slugify(args.app_id),
+        app_name=args.app_name,
+        app_surface=args.app_surface,
+        owner_experience=args.owner_experience,
+        coworker_style=args.coworker_style,
+        control_mode=normalize_control_mode(args.control_mode),
+        intent=args.intent,
+        target_user=args.target_user,
+        deployment_region=args.deployment_region,
+        marketing_budget=args.marketing_budget,
+        owner_feedback=args.owner_feedback,
+        engineering_owner_response=args.engineering_owner_response,
+        write=write,
+    )
+    ensure_public_safe("tui inputs", inputs.__dict__)
+    return inputs
+
+
+def cockpit_feedback_path(root: Path, app_id: str) -> Path:
+    return weave_runtime_slice.app_root(root, app_id) / "ui" / "tui-feedback.jsonl"
+
+
+def read_cockpit_feedback(root: Path, app_id: str, *, limit: int = 20) -> list[dict[str, Any]]:
+    path = cockpit_feedback_path(root, app_id)
+    if not path.exists():
+        return []
+    items: list[dict[str, Any]] = []
+    for raw in path.read_text(encoding="utf-8").splitlines()[-limit:]:
+        if not raw.strip():
+            continue
+        try:
+            item = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(item, dict):
+            items.append(item)
+    return items
+
+
+def append_cockpit_feedback(
+    root: Path,
+    *,
+    app_id: str,
+    stage_id: str,
+    kind: str,
+    text: str,
+    file_ref: str | None = None,
+) -> dict[str, Any]:
+    event = {
+        "schema": "weave-tui-feedback/v0.1",
+        "recorded_at": utc_now(),
+        "app_id": app_id,
+        "stage_id": stage_id,
+        "kind": kind,
+        "text": " ".join(text.split()),
+    }
+    if file_ref:
+        event["file_ref"] = file_ref
+    ensure_public_safe("cockpit feedback", event)
+    path = cockpit_feedback_path(root, app_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, sort_keys=True) + "\n")
+    return event
+
+
+def update_session_view(session: dict[str, Any], view: str, *, action: str) -> None:
+    session["view"] = view
+    session["updated_at"] = utc_now()
+    recent = list(session.get("recent_actions") or [])
+    recent.append(action)
+    session["recent_actions"] = recent[-COCKPIT_RECENT_LIMIT:]
+
+
+def match_generated_file(snapshot: dict[str, Any], requested: str) -> tuple[str | None, str]:
+    files = list(snapshot.get("files") or [])
+    if requested in files:
+        return requested, ""
+    matches = [item for item in files if item.endswith("/" + requested) or Path(item).name == requested]
+    if len(matches) == 1:
+        return matches[0], ""
+    if not matches:
+        return None, f"File not found in generated file list: {requested}"
+    return None, f"File reference is ambiguous: {requested}"
+
+
+def create_local_cockpit_app(root: Path, args: Any, session: dict[str, Any]) -> CockpitCommandResult:
+    app_id = weave_runtime_slice.slugify(args.app_id)
+    if weave_runtime_slice.app_metadata_path(root, app_id).exists():
+        update_session_view(session, "overview", action="create:already-exists")
+        return CockpitCommandResult(False, f"Local app state already exists for {app_id}.", True)
+    weave_runtime_slice.create_app(root, app_id, args.app_name)
+    update_session_view(session, "overview", action="create:local-app")
+    return CockpitCommandResult(False, f"Created local app state for {app_id}; current stage is intent.", True)
+
+
+def finish_post_qa_flow(args: Any, inputs: TuiInputs, step_results: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    qa_args = module_args(
+        args,
+        inputs,
+        surface=QA_SURFACE_BY_APP_SURFACE[inputs.app_surface],
+        qa_command=args.qa_command,
+        target_label=f"local {inputs.app_surface} proof",
+        create_app=False,
+    )
+    step_results.append(run_lifecycle_module("Lifecycle QA bundle", weave_qa_proof.run, qa_args))
+    if step_results[-1]["rc"] != 0:
+        return step_results, None
+
+    launch_args = module_args(
+        args,
+        inputs,
+        deployment_region=inputs.deployment_region,
+        marketing_budget=inputs.marketing_budget,
+        feedback_source="local feedback artifacts",
+        create_app=False,
+    )
+    launch_result = run_lifecycle_module("Launch gates", weave_launch_ops.run, launch_args)
+    launch_result["status"] = "blocked" if launch_result["rc"] == 0 else "failed"
+    launch_result["summary"] = "deployment/KPI/marketing/iteration gated locally" if launch_result["rc"] == 0 else launch_result["summary"]
+    step_results.append(launch_result)
+
+    manifest = write_tui_manifest(args, inputs, step_results)
+    return step_results, manifest
+
+
+def run_engineering_and_qa_executor(args: Any, inputs: TuiInputs) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    app = weave_runtime_slice.load_app(args.weave_root, inputs.app_id)
+    current_stage = weave_runtime_slice.normalize_stage_id(app.get("current_stage"), default="engineering")
+    steps: list[dict[str, Any]] = []
+
+    if current_stage == "engineering":
+        engineering = write_engineering_scaffold(args, inputs)
+        steps.append(engineering)
+        real_qa = run_real_app_qa(args, inputs, engineering["source_manifest"])
+        steps.append(real_qa)
+        if real_qa["rc"] != 0:
+            return steps, None
+        return finish_post_qa_flow(args, inputs, steps)
+
+    if current_stage == "qa":
+        source_manifest = weave_runtime_slice.load_json(generated_app_manifest_path(args.weave_root, inputs.app_id))
+        real_qa = run_real_app_qa(args, inputs, source_manifest)
+        steps.append(real_qa)
+        if real_qa["rc"] != 0:
+            return steps, None
+        return finish_post_qa_flow(args, inputs, steps)
+
+    return run_scripted_or_interactive(args, inputs)
+
+
+def lifecycle_executor_result_message(step_results: list[dict[str, Any]]) -> tuple[bool, str]:
+    failed = [item for item in step_results if item.get("rc", 0) != 0]
+    if failed:
+        first = failed[0]
+        return False, f"Lifecycle executor stopped at {first['label']}: {first.get('summary', 'failed')}"
+    return True, "Lifecycle executor completed through local QA; launch gates remain blocked before live deployment/KPI/marketing effects."
+
+
+def run_cockpit_lifecycle_executor(args: Any, session: dict[str, Any], snapshot: dict[str, Any]) -> CockpitCommandResult:
+    inputs = tui_inputs_from_args(args, write=True)
+    try:
+        if snapshot["app_exists"]:
+            step_results, _manifest = run_engineering_and_qa_executor(args, inputs)
+        else:
+            step_results, _manifest = run_scripted_or_interactive(args, inputs)
+    except (OSError, ValueError, weave_runtime_slice.RuntimeSliceError) as exc:
+        update_session_view(session, "reviews", action=f"run-failed:{getattr(args, 'executor', 'unknown')}")
+        return CockpitCommandResult(False, f"Lifecycle executor failed: {exc}", True)
+
+    passed, message = lifecycle_executor_result_message(step_results)
+    update_session_view(session, "artifacts" if passed else "reviews", action=f"run:{getattr(args, 'executor', 'unknown')}")
+    return CockpitCommandResult(False, message, True)
+
+
+def handle_cockpit_command(root: Path, args: Any, session: dict[str, Any], snapshot: dict[str, Any], raw_command: str) -> CockpitCommandResult:
+    raw = raw_command.strip()
+    lower = raw.lower()
+    if not lower:
+        return CockpitCommandResult(False, "")
+    if lower in {"q", "quit", "exit"}:
+        update_session_view(session, str(session.get("view") or "overview"), action="quit")
+        return CockpitCommandResult(True, "Leaving WEAVE cockpit.", bool(snapshot["app_exists"]))
+
+    view_aliases = {
+        "status": "overview",
+        "overview": "overview",
+        "stages": "stages",
+        "artifacts": "artifacts",
+        "files": "files",
+        "reviews": "reviews",
+        "help": "help",
+        "?": "help",
+    }
+    if lower in view_aliases:
+        view = view_aliases[lower]
+        update_session_view(session, view, action=f"open:{view}")
+        return CockpitCommandResult(False, f"Opened {view}.", bool(snapshot["app_exists"]))
+    if lower == "resume":
+        view = str(session.get("view") or "overview")
+        update_session_view(session, view, action=f"resume:{view}")
+        return CockpitCommandResult(False, f"Resumed {view}.", bool(snapshot["app_exists"]))
+
+    if snapshot["script_key"] == "first-run" and lower in {"2", "create", "create-local", "create local"}:
+        return create_local_cockpit_app(root, args, session)
+    if snapshot["script_key"] == "first-run" and lower in {"1", "attach", "attach-existing"}:
+        update_session_view(session, "overview", action="blocked:attach-existing")
+        return CockpitCommandResult(False, "Attach-existing is visible in the flow but not wired in this local wedge.", False)
+    if snapshot["script_key"] == "first-run" and lower in {"3", "connect", "connect-remote"}:
+        update_session_view(session, "overview", action="blocked:connect-remote")
+        return CockpitCommandResult(False, "Remote connect remains gated until an authenticated connector exists.", False)
+    if snapshot["script_key"] == "first-run" and lower in {"4", "skip", "local-only"}:
+        return create_local_cockpit_app(root, args, session)
+
+    if lower in {"g", "go", "run", "run-local", "run-qa", "execute"}:
+        return run_cockpit_lifecycle_executor(args, session, snapshot)
+
+    if lower in {"y", "yes", "approve", "continue"}:
+        if not snapshot["app_exists"]:
+            return CockpitCommandResult(False, "Create or attach a local app before approving lifecycle stages.")
+        append_cockpit_feedback(
+            root,
+            app_id=snapshot["app_id"],
+            stage_id=snapshot["current_stage"],
+            kind="owner_continue",
+            text="Owner approved continuing from the current cockpit prompt.",
+        )
+        update_session_view(session, "reviews", action=f"approve:{snapshot['current_stage']}")
+        return CockpitCommandResult(False, "Recorded owner continue/approve response.", True)
+
+    if lower in {"n", "no", "revise"}:
+        if not snapshot["app_exists"]:
+            return CockpitCommandResult(False, "Create or attach a local app before requesting lifecycle revision.")
+        append_cockpit_feedback(
+            root,
+            app_id=snapshot["app_id"],
+            stage_id=snapshot["current_stage"],
+            kind="owner_revise",
+            text="Owner requested revision from the current cockpit prompt.",
+        )
+        update_session_view(session, "reviews", action=f"revise:{snapshot['current_stage']}")
+        return CockpitCommandResult(False, "Recorded owner revise response.", True)
+
+    if lower == "f" or lower.startswith("f "):
+        if not snapshot["app_exists"]:
+            return CockpitCommandResult(False, "Create or attach a local app before recording stage feedback.")
+        feedback = raw[1:].strip()
+        if not feedback:
+            return CockpitCommandResult(False, "Use: f <feedback for the current stage>")
+        append_cockpit_feedback(
+            root,
+            app_id=snapshot["app_id"],
+            stage_id=snapshot["current_stage"],
+            kind="stage_feedback",
+            text=feedback,
+        )
+        update_session_view(session, "reviews", action=f"feedback:{snapshot['current_stage']}")
+        return CockpitCommandResult(False, "Recorded stage feedback for the agent review loop.", True)
+
+    if lower == "p" or lower.startswith("p "):
+        if not snapshot["app_exists"]:
+            return CockpitCommandResult(False, "Create or attach a local app before recording file feedback.")
+        parts = raw.split(maxsplit=2)
+        if len(parts) < 3:
+            return CockpitCommandResult(False, "Use: p <file-ref-or-name> <feedback for that file>")
+        file_ref, error = match_generated_file(snapshot, parts[1])
+        if error:
+            return CockpitCommandResult(False, error)
+        assert file_ref is not None
+        append_cockpit_feedback(
+            root,
+            app_id=snapshot["app_id"],
+            stage_id=snapshot["current_stage"],
+            kind="file_feedback",
+            text=parts[2],
+            file_ref=file_ref,
+        )
+        update_session_view(session, "reviews", action=f"file-feedback:{Path(file_ref).name}")
+        return CockpitCommandResult(False, f"Recorded file feedback for {file_ref}.", True)
+
+    return CockpitCommandResult(False, f"Unknown command: {raw}. Use help for the command model.")
+
+
+def cockpit_should_loop(args: Any, *, input_stream: TextIO, output: TextIO) -> bool:
+    if getattr(args, "once", False):
+        return False
+    if getattr(args, "loop", False):
+        return True
+    return hasattr(input_stream, "isatty") and input_stream.isatty() and hasattr(output, "isatty") and output.isatty()
+
+
+def render_script_card(snapshot: dict[str, Any], palette: Palette) -> list[str]:
+    script = snapshot["script"]
+    rows = [
+        palette.paint("Action Card", "bold", "cyan"),
+        f"Stage: {script['label']} ({snapshot['stage_state']})",
+        f"Ask: {script['visible_prompt']}",
+        "Reply model: Yes/No confirmation, option picker, free-form feedback, inspect/revise/approve loop",
+        f"Review question: {script['review_question']}",
+        f"Stop boundary: {script['stop_boundary']}",
+        "Choices:",
+    ]
+    rows.extend(f"  {choice}" for choice in script["choices"])
+    return rows
+
+
+def render_stage_rows(snapshot: dict[str, Any]) -> list[str]:
+    rows = ["Lifecycle stages:"]
+    for index, stage in enumerate(snapshot["stages"], 1):
+        marker = ">" if stage["id"] == snapshot["current_stage"] else " "
+        rows.append(f"  {marker} {index:02d}. {stage['id']:<12} {stage['state']:<16} {stage['script']}")
+    return rows
+
+
+def render_items(title: str, items: list[str], empty: str) -> list[str]:
+    rows = [title]
+    if not items:
+        rows.append(f"  {empty}")
+        return rows
+    rows.extend(f"  - {item}" for item in items[:40])
+    if len(items) > 40:
+        rows.append(f"  ... {len(items) - 40} more")
+    return rows
+
+
+def render_reviews(snapshot: dict[str, Any]) -> list[str]:
+    rows = ["Review queue:"]
+    for item in snapshot["reviews"]:
+        rows.append(f"  - {item['kind']} [{item['state']}]: {item['summary']}")
+    feedback = list(snapshot.get("feedback") or [])
+    if feedback:
+        rows.extend(["", "Recent feedback:"])
+        for item in feedback[-8:]:
+            target = f" -> {item['file_ref']}" if item.get("file_ref") else ""
+            rows.append(f"  - {item['kind']} [{item['stage_id']}]{target}: {item['text']}")
+    return rows
+
+
+def render_help() -> list[str]:
+    return [
+        "Command model:",
+        "  status      Show the overview action card and current stage.",
+        "  stages      Inspect lifecycle stages and approval state.",
+        "  artifacts   Inspect stage artifacts produced by agents.",
+        "  files       Inspect generated app files and attach file-specific feedback.",
+        "  reviews     Inspect pending owner choices, blockers, and revise/approve prompts.",
+        "  resume      Reopen the last saved cockpit view for this app.",
+        "  y / n       Approve/continue or revise the current stage prompt.",
+        "  f           Add free-form feedback to the current stage.",
+        "  p           Attach feedback to a specific file when files exist.",
+        "",
+        "This is a lifecycle cockpit. Codex executes work behind the action cards; the TUI owns stage state, review loops, and evidence navigation.",
+    ]
+
+
+def render_cockpit_view(session: dict[str, Any], snapshot: dict[str, Any], palette: Palette) -> str:
+    view = str(session.get("view") or "overview")
+    rows: list[str]
+    if view == "stages":
+        rows = render_stage_rows(snapshot)
+    elif view == "artifacts":
+        rows = render_items("Artifacts:", snapshot["artifacts"], "No lifecycle artifacts are present yet.")
+    elif view == "files":
+        rows = render_items("Generated files:", snapshot["files"], "No generated app files are present yet.")
+        rows.extend(["", "File feedback: choose a file from this list, then use [p] to attach feedback for the agent."])
+    elif view == "reviews":
+        rows = render_reviews(snapshot)
+    elif view == "help":
+        rows = render_help()
+    else:
+        rows = render_script_card(snapshot, palette)
+        rows.extend(["", *render_stage_rows(snapshot), "", *render_reviews(snapshot)])
+    return "\n".join(rows)
+
+
+def render_cockpit(session: dict[str, Any], snapshot: dict[str, Any], palette: Palette) -> str:
+    title = "WEAVE Cockpit"
+    mode = "write" if snapshot.get("session_written") else "read-only"
+    restored = "yes" if session.get("resume_restored") else "no"
+    header_rows = [
+        f"App: {snapshot['app_name']} ({snapshot['app_id']})",
+        f"Stage: {snapshot['current_stage']} | State: {snapshot['stage_state']} | View: {session['view']} | Mode: {mode}",
+        f"Session: {snapshot['session_ref']} | Resume restored: {restored}",
+        "Boundary: no credentials, no deployment, no public sends, no paid spend, no live third-party mutation",
+    ]
+    nav = (
+        "Nav: overview | stages | artifacts | files | reviews | help"
+        "\nCommand bar: status | stages | artifacts | files | reviews | help | resume | y | n | f | p | q"
+    )
+    recent = ", ".join(session.get("recent_actions") or []) or "none"
+    body = [
+        frame(title, "resumable lifecycle cockpit, not a generic Codex chat wrapper", header_rows, palette),
+        nav,
+        "",
+        render_cockpit_view(session, snapshot, palette),
+        "",
+        palette.paint("Proof boundary", "bold", "magenta"),
+        "  external_effects_executed: none",
+        "  UI primitives: action card, Yes/No confirmation, option picker, free-form feedback, file-specific feedback",
+        f"  recent_actions: {recent}",
+    ]
+    if not snapshot["app_exists"]:
+        body.extend(["", palette.paint("Next", "bold", "cyan"), "  rerun with --write to create local app state, or choose attach/connect/create when the live loop is enabled"])
+    elif not snapshot["artifacts"] and not snapshot["files"]:
+        body.extend(["", palette.paint("Next", "bold", "cyan"), "  run the lifecycle executor path when ready; this cockpit will then list artifacts and files here"])
+    return "\n".join(body) + "\n"
+
+
+def run_cockpit(args: Any, *, input_stream: TextIO, output: TextIO) -> int:
+    app_id = weave_runtime_slice.slugify(args.app_id)
+    ensure_public_safe("cockpit args", {"app_id": app_id, "app_name": args.app_name, "view": args.view})
+    if args.write and not weave_runtime_slice.app_metadata_path(args.weave_root, app_id).exists():
+        weave_runtime_slice.create_app(args.weave_root, app_id, args.app_name)
+    snapshot = cockpit_snapshot(args.weave_root, args)
+    session, _restored = prepare_cockpit_session(args.weave_root, args, snapshot)
+    if args.write:
+        write_cockpit_session(args.weave_root, session)
+        snapshot["session_written"] = True
+    else:
+        snapshot["session_written"] = False
+
+    if args.json:
+        payload = {
+            "schema": "weave-tui-cockpit-render/v0.1",
+            "session": session,
+            "snapshot": snapshot,
+            "external_effects_executed": [],
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True), file=output)
+        return 0
+
+    palette = Palette(color_enabled(args, output))
+    print(render_cockpit(session, snapshot, palette), end="", file=output)
+    if not cockpit_should_loop(args, input_stream=input_stream, output=output):
+        return 0
+
+    while True:
+        output.write("\nweave> ")
+        output.flush()
+        raw = input_stream.readline()
+        if not raw:
+            break
+        result = handle_cockpit_command(args.weave_root, args, session, snapshot, raw)
+        if result.message:
+            line(output, result.message)
+        if result.persist_session:
+            write_cockpit_session(args.weave_root, session)
+        if result.exit_requested:
+            break
+        snapshot = cockpit_snapshot(args.weave_root, args)
+        snapshot["session_written"] = result.persist_session
+        session["current_stage"] = snapshot["current_stage"]
+        print(render_cockpit(session, snapshot, palette), end="", file=output)
+    return 0
 
 
 def render_step_table(step_results: list[dict[str, Any]], palette: Palette) -> str:
@@ -865,6 +1666,7 @@ Required behavior:
 - Generated source text must not include private host names, loopback addresses, private IPs, or file URLs. Say "local static server" instead of naming a private host.
 - src/app.js must use addEventListener, textContent, localStorage, and JSON.stringify.
 - src/app.js must avoid innerHTML, fetch, XMLHttpRequest, window.location redirects, and external HTTP calls.
+- src/app.js must not contain http:// or https:// text, even for placeholder canonical URLs. Keep canonical URL text only in index.html.
 - public/config.json must declare external effects disabled for analytics, deployment, paid_spend, public_send, and credentials. A flat false value is preferred; an object with "enabled": false is acceptable.
 - README.md must explain local run steps and hard boundaries.
 
@@ -1799,6 +2601,8 @@ def render_summary(inputs: TuiInputs, step_results: list[dict[str, Any]], manife
 def run(args: Any, *, input_stream: TextIO = sys.stdin, output: TextIO = sys.stdout) -> int:
     palette = Palette(color_enabled(args, output))
     try:
+        if getattr(args, "cockpit", False) or not args.scripted_demo:
+            return run_cockpit(args, input_stream=input_stream, output=output)
         inputs = collect_inputs(args, input_stream=input_stream, output=output, palette=palette)
         if args.json:
             step_results, manifest = run_scripted_or_interactive(args, inputs)

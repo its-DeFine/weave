@@ -65,15 +65,19 @@ Runtime surfaces:
   intended WEAVE flow: onboarding, runtime readiness, Hermes setup, gateway
   attachment, app portfolio, lifecycle stage, transcript capture, proof/eval
   state, inconsistencies, and next action.
-- `bin/weave tui`: runs the local lifecycle cockpit. It supports interactive
-  prompts or `--scripted-demo --write` proof mode, accepts `--control-mode
-  handoff` for full local-safe handoff, writes website SEO artifacts when the
-  app surface is `website`, and can use either `--executor codex` or
-  `--executor fixture`. The Codex executor invokes `codex exec`
-  non-interactively, requires generated app files under `repo/primary`, runs
-  real local static-server/source/SEO QA, and fails if Codex or QA fails. The
-  fixture executor is deterministic CI/local proof only and is labeled as not
-  live Codex model output. The TUI records formal Engineering command gates as
+- `bin/weave tui`: runs the local lifecycle cockpit. It opens a resumable
+  command loop with service-blueprint action cards, visible choices, a review
+  queue, artifact and file panes, stage feedback, and file-specific feedback.
+  The `g`/`run` command invokes the local lifecycle executor through QA from
+  inside the cockpit. It also supports `--scripted-demo --write` proof mode,
+  accepts `--control-mode handoff` for full local-safe handoff, writes website
+  SEO artifacts when the app surface is `website`, and can use either
+  `--executor codex` or `--executor fixture`. The Codex executor invokes
+  `codex exec` non-interactively, requires generated app files under
+  `repo/primary`, runs real local static-server/source/SEO QA, and fails if
+  Codex or QA fails. The fixture executor is deterministic CI/local proof only
+  and is labeled as not live Codex model output. The TUI records formal
+  Engineering command gates as
   pending unless `--run-engineering-gates` is set, and stops before
   credentials, deployment, public sends, paid spend, destructive changes, and
   security-boundary changes.

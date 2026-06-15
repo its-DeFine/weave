@@ -280,6 +280,382 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("SEO: checklist and local QA artifact will be written", text)
             self.assertFalse(runtime_home.exists())
 
+    def test_tui_cockpit_preview_exposes_service_blueprint_choices(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--no-color",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Cockpit", text)
+            self.assertIn("not a generic Codex chat wrapper", text)
+            self.assertIn("Action Card", text)
+            self.assertIn("First Run / Environment Detection", text)
+            self.assertIn("Reply model: Yes/No confirmation, option picker, free-form feedback", text)
+            self.assertIn("file-specific feedback", text)
+            self.assertIn("[1] Attach existing local environment", text)
+            self.assertIn("[2] Create local WEAVE/Hermes environment", text)
+            self.assertIn("Command bar: status | stages | artifacts | files | reviews | help | resume", text)
+            self.assertIn("external_effects_executed: none", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_tui_cockpit_write_persists_and_resumes_last_view(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--cockpit",
+                    "--write",
+                    "--app-id",
+                    "cockpit-app",
+                    "--app-name",
+                    "Cockpit App",
+                    "--view",
+                    "stages",
+                    "--no-color",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("View: stages", text)
+            session_path = runtime_home / "weave-state" / "apps" / "cockpit-app" / "ui" / "tui-session.json"
+            self.assertTrue(session_path.exists())
+            session = json.loads(session_path.read_text(encoding="utf-8"))
+            self.assertEqual(session["schema"], weave_cli.weave_tui.COCKPIT_SESSION_SCHEMA)
+            self.assertEqual(session["view"], "stages")
+            self.assertIn("open:stages", session["recent_actions"])
+
+            resume_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "cockpit-app",
+                    "--resume",
+                    "--no-color",
+                ],
+                output=resume_output,
+            )
+
+            resume_text = resume_output.getvalue()
+            self.assertEqual(rc, 0, resume_text)
+            self.assertIn("View: stages", resume_text)
+            self.assertIn("Resume restored: yes", resume_text)
+            self.assertIn("recent_actions: open:stages, resume:stages", resume_text)
+
+    def test_tui_cockpit_loop_creates_app_and_records_stage_feedback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            input_stream = io.StringIO("2\nf make the intent stricter before research\nreviews\nq\n")
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "loop-app",
+                    "--app-name",
+                    "Loop App",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=input_stream,
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("Created local app state for loop-app", text)
+            self.assertIn("Recorded stage feedback for the agent review loop", text)
+            self.assertIn("Recent feedback:", text)
+            self.assertIn("make the intent stricter before research", text)
+            app_root = runtime_home / "weave-state" / "apps" / "loop-app"
+            self.assertTrue((app_root / "app.weave.json").exists())
+            session = json.loads((app_root / "ui" / "tui-session.json").read_text(encoding="utf-8"))
+            self.assertEqual(session["view"], "reviews")
+            feedback_lines = (app_root / "ui" / "tui-feedback.jsonl").read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(feedback_lines), 1)
+            feedback = json.loads(feedback_lines[0])
+            self.assertEqual(feedback["kind"], "stage_feedback")
+            self.assertEqual(feedback["stage_id"], "intent")
+
+    def test_tui_cockpit_lists_generated_files_and_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            scripted_output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "tui-with-files",
+                    "--app-name",
+                    "TUI With Files",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--skip-codex-proof",
+                    "--scripted-demo",
+                    "--write",
+                    "--no-color",
+                ],
+                output=scripted_output,
+            )
+            self.assertEqual(rc, 0, scripted_output.getvalue())
+
+            files_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "tui-with-files",
+                    "--view",
+                    "files",
+                    "--no-color",
+                ],
+                output=files_output,
+            )
+            files_text = files_output.getvalue()
+            self.assertEqual(rc, 0, files_text)
+            self.assertIn("Generated files:", files_text)
+            self.assertIn("apps/tui-with-files/repo/primary/index.html", files_text)
+            self.assertIn("File feedback: choose a file from this list", files_text)
+
+            artifacts_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "tui-with-files",
+                    "--view",
+                    "artifacts",
+                    "--no-color",
+                ],
+                output=artifacts_output,
+            )
+            artifacts_text = artifacts_output.getvalue()
+            self.assertEqual(rc, 0, artifacts_text)
+            self.assertIn("Artifacts:", artifacts_text)
+            self.assertIn("apps/tui-with-files/lifecycle/05-engineering/artifacts/generated-app-manifest.json", artifacts_text)
+            self.assertIn("apps/tui-with-files/lifecycle/06-qa/artifacts/real-app-qa.json", artifacts_text)
+
+    def test_tui_cockpit_loop_records_file_specific_feedback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            scripted_output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "file-feedback-app",
+                    "--app-name",
+                    "File Feedback App",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--skip-codex-proof",
+                    "--scripted-demo",
+                    "--write",
+                    "--no-color",
+                ],
+                output=scripted_output,
+            )
+            self.assertEqual(rc, 0, scripted_output.getvalue())
+
+            output = io.StringIO()
+            input_stream = io.StringIO("p index.html make the first screen denser and clearer\nreviews\nq\n")
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "file-feedback-app",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=input_stream,
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("Recorded file feedback for apps/file-feedback-app/repo/primary/index.html", text)
+            self.assertIn("file_feedback", text)
+            self.assertIn("make the first screen denser and clearer", text)
+            feedback_path = runtime_home / "weave-state" / "apps" / "file-feedback-app" / "ui" / "tui-feedback.jsonl"
+            feedback = [json.loads(line) for line in feedback_path.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(feedback[-1]["kind"], "file_feedback")
+            self.assertEqual(feedback[-1]["file_ref"], "apps/file-feedback-app/repo/primary/index.html")
+
+    def test_tui_cockpit_loop_runs_fixture_executor_through_qa(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            input_stream = io.StringIO("g\nfiles\nartifacts\nq\n")
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "loop-executor-app",
+                    "--app-name",
+                    "Loop Executor App",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--skip-codex-proof",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=input_stream,
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("Lifecycle executor completed through local QA", text)
+            self.assertIn("Generated files:", text)
+            self.assertIn("apps/loop-executor-app/repo/primary/index.html", text)
+            self.assertIn("Artifacts:", text)
+            self.assertIn("apps/loop-executor-app/lifecycle/06-qa/artifacts/real-app-qa.json", text)
+            app_root = runtime_home / "weave-state" / "apps" / "loop-executor-app"
+            self.assertTrue((app_root / "repo" / "primary" / "index.html").exists())
+            self.assertTrue((app_root / "lifecycle" / "06-qa" / "artifacts" / "real-app-qa.json").exists())
+
+    def test_tui_cockpit_run_resumes_engineering_after_failed_qa(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            broken_output = io.StringIO()
+            broken_input = io.StringIO("g\nq\n")
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "rerun-app",
+                    "--app-name",
+                    "Rerun App",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--fixture-broken-app",
+                    "--skip-codex-proof",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=broken_input,
+                output=broken_output,
+            )
+            self.assertEqual(rc, 0, broken_output.getvalue())
+            self.assertIn("Lifecycle executor stopped at Real app QA", broken_output.getvalue())
+
+            app = weave_cli.weave_tui.weave_runtime_slice.load_app(runtime_home / "weave-state", "rerun-app")
+            self.assertEqual(app["current_stage"], "engineering")
+            self.assertEqual(app["stage_state"], "blocked")
+
+            rerun_output = io.StringIO()
+            rerun_input = io.StringIO("g\nreviews\nq\n")
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "rerun-app",
+                    "--app-name",
+                    "Rerun App",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--skip-codex-proof",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=rerun_input,
+                output=rerun_output,
+            )
+
+            rerun_text = rerun_output.getvalue()
+            self.assertEqual(rc, 0, rerun_text)
+            self.assertNotIn("Intent-Plan", rerun_text)
+            self.assertIn("Lifecycle executor completed through local QA", rerun_text)
+            app = weave_cli.weave_tui.weave_runtime_slice.load_app(runtime_home / "weave-state", "rerun-app")
+            self.assertEqual(app["current_stage"], "deployment")
+            self.assertEqual(app["stage_state"], "blocked")
+
+    def test_tui_codex_prompt_keeps_canonical_url_out_of_javascript(self) -> None:
+        inputs = weave_cli.weave_tui.TuiInputs(
+            app_id="prompt-app",
+            app_name="Prompt App",
+            app_surface="website",
+            owner_experience="operator",
+            coworker_style="direct",
+            control_mode="hands-off",
+            intent="Build a local launch board.",
+            target_user="founder",
+            deployment_region="local proof",
+            marketing_budget="none",
+            owner_feedback="",
+            engineering_owner_response="",
+            write=True,
+        )
+
+        prompt = weave_cli.weave_tui.codex_app_build_prompt(inputs)
+
+        self.assertIn("index.html must use exactly this canonical URL: https://example.com/prompt-app/", prompt)
+        self.assertIn("src/app.js must not contain http:// or https:// text", prompt)
+        self.assertIn("Keep canonical URL text only in index.html", prompt)
+
     def test_tui_scripted_handoff_writes_flow_through_qa_with_website_seo(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime_home = Path(tmpdir) / "runtime-home"
