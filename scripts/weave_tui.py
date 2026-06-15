@@ -166,7 +166,7 @@ BLUEPRINT_STAGE_SCRIPTS: dict[str, dict[str, Any]] = {
             "[g] Start or continue engineering",
             "[i] Inspect generated files",
             "[p] Attach feedback to a file",
-            "[q] Approve for QA",
+            "[y] Approve for QA",
             "[r] Request changes",
             "[x] View executor manifest",
         ],
@@ -659,6 +659,16 @@ def read_cockpit_preview(root: Path, ref: str, kind: str) -> str:
     return f"Preview {kind}: {ref}\n---\n{excerpt}{suffix}\n---"
 
 
+def stage_choice_for_command(snapshot: dict[str, Any], command: str) -> str | None:
+    token = command.strip().lower()
+    if not token:
+        return None
+    for choice in snapshot["script"].get("choices", []):
+        if choice.lower().startswith(f"[{token}]"):
+            return choice
+    return None
+
+
 def create_local_cockpit_app(root: Path, args: Any, session: dict[str, Any]) -> CockpitCommandResult:
     app_id = weave_runtime_slice.slugify(args.app_id)
     if weave_runtime_slice.app_metadata_path(root, app_id).exists():
@@ -776,6 +786,8 @@ def handle_cockpit_command(root: Path, args: Any, session: dict[str, Any], snaps
         update_session_view(session, view, action=f"resume:{view}")
         return CockpitCommandResult(False, f"Resumed {view}.", bool(snapshot["app_exists"]))
 
+    stage_choice = stage_choice_for_command(snapshot, lower)
+
     if lower == "x" and snapshot["script_key"] == "engineering":
         raw = "open app-executor-manifest.json"
         lower = raw
@@ -801,6 +813,28 @@ def handle_cockpit_command(root: Path, args: Any, session: dict[str, Any], snaps
         return CockpitCommandResult(False, "Remote connect remains gated until an authenticated connector exists.", False)
     if snapshot["script_key"] == "first-run" and lower in {"4", "skip", "local-only"}:
         return create_local_cockpit_app(root, args, session)
+
+    if stage_choice and lower not in {"g", "f", "p", "y", "n"}:
+        if not snapshot["app_exists"]:
+            update_session_view(session, "overview", action=f"choice:{snapshot['script_key']}:{lower}")
+            return CockpitCommandResult(
+                False,
+                f"Choice visible but gated until local app state exists: {stage_choice}",
+                False,
+            )
+        append_cockpit_feedback(
+            root,
+            app_id=snapshot["app_id"],
+            stage_id=snapshot["current_stage"],
+            kind="stage_choice",
+            text=f"Operator selected {stage_choice} on {snapshot['script_key']}. Dedicated execution for this choice is pending.",
+        )
+        update_session_view(session, "reviews", action=f"choice:{snapshot['script_key']}:{lower}")
+        return CockpitCommandResult(
+            False,
+            f"Recorded stage choice for the review loop: {stage_choice}",
+            True,
+        )
 
     if lower in {"g", "go", "run", "run-local", "run-qa", "execute"}:
         return run_cockpit_lifecycle_executor(args, session, snapshot)

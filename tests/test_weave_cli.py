@@ -576,6 +576,96 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("Preview artifact: apps/preview-app/lifecycle/06-qa/artifacts/real-app-qa.json", text)
             self.assertIn('"id": "route-index"', text)
 
+    def test_tui_cockpit_visible_stage_choices_are_handled(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            scripted_output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "choice-app",
+                    "--app-name",
+                    "Choice App",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--skip-codex-proof",
+                    "--scripted-demo",
+                    "--write",
+                    "--no-color",
+                ],
+                output=scripted_output,
+            )
+            self.assertEqual(rc, 0, scripted_output.getvalue())
+
+            output = io.StringIO()
+            input_stream = io.StringIO("h\nreviews\nq\n")
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "choice-app",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=input_stream,
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("Recorded stage choice for the review loop: [h] Hold before live setup", text)
+            self.assertIn("stage_choice", text)
+            self.assertNotIn("Unknown command: h", text)
+            feedback_path = runtime_home / "weave-state" / "apps" / "choice-app" / "ui" / "tui-feedback.jsonl"
+            feedback = [json.loads(line) for line in feedback_path.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(feedback[-1]["kind"], "stage_choice")
+
+    def test_tui_cockpit_engineering_card_does_not_use_q_for_qa_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            input_stream = io.StringIO("g\nstatus\nq\n")
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "engineering-conflict-app",
+                    "--app-name",
+                    "Engineering Conflict App",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--fixture-broken-app",
+                    "--skip-codex-proof",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=input_stream,
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("Stage: Engineering (blocked)", text)
+            self.assertIn("[y] Approve for QA", text)
+            self.assertNotIn("[q] Approve for QA", text)
+
     def test_tui_cockpit_loop_runs_fixture_executor_through_qa(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime_home = Path(tmpdir) / "runtime-home"
