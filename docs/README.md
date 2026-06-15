@@ -8,6 +8,7 @@ This `docs/` tree is the public documentation subset for WEAVE.
 - [WEAVE Quickstart](quickstart.md)
 - [Telegram Slash Commands](telegram-slash-commands.md)
 - [Lifecycle Evals](lifecycle-evals.md)
+- [Lifecycle Artifact Contracts v0.1](lifecycle-artifact-contracts-v0.1.md)
 - [Runtime Home Contract](runtime-home.md)
 - [Hermes Runtime Setup](hermes-setup.md)
 - [Hermes Runtime Handover](hermes-runtime-handover-2026-05-30.md)

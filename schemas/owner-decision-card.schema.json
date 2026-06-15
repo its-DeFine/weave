@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weave.dev/schemas/owner-decision-card.schema.json",
+  "title": "WEAVE Owner Decision Card",
+  "type": "object",
+  "required": ["schema", "decision_id", "app_id", "stage", "status", "created_at", "decision_type", "question", "why_it_matters", "options"],
+  "properties": {
+    "schema": {
+      "const": "weave/owner-decision-card/v0.1"
+    },
+    "decision_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.:-]*$"
+    },
+    "app_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "stage": {
+      "$ref": "#/$defs/stage"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "answered", "deferred", "blocked", "superseded"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "decision_type": {
+      "type": "string",
+      "enum": ["architecture", "library", "scope", "cost", "security", "deployment", "product", "capability", "public_action", "other"]
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "why_it_matters": {
+      "type": "string",
+      "minLength": 1
+    },
+    "options": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "description"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "agent_recommendation": {
+            "type": "boolean"
+          },
+          "consequences": {
+            "$ref": "#/$defs/string_list"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "selected_option_id": {
+      "type": "string"
+    },
+    "owner_response": {
+      "type": "string"
+    },
+    "answered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "hard_boundary_flags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["spend", "credential_scope", "public_send", "production_deploy", "legal_regulatory", "destructive_action", "security_boundary", "deployment_shape"]
+      }
+    },
+    "evidence_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "claims": {
+      "$ref": "#/$defs/string_list"
+    },
+    "non_claims": {
+      "$ref": "#/$defs/string_list"
+    }
+  },
+  "$defs": {
+    "stage": {
+      "type": "string",
+      "enum": ["first_run", "owner_profile", "create_app", "intent", "research", "selection", "plan", "engineering", "qa", "deployment", "kpi", "marketing", "iteration", "analysis"]
+    },
+    "ref_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": true
+}
