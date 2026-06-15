@@ -48,6 +48,11 @@ full docs tree first, start here:
   or [Full Conversation-To-App Dogfood](month1/full-conversation-app-dogfood.md).
   It writes local `runs/` artifacts and does not call live Hermes, Telegram,
   providers, hosting, analytics, payments, or public channels.
+- **Lifecycle artifact bundle validation:** run
+  `python3 scripts/validate_lifecycle_artifacts.py` against
+  [the public sample bundle](samples/lifecycle-artifacts.example.json). This is
+  local deterministic validation for lifecycle, world-model, ledger, decision,
+  capability, and scheduler artifact shape. It is not live runtime proof.
 - **Scripted-user / live-agent runner:** run the fixture-mode scenario in
   [Scripted-User / Live-Agent Runner](month1/scripted-user-live-agent-runner.md)
   with `docs/month1/examples/scripted-user-live-agent-scenario.example.json`.
