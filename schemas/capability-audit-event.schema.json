@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weave.dev/schemas/capability-audit-event.schema.json",
+  "title": "WEAVE Capability Audit Event",
+  "type": "object",
+  "required": ["schema", "audit_id", "at", "capability_id", "app_id", "stage", "actor", "action", "result", "external_effect", "public_safe"],
+  "properties": {
+    "schema": {
+      "const": "weave/capability-audit-event/v0.1"
+    },
+    "audit_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.:-]*$"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "capability_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "grant_id": {
+      "type": "string"
+    },
+    "app_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "stage": {
+      "$ref": "#/$defs/stage"
+    },
+    "actor": {
+      "type": "string",
+      "enum": ["owner", "agent", "weave-runtime", "system", "broker"]
+    },
+    "action": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["allowed", "blocked", "denied", "deferred", "failed", "revoked", "expired"]
+    },
+    "external_effect": {
+      "$ref": "#/$defs/external_effect"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "claims": {
+      "$ref": "#/$defs/string_list"
+    },
+    "non_claims": {
+      "$ref": "#/$defs/string_list"
+    },
+    "public_safe": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "$defs": {
+    "stage": {
+      "type": "string",
+      "enum": ["first_run", "owner_profile", "create_app", "intent", "research", "selection", "plan", "engineering", "qa", "deployment", "kpi", "marketing", "iteration", "analysis"]
+    },
+    "external_effect": {
+      "type": "string",
+      "enum": ["none", "read_only", "local_write", "staging_write", "production_write", "public_send", "paid_spend", "credential_scope_change", "destructive_change"]
+    },
+    "ref_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": true
+}
