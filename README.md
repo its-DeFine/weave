@@ -33,6 +33,7 @@ bin/weave doctor
 bin/weave eval --list
 bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
+bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
 bin/weave onboard --dry-run
 bin/weave command /status
 python3 scripts/full_conversation_app_dogfood.py --help
