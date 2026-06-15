@@ -2,6 +2,12 @@ name: Public Safe CI
 
 on:
   pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
   push:
     branches:
       - main
@@ -11,6 +17,17 @@ permissions:
   contents: read
 
 jobs:
+  pr-proof-ledger:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate PR proof ledger
+        run: python3 scripts/validate_pr_proof_ledger.py
+
   public-package-validation:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +49,10 @@ jobs:
         run: python3 scripts/setup_runtime.py --check
       - name: Runtime smoke
         run: python3 scripts/runtime_smoke.py
+      - name: Lifecycle artifact validator
+        run: python3 scripts/validate_lifecycle_artifacts.py docs/samples/lifecycle-artifacts.example.json
+      - name: Lifecycle rehearsal smoke
+        run: python3 scripts/lifecycle_rehearsal_smoke.py --report-out /tmp/weave-lifecycle-rehearsal.json
       - name: Unit tests
         run: python3 -m unittest discover -s tests -p 'test_*.py'
 

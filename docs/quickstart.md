@@ -35,6 +35,10 @@ eval_contracts: 12
 If you see an error, the package is malformed or a required file is missing.
 Read the error message — it names the offending file.
 
+For PR readiness, use the proof-ledger and merge criteria in
+[PR Proof Ledger And Merge Criteria](pr-proof-ledger.md). CI runs
+`python3 scripts/validate_pr_proof_ledger.py` against pull request bodies.
+
 ## 3. Run the test suite
 
 ```bash

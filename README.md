@@ -108,6 +108,10 @@ See [docs/lifecycle-evals.md](docs/lifecycle-evals.md) for the stage contract
 model: deterministic hard gates, rubric scoring, evidence requirements, and
 explicit advance/block decisions.
 
+Before opening or merging a PR, record the issue, proof commands, proof
+boundaries, and merge criteria in the PR body. See
+[docs/pr-proof-ledger.md](docs/pr-proof-ledger.md).
+
 ## Try the conversation-to-app workflow locally
 
 The fastest way to try the full app-production loop without Telegram, provider
