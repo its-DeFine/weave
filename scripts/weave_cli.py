@@ -31,6 +31,7 @@ import weave_engineering_decisions
 import weave_eval
 import weave_first_run
 import weave_hermes_setup
+import weave_launch_ops
 import weave_qa_proof
 
 
@@ -404,6 +405,10 @@ def engineering_decisions(args: argparse.Namespace, output: TextIO) -> int:
 
 def qa_proof(args: argparse.Namespace, output: TextIO) -> int:
     return weave_qa_proof.run(args, output=output)
+
+
+def launch_ops(args: argparse.Namespace, output: TextIO) -> int:
+    return weave_launch_ops.run(args, output=output)
 
 
 def docker_status(container_name: str) -> str:
@@ -1336,6 +1341,23 @@ def build_parser() -> argparse.ArgumentParser:
     qa_proof_parser.add_argument("--write", action="store_true", help="write local QA proof evidence and lifecycle bundle")
     qa_proof_parser.add_argument("--json", action="store_true", help="print QA proof snapshot as JSON")
 
+    launch_ops_parser = subparsers.add_parser(
+        "launch-ops",
+        help="write gated deployment, KPI, marketing, and iteration local workflows",
+    )
+    launch_ops_parser.add_argument("--runtime-home", type=Path, default=None)
+    launch_ops_parser.add_argument("--weave-root", type=Path, default=None)
+    launch_ops_parser.add_argument("--hermes-home", type=Path, default=None)
+    launch_ops_parser.add_argument("--profile-out", type=Path, default=None)
+    launch_ops_parser.add_argument("--app-id", default="new-app")
+    launch_ops_parser.add_argument("--app-name", default="New App")
+    launch_ops_parser.add_argument("--deployment-region", default=weave_launch_ops.DEFAULT_DEPLOYMENT_REGION)
+    launch_ops_parser.add_argument("--marketing-budget", default=weave_launch_ops.DEFAULT_MARKETING_BUDGET)
+    launch_ops_parser.add_argument("--feedback-source", default="local feedback artifacts")
+    launch_ops_parser.add_argument("--create-app", action="store_true", help="create the local app if it does not exist")
+    launch_ops_parser.add_argument("--write", action="store_true", help="write local launch operation artifacts")
+    launch_ops_parser.add_argument("--json", action="store_true", help="print launch operation snapshot as JSON")
+
     command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
     command_parser.add_argument("--runtime-home", type=Path, default=None)
     command_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1435,6 +1457,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "  weave early-lifecycle --app-id demo --create-app --write")
         print_line(output, "  weave engineering-decisions --app-id demo --hard-boundary production_deploy --write")
         print_line(output, "  weave qa-proof --app-id demo --surface mixed --create-app --write")
+        print_line(output, "  weave launch-ops --app-id demo --create-app --write")
         print_line(output, "  weave runtime-qa --dry-run --out runs/runtime-qa/plan.json")
         print_line(output, "  weave eval --list")
         return 0
@@ -1491,6 +1514,8 @@ def main(
             return engineering_decisions(args, output)
         if args.command == "qa-proof":
             return qa_proof(args, output)
+        if args.command == "launch-ops":
+            return launch_ops(args, output)
         if args.command == "doctor":
             return doctor(args, output)
         if args.command == "command":

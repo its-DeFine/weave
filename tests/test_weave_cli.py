@@ -746,6 +746,83 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(app["stage_state"], "blocked")
             self.assertIn("qa failed: route to engineering", app["blockers"])
 
+    def test_launch_ops_preview_is_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "launch-ops",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Launch Ops", text)
+            self.assertIn("deployment_provider: deferred", text)
+            self.assertIn("external_effects_executed: none", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_launch_ops_writes_gated_later_lifecycle_fixtures(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "launch-ops",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--deployment-region",
+                    "global",
+                    "--marketing-budget",
+                    "none",
+                    "--create-app",
+                    "--write",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("status: blocked_on_capability", text)
+            self.assertIn("jobs: 4", text)
+            weave_root = runtime_home / "weave-state"
+            runtime = weave_cli.weave_launch_ops.weave_runtime_slice
+            app = runtime.load_app(weave_root, "demo-app")
+            self.assertEqual(app["current_stage"], "deployment")
+            self.assertEqual(app["stage_state"], "blocked")
+            self.assertEqual(app["launch_ops"]["external_effects_executed"], [])
+            self.assertIn("launch capabilities deferred", app["blockers"])
+
+            manifest_path = weave_root / "apps" / "demo-app" / "lifecycle" / "07-deployment" / "artifacts" / "launch-ops-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["external_effects_executed"], [])
+            statuses = {item["id"]: item["status"] for item in manifest["capability_inventory"]["capabilities"]}
+            self.assertEqual(statuses["deployment-provider"], "deferred")
+            self.assertEqual(statuses["analytics-provider"], "deferred")
+            self.assertEqual(statuses["marketing-accounts"], "deferred")
+            self.assertEqual(len(manifest["jobs"]), 4)
+            self.assertTrue(any(job["external_effect"] == "paid_spend" and job["status"] == "blocked" for job in manifest["jobs"]))
+            self.assertEqual(manifest["kill_switches"][0]["status"], "enabled")
+            self.assertEqual(manifest["owner_notifications"][0]["status"], "open")
+
+            bundle_path = weave_root / "apps" / "demo-app" / "lifecycle" / "07-deployment" / "artifacts" / "launch-ops-lifecycle-bundle.json"
+            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+            weave_cli.weave_launch_ops.validate_lifecycle_artifacts.validate_bundle(bundle)
+            self.assertEqual(bundle["lifecycle_state"]["attention"]["state"], "blocked_on_capability")
+            self.assertEqual(len(bundle["recurring_jobs"]), 4)
+
     def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

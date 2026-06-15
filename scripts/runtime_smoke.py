@@ -27,24 +27,12 @@ SETUP_RUNTIME = REPO_ROOT / "scripts" / "setup_runtime.py"
 WEAVE_CLI = REPO_ROOT / "scripts" / "weave_cli.py"
 CONTEXT_INDEX_RUNTIME_SMOKE = REPO_ROOT / "scripts" / "context_index_runtime_smoke.py"
 
-LIFECYCLE_STAGES = [
-    "1. Intent",
-    "2. Research",
-    "3. Selection",
-    "4. Plan",
-    "5. Engineering",
-    "6. QA",
-    "7. KPI Setup",
-    "8. Marketing",
-    "9. Iteration",
-    "10. Analysis",
-]
-
-
 def print_lifecycle() -> None:
     print("WEAVE lifecycle stages:")
-    for stage in LIFECYCLE_STAGES:
-        print(f"  {stage}")
+    # Use the runtime registry as the only source of truth; this smoke output is
+    # owner-facing proof, so it must not drift from actual created shelves.
+    for index, stage_id in enumerate(weave_runtime_slice.stage_ids(), start=1):
+        print(f"  {index}. {weave_runtime_slice.owner_stage_label(stage_id)}")
     print()
 
 

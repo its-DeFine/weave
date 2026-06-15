@@ -2549,7 +2549,10 @@ class WeaveRuntimeSliceTests(unittest.TestCase):
             app = runtime.load_app(root, "demo")
             app["current_stage"] = "marketing"
             app["stage_source"] = "approved_advance"
-            app["approved_stages"] = ["intent", "research", "selection", "plan", "engineering", "qa", "kpi"]
+            # Marketing cannot be approved until deployment and KPI have both
+            # been explicitly approved; this fixture is about credential
+            # deferral, so the prior-stage gate is satisfied on purpose.
+            app["approved_stages"] = ["intent", "research", "selection", "plan", "engineering", "qa", "deployment", "kpi"]
             app["credential_requirements"] = [
                 {"id": "marketing-provider", "label": "Marketing provider", "required": True, "status": "missing"}
             ]

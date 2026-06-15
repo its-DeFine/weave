@@ -14,8 +14,8 @@ evidenceRequired: owner-approval
 
 # Marketing Gate
 
-Prepare the marketing and distribution workflow for Askuno Runtime Proof after QA
-admits readiness and KPI instrumentation is defined.
+Prepare the marketing and distribution workflow for Askuno Runtime Proof after
+deployment readiness and KPI instrumentation are defined.
 
 Acceptance:
 

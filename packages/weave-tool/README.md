@@ -114,11 +114,11 @@ Expected output:
 valid WEAVE company package: weave
 version: 2026.05.13-console
 agents: 7
-tasks: 9
+tasks: 10
 skills: 13
 primitives: 9
 prompt_packs: 1
-eval_contracts: 11
+eval_contracts: 12
 ```
 
 ## Current Package Contents

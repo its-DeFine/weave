@@ -38,11 +38,11 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(summary.slug, "weave")
         self.assertEqual(summary.version, "2026.05.13-console")
         self.assertEqual(summary.agent_count, 7)
-        self.assertEqual(summary.task_count, 9)
+        self.assertEqual(summary.task_count, 10)
         self.assertEqual(summary.skill_count, 13)
         self.assertEqual(summary.primitive_count, 9)
         self.assertEqual(summary.prompt_pack_count, 1)
-        self.assertEqual(summary.eval_contract_count, 11)
+        self.assertEqual(summary.eval_contract_count, 12)
 
     def test_hermes_is_the_default_ceo(self) -> None:
         agents = validator.validate_agents(PACKAGE_ROOT)
@@ -302,7 +302,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertNotEqual(registry["application"], "askuno-runtime-proof")
 
     def test_lifecycle_eval_contracts_are_shipped_and_valid(self) -> None:
-        self.assertEqual(validator.validate_eval_contracts(PACKAGE_ROOT), 11)
+        self.assertEqual(validator.validate_eval_contracts(PACKAGE_ROOT), 12)
 
     def test_qa_eval_contract_requires_runtime_teardown_policy_and_resource_states(self) -> None:
         contract = json.loads((PACKAGE_ROOT / "evals" / "lifecycle" / "qa.yaml").read_text(encoding="utf-8"))
@@ -347,7 +347,8 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(tasks["plan-gate"]["dependsOn"], "selection-gate")
         self.assertEqual(tasks["engineering-first-primitive"]["dependsOn"], "plan-gate")
         self.assertEqual(tasks["qa-runtime-readiness"]["dependsOn"], "engineering-first-primitive")
-        self.assertEqual(tasks["kpi-setup-gate"]["dependsOn"], "qa-runtime-readiness")
+        self.assertEqual(tasks["deployment-readiness-gate"]["dependsOn"], "qa-runtime-readiness")
+        self.assertEqual(tasks["kpi-setup-gate"]["dependsOn"], "deployment-readiness-gate")
         self.assertEqual(tasks["marketing-gate"]["dependsOn"], "kpi-setup-gate")
         self.assertEqual(tasks["iteration-from-analytics"]["dependsOn"], "kpi-setup-gate")
 

@@ -475,16 +475,19 @@ Generic structure:
         06-qa/
           artifacts/
           refs/
-        07-kpi/
+        07-deployment/
           artifacts/
           refs/
-        08-marketing/
+        08-kpi/
           artifacts/
           refs/
-        09-iteration/
+        09-marketing/
           artifacts/
           refs/
-        10-analysis/
+        10-iteration/
+          artifacts/
+          refs/
+        11-analysis/
           artifacts/
           refs/
       evidence/

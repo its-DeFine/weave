@@ -251,6 +251,33 @@ STAGE_SCRIPTS = {
         ],
         "basis": ["local proof only", "known gaps listed", "no hosted/revenue claim"],
     },
+    "deployment": {
+        "title": "Deployment Readiness",
+        "artifact_body": (
+            "Deployment readiness: static package shape is known, but hosting "
+            "provider credentials, DNS authority, staging target, and post-deploy "
+            "QA are absent and must remain owner-gated."
+        ),
+        "owner": (
+            "Before KPI and marketing, tell me whether this can be deployed. Do not "
+            "actually deploy it; show what is ready and what is blocked."
+        ),
+        "hermes": (
+            "The app can be packaged as static files, but deployment provider access, "
+            "domain/DNS control, and post-deploy QA target are not connected. I will "
+            "record deployment as owner-deferred instead of claiming a launch."
+        ),
+        "rationale": (
+            "The deployment stage prevents KPI and marketing from treating local proof "
+            "as production reality."
+        ),
+        "questions": [
+            "Is deployable shape named?",
+            "Are provider and DNS gaps explicit?",
+            "Is post-deploy QA required later?",
+        ],
+        "basis": ["static package shape", "deployment provider deferred", "post-deploy QA needed"],
+    },
     "kpi": {
         "title": "KPI Setup",
         "artifact_body": (
@@ -557,10 +584,12 @@ def run_rehearsal(artifact_dir: Path | None = None) -> dict[str, Any]:
         transcript_block = command("approval blocks before transcript capture", f"/approve_stage {app_id}")
         assert_condition(transcript_block["handled"] is False and "transcript capture" in transcript_block["text"], "approval did not require transcript capture")
         record_stage_turn(root, app_id, "intent", artifact_path)
-        advanced = command("advance still blocks before owner approval", f"/advance {app_id}")
+        advanced = command("advance still blocks before evaluation and owner approval", f"/advance {app_id}")
         assert_condition(
-            advanced["handled"] is False and advanced["error"] == "current_stage_not_approved",
-            "advance did not block before owner approval",
+            advanced["handled"] is False
+            and advanced["error"] == "current_stage_gate_not_passing"
+            and any("evaluation" in str(item).lower() for item in advanced["payload"]["gate"].get("missing", [])),
+            "advance did not block before evaluation and owner approval",
         )
 
         for index, stage_id in enumerate(stage_ids):
@@ -577,7 +606,22 @@ def run_rehearsal(artifact_dir: Path | None = None) -> dict[str, Any]:
                 )
                 record_stage_turn(root, app_id, stage_id, artifact_path)
 
-            if stage_id in {"kpi", "marketing", "analysis"}:
+            # The runtime gate now treats evaluation as first-class evidence, so
+            # every rehearsal stage gets a deterministic local review before
+            # approval or credential-deferral checks are expected to pass.
+            evaluation = runtime.complete_evaluation_from_latest_artifact(
+                root,
+                app_id,
+                stage_id,
+                reviewer="lifecycle-rehearsal-local-evaluator",
+                run_gates=True,
+            )
+            assert_condition(
+                evaluation["result"].get("decision") in runtime.EVALUATION_PASS_DECISIONS,
+                f"{stage_id} evaluation did not pass",
+            )
+
+            if stage_id in {"deployment", "kpi", "marketing", "analysis"}:
                 add_missing_credential(root, app_id, stage_id)
                 blocked_capability = command(f"{stage_id} blocks without credential or deferral", f"/approve_stage {app_id} {stage_id}")
                 assert_condition(

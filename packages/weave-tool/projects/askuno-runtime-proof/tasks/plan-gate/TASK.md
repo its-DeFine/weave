@@ -14,13 +14,14 @@ evidenceRequired: execution-plan
 
 # Plan Gate For Askuno Runtime Proof
 
-Turn the selected app wedge into bounded engineering, QA, KPI setup, marketing,
-and review tasks.
+Turn the selected app wedge into bounded engineering, QA, deployment readiness,
+KPI setup, marketing, and review tasks.
 
 Acceptance:
 
 - engineering scope is bounded
 - QA checks are named
+- deployment readiness and post-deploy QA requirements are named
 - KPI setup requirements are named
 - marketing approval boundary is named
 - completion criteria are explicit

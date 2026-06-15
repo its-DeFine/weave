@@ -40,7 +40,7 @@ class Month1ProductAppQATest(unittest.TestCase):
                 payload["lifecycle"]["stage_gate_missing"],
                 ["outcome and monetization analysis artifact", "transcript capture: current-stage conversation turn"],
             )
-            self.assertEqual(len(payload["lifecycle"]["completed_stages"]), 9)
+            self.assertEqual(len(payload["lifecycle"]["completed_stages"]), 10)
 
 
 if __name__ == "__main__":

@@ -100,6 +100,7 @@ review packet reference. Unsupported scores are treated as revision-required.
 - `packages/weave-tool/evals/lifecycle/plan.yaml`
 - `packages/weave-tool/evals/lifecycle/engineering.yaml`
 - `packages/weave-tool/evals/lifecycle/qa.yaml`
+- `packages/weave-tool/evals/lifecycle/deployment.yaml`
 - `packages/weave-tool/evals/lifecycle/kpi-setup.yaml`
 - `packages/weave-tool/evals/lifecycle/marketing.yaml`
 - `packages/weave-tool/evals/lifecycle/iteration.yaml`

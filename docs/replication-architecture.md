@@ -41,7 +41,7 @@ public repository provides the package, prompt/spec pack, and operating layer.
 |---|---|---|
 | Product shape | AI-operated application business focused on agent-run product lifecycle work. |
 | Company content | A concrete WEAVE company with CEO, research, engineering, QA, growth, and analytics roles. |
-| Lifecycle | Defines Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing, with Iteration and Analysis as a parallel growth loop under Marketing. |
+| Lifecycle | Defines Intent -> Research -> Selection -> Plan -> Engineering -> QA -> Deployment -> KPI Setup -> Marketing, with Iteration and Analysis as a parallel growth loop under Marketing. |
 | Primitives | Ships a primitive registry and deterministic Telegram status path that can later map to adapter execution. |
 | Runtime agent | Uses Hermes as the CEO/runtime agent directly, with Local Fallback as fallback. |
 | Evidence | Requires lifecycle-stage evidence, omission records, boundary notes, and acceptance gates. |
@@ -112,7 +112,7 @@ Expected shape:
 valid WEAVE company package: weave
 version: 2026.05.13-console
 agents: 7
-tasks: 9
+tasks: 10
 skills: 13
 primitives: 9
 prompt_packs: 1

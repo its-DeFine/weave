@@ -45,7 +45,7 @@ Do not jump to implementation. First produce an owner-intent capsule:
 2. Pain or opportunity in the owner's words.
 3. Desired outcome.
 4. Product/lifecycle stage implied: intent, research, selection, plan,
-   engineering, QA, KPI, marketing, iteration, analysis.
+   engineering, QA, deployment, KPI, marketing, iteration, analysis.
 5. Target proof surface: local fixture, local CLI, live generated-agent mode,
    browser, hosted runtime, Telegram/deployed gateway, PR/check surface, public
    release, or marketing/ops surface.
