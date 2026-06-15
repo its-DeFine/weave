@@ -254,6 +254,121 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("full invoke/capture adapter bridge is not proven", payload["gaps"])
             self.assertNotIn(bot_fixture, text)
 
+    def test_tui_preview_is_read_only_and_digestible(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--scripted-demo",
+                    "--no-color",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE TUI", text)
+            self.assertIn("local operator cockpit", text)
+            self.assertIn("First run", text)
+            self.assertIn("previewed", text)
+            self.assertIn("external_effects_executed: none", text)
+            self.assertIn("SEO: checklist and local QA artifact will be written", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_tui_scripted_handoff_writes_flow_through_qa_with_website_seo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            codex_proof = {
+                "schema": weave_cli.weave_tui.CODEX_PROOF_SCHEMA,
+                "updated_at": "2026-06-15T00:00:00Z",
+                "status": "passed",
+                "binary_found": True,
+                "command_label": "codex --help",
+                "exit_code": 0,
+                "output_summary": {"stdout_present": True, "stderr_present": False, "stdout_line_count": 1, "stderr_line_count": 0},
+                "error_summary": "",
+                "live_agent_execution": False,
+                "claims": ["Codex CLI metadata command executed locally"],
+                "non_claims": ["does not prove Codex auth", "does not prove model invocation", "does not prove Hermes primitives"],
+                "public_safe": True,
+                "secret_value_printed": False,
+            }
+
+            with mock.patch.object(weave_cli.weave_tui, "run_codex_probe", return_value=codex_proof):
+                rc = weave_cli.main(
+                    [
+                        "tui",
+                        "--runtime-home",
+                        str(runtime_home),
+                        "--app-id",
+                        "tui-smoke",
+                        "--app-name",
+                        "TUI Smoke",
+                        "--app-surface",
+                        "website",
+                        "--control-mode",
+                        "handoff",
+                        "--scripted-demo",
+                        "--write",
+                        "--no-color",
+                    ],
+                    output=output,
+                )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("Control: handoff", text)
+            self.assertIn("Intent-Plan", text)
+            self.assertIn("Owner decision", text)
+            self.assertIn("Engineering", text)
+            self.assertIn("QA proof", text)
+            self.assertIn("Launch gates", text)
+            self.assertIn("eval needs_gate_execution", text)
+            self.assertIn("Codex proof passed", text)
+            self.assertIn("SEO: checklist and local QA artifact written", text)
+
+            weave_root = runtime_home / "weave-state"
+            app_root = weave_root / "apps" / "tui-smoke"
+            engineering_dir = app_root / "lifecycle" / "05-engineering" / "artifacts"
+            qa_dir = app_root / "lifecycle" / "06-qa" / "artifacts"
+            launch_dir = app_root / "lifecycle" / "07-deployment" / "artifacts"
+
+            self.assertTrue((engineering_dir / "local-implementation-scaffold.md").exists())
+            self.assertTrue((engineering_dir / "codex-adapter-proof.json").exists())
+            self.assertTrue((engineering_dir / "seo-checklist.md").exists())
+            self.assertTrue((qa_dir / "qa-proof-manifest.json").exists())
+            self.assertTrue((qa_dir / "seo-qa.json").exists())
+            self.assertTrue((qa_dir / "tui-session-manifest.json").exists())
+            self.assertTrue((launch_dir / "launch-ops-manifest.json").exists())
+
+            codex = json.loads((engineering_dir / "codex-adapter-proof.json").read_text(encoding="utf-8"))
+            self.assertEqual(codex["status"], "passed")
+            self.assertFalse(codex["live_agent_execution"])
+
+            qa_manifest = json.loads((qa_dir / "qa-proof-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(qa_manifest["summary"]["route"], "owner_review")
+            self.assertEqual(
+                qa_manifest["proof_types"],
+                ["web_frontend", "backend_api", "cli_tui", "agent_runtime_transcript", "data_pipeline", "infrastructure"],
+            )
+
+            tui_manifest = json.loads((qa_dir / "tui-session-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(tui_manifest["control_mode"], "hands-off")
+            self.assertEqual(tui_manifest["control_label"], "handoff")
+            self.assertEqual(tui_manifest["external_effects_executed"], [])
+            self.assertIn("credentials", tui_manifest["hard_boundaries_stopped"])
+
+            app = weave_cli.weave_tui.weave_runtime_slice.load_app(weave_root, "tui-smoke")
+            self.assertEqual(app["current_stage"], "deployment")
+            self.assertEqual(app["stage_state"], "blocked")
+            self.assertIn("launch capabilities deferred", app["blockers"])
+
     def test_first_run_preview_is_digestible_and_read_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime_home = Path(tmpdir) / "runtime-home"

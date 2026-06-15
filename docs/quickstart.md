@@ -118,6 +118,7 @@ Use the doctor and dry-run commands before writing runtime state:
 ```bash
 bin/weave help
 bin/weave doctor
+bin/weave tui --scripted-demo --write --no-color
 bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
@@ -125,6 +126,19 @@ bin/weave qa-proof --app-id demo-app --surface mixed --create-app --write
 bin/weave launch-ops --app-id demo-app --create-app --write
 bin/weave onboard --dry-run
 ```
+
+`bin/weave tui` is the fastest local product surface for the intended WEAVE UX.
+Without `--write` it previews the cockpit and leaves the runtime home untouched.
+With `--scripted-demo --write`, it runs the local flow through first-run,
+Intent/Research/Selection/Plan, Engineering, QA, and gated launch operations.
+Use `--control-mode handoff` when the operator wants full handoff for local-safe
+work; WEAVE still stops before hard gates such as credentials, deployment,
+public sends, paid spend, destructive actions, and security-boundary changes.
+Website surfaces create SEO planning and SEO QA artifacts. Codex v1 proof is a
+local CLI metadata boundary only, not a claim of Codex auth or model execution.
+By default, formal Engineering approval records command hard gates as pending
+and QA runs as a local rehearsal; pass `--run-engineering-gates` when you want
+the Engineering eval command gates to run before stage approval.
 
 `bin/weave first-run` is the local product first-run surface. Without
 `--write` it only previews environment detection, owner profile choices,

@@ -48,8 +48,9 @@ compatibility with existing app and lifecycle contracts. The parent layout is
 
 ## Services
 
-The current first slice has a read-only terminal dashboard, but no web
-dashboard UI.
+The current first slice has two terminal surfaces and no web dashboard UI:
+`bin/weave dashboard` is read-only inspection, while `bin/weave tui` is the
+operator cockpit that can write local lifecycle proof artifacts.
 
 Runtime surfaces:
 
@@ -64,6 +65,14 @@ Runtime surfaces:
   intended WEAVE flow: onboarding, runtime readiness, Hermes setup, gateway
   attachment, app portfolio, lifecycle stage, transcript capture, proof/eval
   state, inconsistencies, and next action.
+- `bin/weave tui`: runs the local lifecycle cockpit. It supports interactive
+  prompts or `--scripted-demo --write` proof mode, accepts `--control-mode
+  handoff` for full local-safe handoff, writes website SEO artifacts when the
+  app surface is `website`, records Codex CLI metadata proof without claiming
+  Codex auth/model invocation, runs surface-adapted QA, records formal
+  Engineering command gates as pending unless `--run-engineering-gates` is set,
+  and stops before credentials, deployment, public sends, paid spend,
+  destructive changes, and security-boundary changes.
 - `bin/weave start`: starts the containerized Hermes gateway from the generated
   gateway workdir.
 - `bin/weave stop`: stops the gateway container.

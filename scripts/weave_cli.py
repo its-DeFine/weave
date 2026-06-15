@@ -33,6 +33,7 @@ import weave_first_run
 import weave_hermes_setup
 import weave_launch_ops
 import weave_qa_proof
+import weave_tui
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -389,6 +390,10 @@ def dashboard(args: argparse.Namespace, output: TextIO) -> int:
     )
     weave_dashboard.print_dashboard(snapshot, output=output, as_json=args.json)
     return 0
+
+
+def tui(args: argparse.Namespace, input_stream: TextIO, output: TextIO) -> int:
+    return weave_tui.run(args, input_stream=input_stream, output=output)
 
 
 def first_run(args: argparse.Namespace, output: TextIO) -> int:
@@ -1242,6 +1247,38 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard_parser.add_argument("--no-container-check", action="store_true", help="skip the read-only container status probe")
     dashboard_parser.add_argument("--json", action="store_true", help="print dashboard snapshot as JSON")
 
+    tui_parser = subparsers.add_parser("tui", help="run the interactive WEAVE lifecycle cockpit")
+    tui_parser.add_argument("--runtime-home", type=Path, default=None)
+    tui_parser.add_argument("--weave-root", type=Path, default=None)
+    tui_parser.add_argument("--hermes-home", type=Path, default=None)
+    tui_parser.add_argument("--profile-out", type=Path, default=None)
+    tui_parser.add_argument("--app-id", default="tui-demo")
+    tui_parser.add_argument("--app-name", default="TUI Demo")
+    tui_parser.add_argument("--app-surface", choices=weave_tui.APP_SURFACES, default=weave_tui.DEFAULT_APP_SURFACE)
+    tui_parser.add_argument("--owner-experience", default=weave_first_run.DEFAULT_OWNER_EXPERIENCE)
+    tui_parser.add_argument("--coworker-style", default=weave_first_run.DEFAULT_COWORKER_STYLE)
+    tui_parser.add_argument(
+        "--control-mode",
+        choices=("hands-on", "hands-off", "handoff"),
+        default=weave_first_run.DEFAULT_CONTROL_MODE,
+        help="hands-off/handoff means full handoff until a hard gate is reached",
+    )
+    tui_parser.add_argument("--intent", default=weave_tui.DEFAULT_INTENT)
+    tui_parser.add_argument("--target-user", default=weave_tui.DEFAULT_TARGET_USER)
+    tui_parser.add_argument("--deployment-region", default=weave_early_lifecycle.DEFAULT_DEPLOYMENT_REGION)
+    tui_parser.add_argument("--marketing-budget", default=weave_early_lifecycle.DEFAULT_MARKETING_BUDGET)
+    tui_parser.add_argument("--owner-feedback", default="")
+    tui_parser.add_argument("--engineering-owner-response", default="owner accepts local-safe engineering scaffold")
+    tui_parser.add_argument("--qa-command", default=weave_tui.DEFAULT_QA_COMMAND)
+    tui_parser.add_argument("--codex-command", default=weave_tui.DEFAULT_CODEX_COMMAND)
+    tui_parser.add_argument("--codex-timeout", type=int, default=5)
+    tui_parser.add_argument("--skip-codex-proof", action="store_true")
+    tui_parser.add_argument("--run-engineering-gates", action="store_true", help="run Engineering eval command gates before formal approval")
+    tui_parser.add_argument("--scripted-demo", action="store_true", help="run non-interactively for CI and local proof")
+    tui_parser.add_argument("--write", action="store_true", help="write local lifecycle artifacts through QA and gated launch plans")
+    tui_parser.add_argument("--no-color", action="store_true", help="disable ANSI color")
+    tui_parser.add_argument("--json", action="store_true", help="print machine-readable TUI session proof")
+
     first_run_parser = subparsers.add_parser("first-run", help="preview or write local WEAVE product first-run state")
     first_run_parser.add_argument("--runtime-home", type=Path, default=None)
     first_run_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1453,6 +1490,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "Convenience aliases:")
         print_line(output, "  weave help [command]")
         print_line(output, "  weave attach-hermes [onboard flags]  # alias for weave onboard --existing-hermes")
+        print_line(output, "  weave tui --scripted-demo --write --no-color")
         print_line(output, "  weave first-run --app-id demo --app-name 'Demo App'")
         print_line(output, "  weave early-lifecycle --app-id demo --create-app --write")
         print_line(output, "  weave engineering-decisions --app-id demo --hard-boundary production_deploy --write")
@@ -1506,6 +1544,8 @@ def main(
             return status_container_runtime(args, output)
         if args.command == "dashboard":
             return dashboard(args, output)
+        if args.command == "tui":
+            return tui(args, input_stream, output)
         if args.command == "first-run":
             return first_run(args, output)
         if args.command == "early-lifecycle":
