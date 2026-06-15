@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<defs>
+<filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.35"/></filter>
+</defs>
+<rect width="1600" height="900" fill="#111417"/>
+<rect x="44" y="42" width="1512" height="700" rx="28" fill="#14191e" stroke="#33404b" stroke-width="2" filter="url(#shadow)"/>
+<rect x="44" y="42" width="1512" height="96" rx="28" fill="#0c1116"/>
+<rect x="44" y="133" width="1512" height="5" fill="#7bd88f"/>
+<text x="82" y="94" font-size="44" fill="#f6f1e8" font-weight="900">Completion Gate</text>
+<text x="1518" y="94" font-size="20" fill="#7bd88f" font-weight="900" text-anchor="end">completed-state journey</text>
+<text x="82" y="170" font-size="28" fill="#aab4bf" font-weight="650">No PR or test run is enough unless the full product</text>
+<text x="82" y="206" font-size="28" fill="#aab4bf" font-weight="650">journey is proven from the user seat.</text>
+<rect x="82" y="255" width="355" height="226" rx="18" fill="#181d22" stroke="#33404b" stroke-width="2"/>
+<rect x="82" y="255" width="355" height="58" rx="18" fill="#20262d"/>
+<rect x="82" y="310" width="355" height="5" fill="#7bd88f"/>
+<text x="108" y="294" font-size="24" fill="#f6f1e8" font-weight="800">User action</text>
+<circle cx="116" cy="341" r="6" fill="#7bd88f"/>
+<text x="136" y="349" font-size="22" fill="#f6f1e8" font-weight="500">Runs fresh journey</text>
+<circle cx="116" cy="382" r="6" fill="#7bd88f"/>
+<text x="136" y="390" font-size="22" fill="#f6f1e8" font-weight="500">Reviews</text>
+<text x="136" y="419" font-size="22" fill="#f6f1e8" font-weight="500">screenshots/captures</text>
+<circle cx="116" cy="452" r="6" fill="#7bd88f"/>
+<text x="136" y="460" font-size="22" fill="#f6f1e8" font-weight="500">Checks proof and non-</text>
+<text x="136" y="489" font-size="22" fill="#f6f1e8" font-weight="500">claims</text>
+<rect x="462" y="255" width="340" height="226" rx="18" fill="#181d22" stroke="#33404b" stroke-width="2"/>
+<rect x="462" y="255" width="340" height="58" rx="18" fill="#20262d"/>
+<rect x="462" y="310" width="340" height="5" fill="#37d5ff"/>
+<text x="488" y="294" font-size="24" fill="#f6f1e8" font-weight="800">Visible TUI</text>
+<circle cx="496" cy="341" r="6" fill="#37d5ff"/>
+<text x="516" y="349" font-size="22" fill="#f6f1e8" font-weight="500">Completion matrix</text>
+<circle cx="496" cy="382" r="6" fill="#37d5ff"/>
+<text x="516" y="390" font-size="22" fill="#f6f1e8" font-weight="500">Dogfood result</text>
+<circle cx="496" cy="423" r="6" fill="#37d5ff"/>
+<text x="516" y="431" font-size="22" fill="#f6f1e8" font-weight="500">CI status</text>
+<rect x="82" y="510" width="355" height="190" rx="18" fill="#181d22" stroke="#33404b" stroke-width="2"/>
+<rect x="82" y="510" width="355" height="58" rx="18" fill="#20262d"/>
+<rect x="82" y="565" width="355" height="5" fill="#9ae66e"/>
+<text x="108" y="549" font-size="24" fill="#f6f1e8" font-weight="800">Agent + system</text>
+<circle cx="116" cy="596" r="6" fill="#9ae66e"/>
+<text x="136" y="604" font-size="22" fill="#f6f1e8" font-weight="500">Verifies every</text>
+<text x="136" y="633" font-size="22" fill="#f6f1e8" font-weight="500">acceptance row</text>
+<circle cx="116" cy="666" r="6" fill="#9ae66e"/>
+<text x="136" y="674" font-size="22" fill="#f6f1e8" font-weight="500">Keeps unproven items</text>
+<text x="136" y="703" font-size="22" fill="#f6f1e8" font-weight="500">open</text>
+<rect x="462" y="510" width="340" height="190" rx="18" fill="#181d22" stroke="#33404b" stroke-width="2"/>
+<rect x="462" y="510" width="340" height="58" rx="18" fill="#20262d"/>
+<rect x="462" y="565" width="340" height="5" fill="#ffd166"/>
+<text x="488" y="549" font-size="24" fill="#f6f1e8" font-weight="800">Proof + state</text>
+<circle cx="496" cy="596" r="6" fill="#ffd166"/>
+<text x="516" y="604" font-size="22" fill="#f6f1e8" font-weight="500">Dogfood through QA</text>
+<circle cx="496" cy="637" r="6" fill="#ffd166"/>
+<text x="516" y="645" font-size="22" fill="#f6f1e8" font-weight="500">Visual captures</text>
+<rect x="830" y="174" width="690" height="548" rx="22" fill="#0b0e11" stroke="#7bd88f" stroke-width="3"/>
+<rect x="852" y="196" width="646" height="54" rx="14" fill="#20262d"/>
+<text x="876" y="232" font-size="24" fill="#f6f1e8" font-weight="900">WEAVE Cockpit</text>
+<text x="1474" y="232" font-size="18" fill="#7bd88f" font-weight="800" text-anchor="end">stage: done</text>
+<rect x="852" y="270" width="144" height="360" rx="14" fill="#181d22" stroke="#33404b"/>
+<rect x="1018" y="270" width="480" height="270" rx="14" fill="#181d22" stroke="#33404b"/>
+<rect x="1018" y="560" width="480" height="92" rx="14" fill="#181d22" stroke="#33404b"/>
+<rect x="852" y="670" width="646" height="30" rx="10" fill="#20262d"/>
+<text x="872" y="691" font-size="16" fill="#aab4bf" font-weight="700">keys: approve | revise | inspect | feedback | run | help</text>
+<rect x="872" y="296" width="104" height="34" rx="10" fill="#27313a"/>
+<text x="924" y="319" font-size="15" text-anchor="middle" fill="#aab4bf" font-weight="700">app</text>
+<rect x="872" y="350" width="104" height="34" rx="10" fill="#7bd88f"/>
+<text x="924" y="373" font-size="15" text-anchor="middle" fill="#081014" font-weight="900">STAGE</text>
+<rect x="872" y="404" width="104" height="34" rx="10" fill="#27313a"/>
+<text x="924" y="427" font-size="15" text-anchor="middle" fill="#aab4bf" font-weight="700">chat</text>
+<rect x="872" y="458" width="104" height="34" rx="10" fill="#27313a"/>
+<text x="924" y="481" font-size="15" text-anchor="middle" fill="#aab4bf" font-weight="700">files</text>
+<rect x="872" y="512" width="104" height="34" rx="10" fill="#27313a"/>
+<text x="924" y="535" font-size="15" text-anchor="middle" fill="#aab4bf" font-weight="700">proof</text>
+<text x="1044" y="306" font-size="20" fill="#7bd88f" font-weight="900">Action card</text>
+<text x="1044" y="342" font-size="24" fill="#f6f1e8" font-weight="650">No PR or test run is enough unless</text>
+<text x="1044" y="373" font-size="24" fill="#f6f1e8" font-weight="650">the full product journey is proven</text>
+<text x="1044" y="404" font-size="24" fill="#f6f1e8" font-weight="650">from the user seat.</text>
+<rect x="1044" y="449" width="198" height="36" rx="12" fill="#12171c" stroke="#7bd88f" stroke-width="2"/>
+<text x="1143" y="473" font-size="15" fill="#f6f1e8" text-anchor="middle" font-weight="800">Yes / approve</text>
+<rect x="1266" y="449" width="198" height="36" rx="12" fill="#12171c" stroke="#7bd88f" stroke-width="2"/>
+<text x="1365" y="473" font-size="15" fill="#f6f1e8" text-anchor="middle" font-weight="800">No / revise</text>
+<rect x="1044" y="503" width="198" height="36" rx="12" fill="#12171c" stroke="#7bd88f" stroke-width="2"/>
+<text x="1143" y="527" font-size="15" fill="#f6f1e8" text-anchor="middle" font-weight="800">Inspect evidence</text>
+<rect x="1266" y="503" width="198" height="36" rx="12" fill="#12171c" stroke="#7bd88f" stroke-width="2"/>
+<text x="1365" y="527" font-size="15" fill="#f6f1e8" text-anchor="middle" font-weight="800">Add feedback</text>
+<text x="1044" y="594" font-size="18" fill="#aab4bf" font-weight="700">Evidence: artifacts, files, events, QA proof</text>
+<rect x="1044" y="612" width="420" height="18" rx="9" fill="#26313a"/>
+<rect x="1044" y="612" width="296" height="18" rx="9" fill="#7bd88f"/>
+<rect x="70" y="790" width="1460" height="72" rx="18" fill="#0d1013" stroke="#33404b" stroke-width="2"/>
+<rect x="77.0" y="805" width="90.3" height="22" rx="8" fill="#37d5ff"/>
+<text x="122.1" y="847" font-size="14" text-anchor="middle" fill="#081014" font-weight="800">First</text>
+<rect x="181.3" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="226.4" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Owner</text>
+<rect x="285.6" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="330.7" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">App</text>
+<rect x="389.9" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="435.0" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Intent</text>
+<rect x="494.1" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="539.3" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Research</text>
+<rect x="598.4" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="643.6" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Selectio</text>
+<rect x="702.7" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="747.9" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Plan</text>
+<rect x="807.0" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="852.1" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Engineer</text>
+<rect x="911.3" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="956.4" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">QA</text>
+<rect x="1015.6" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="1060.7" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Deployme</text>
+<rect x="1119.9" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="1165.0" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">KPI</text>
+<rect x="1224.1" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="1269.3" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Marketin</text>
+<rect x="1328.4" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="1373.6" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Iteratio</text>
+<rect x="1432.7" y="805" width="90.3" height="22" rx="8" fill="#252c33"/>
+<text x="1477.9" y="847" font-size="14" text-anchor="middle" fill="#aab4bf" font-weight="800">Analysis</text>
+</svg>

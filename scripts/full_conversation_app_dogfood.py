@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -305,6 +306,22 @@ def node_command(cwd: Path, args: list[str]) -> dict[str, Any]:
 def assert_pass(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
+
+
+def run_with_eval_gate_depth(callback):
+    previous = os.environ.get("WEAVE_EVAL_GATE_DEPTH")
+    try:
+        depth = int(previous or "0")
+    except ValueError:
+        depth = 0
+    os.environ["WEAVE_EVAL_GATE_DEPTH"] = str(max(depth, 1))
+    try:
+        return callback()
+    finally:
+        if previous is None:
+            os.environ.pop("WEAVE_EVAL_GATE_DEPTH", None)
+        else:
+            os.environ["WEAVE_EVAL_GATE_DEPTH"] = previous
 
 
 def complete_foundation(root: Path, app_id: str) -> None:
@@ -751,16 +768,18 @@ def run(output_dir: Path) -> dict[str, Any]:
                 add_missing_credential(root, APP_ID, stage_id)
             artifact = write_stage_artifact(root, APP_ID, stage_id, STAGE_SCRIPT[stage_id]["artifact"], extra_payload)
             record_stage_turn(root, APP_ID, stage_id, artifact, extra_refs)
-            evaluation = runtime.complete_evaluation_from_latest_artifact(
-                root,
-                APP_ID,
-                stage_id,
-                reviewer="scripted-full-conversation-local-evaluator",
-                run_gates=True,
+            evaluation = run_with_eval_gate_depth(
+                lambda: runtime.complete_evaluation_from_latest_artifact(
+                    root,
+                    APP_ID,
+                    stage_id,
+                    reviewer="scripted-full-conversation-local-evaluator",
+                    run_gates=True,
+                )
             )
             assert_pass(
                 evaluation["result"].get("decision") in runtime.EVALUATION_PASS_DECISIONS,
-                f"{stage_id} evaluation did not pass: {evaluation['result'].get('decision')}",
+                f"{stage_id} evaluation did not pass: {json.dumps(evaluation, sort_keys=True)}",
             )
             lifecycle = cmd(f"{stage_id} lifecycle ready", f"/lifecycle {APP_ID}")
             stage_gate = lifecycle["payload"]["stage_gate"]

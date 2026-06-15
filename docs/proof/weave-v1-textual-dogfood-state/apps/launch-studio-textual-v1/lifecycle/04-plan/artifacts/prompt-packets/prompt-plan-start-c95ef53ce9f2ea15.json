@@ -1,0 +1,85 @@
+{
+  "allowed_actions": [
+    "write_artifacts",
+    "summarize",
+    "ask_clarifying_questions"
+  ],
+  "app_id": "launch-studio-textual-v1",
+  "claims": [
+    "prompt packet assembled from versioned WEAVE prompt library"
+  ],
+  "created_at": "2026-06-15T23:18:09Z",
+  "executor": "codex",
+  "feedback": {},
+  "forbidden_actions": [
+    "deploy",
+    "public_send",
+    "paid_spend",
+    "read_raw_secrets",
+    "destructive_change"
+  ],
+  "gate_criteria": [
+    "required_outputs_exist",
+    "public_safe",
+    "owner_review_ready"
+  ],
+  "global_prelude_ref": "prompts/weave/global/prelude.v1.md",
+  "input_refs": [
+    "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.json",
+    "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.md",
+    "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.json",
+    "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.md",
+    "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md",
+    "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.json",
+    "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.md",
+    "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md"
+  ],
+  "latest_owner_message": "Business plan: help a founder make a launch/no-launch decision with visible proof and risks. Engineering plan: create a local website workspace with semantic HTML, client-side state, no external calls, and source/executor manifests. QA plan: verify required files, semantic markup, SEO metadata, local state behavior, launch-boundary copy, source manifest, executor manifest, public-safe constraints, and owner-reviewable evidence.",
+  "non_claims": [
+    "does not prove agent execution",
+    "does not prove stage completion"
+  ],
+  "owner_profile_summary": "Use the owner profile artifact when present; otherwise ask concise clarifying questions.",
+  "owner_visible_goal": "Turn the selected direction into business, engineering, QA, SEO, deployment, KPI, marketing, and iteration plans.",
+  "packet_id": "prompt-plan-start-c95ef53ce9f2ea15",
+  "packet_ref": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.json",
+  "public_safe": true,
+  "reason": "Textual backend requested plan/start prompt packet",
+  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.md",
+  "required_context": [
+    "intent",
+    "research-synthesis",
+    "selected-option",
+    "capability-inventory"
+  ],
+  "required_outputs": [
+    "business-plan",
+    "engineering-plan",
+    "qa-plan",
+    "seo-plan",
+    "deployment-plan",
+    "kpi-plan",
+    "marketing-plan",
+    "iteration-plan",
+    "engineering-handoff"
+  ],
+  "schema": "weave/prompt-packet/v1",
+  "secret_value_printed": false,
+  "selected_context_refs": [
+    "ledger/events.jsonl",
+    "apps/launch-studio-textual-v1/worldmodel.md"
+  ],
+  "stage": "plan",
+  "stage_prompt_ref": "prompt://weave/stages/plan/start/v1",
+  "stop_boundaries": [
+    "no raw secrets",
+    "no deployment",
+    "no public sends",
+    "no paid spend",
+    "no destructive changes",
+    "no credential scope changes"
+  ],
+  "substage": "start",
+  "worker_role": "Business and technical planner",
+  "world_model_summary": "Build a launch readiness cockpit for a founder to review lifecycle status, risks, QA, SEO, and launch boundaries before deciding whether to launch."
+}

@@ -1,0 +1,16 @@
+{
+  "active_skills": [
+    "weave-lifecycle",
+    "implementation-planning",
+    "qa-verification",
+    "evidence-packet"
+  ],
+  "autonomy_mode": "yolo",
+  "model": "unknown",
+  "profile_hash": "sha256:4956e5e225052cdbf9457e10ea2d32cb1dc25e7a7d7ea3fc7dbc4d47a09e1e06",
+  "prompt_pack": "hermes-gestalt-runtime-pack",
+  "provider_adapter": "unknown",
+  "reasoning_effort": "unknown",
+  "recorded_at": "2026-06-15T23:18:08Z",
+  "schema": "weave-agent-profile/v0.1"
+}

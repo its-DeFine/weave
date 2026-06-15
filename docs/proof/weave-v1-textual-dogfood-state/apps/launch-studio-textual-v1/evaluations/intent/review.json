@@ -1,0 +1,53 @@
+{
+  "artifact": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md",
+  "hard_gates": {
+    "approval_boundary_present": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md"
+      ],
+      "notes": "Intent packet labels external/public/credential/money actions that need owner approval.",
+      "passed": true
+    },
+    "success_metric_present": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md"
+      ],
+      "notes": "Intent packet names at least one measurable success condition.",
+      "passed": true
+    }
+  },
+  "overall_notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+  "reviewer": "textual-local-evaluator",
+  "schema": "weave.eval-review/v0.1",
+  "scores": {
+    "goal_clarity": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "scope_boundaries": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "success_measures": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "target_user": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    }
+  },
+  "stage": "Intent"
+}

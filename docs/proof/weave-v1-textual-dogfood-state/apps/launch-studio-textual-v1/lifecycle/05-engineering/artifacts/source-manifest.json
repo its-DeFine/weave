@@ -1,0 +1,37 @@
+{
+  "app_id": "launch-studio-textual-v1",
+  "executor": "codex",
+  "file_count": 5,
+  "files": [
+    {
+      "bytes": 1130,
+      "checksum": "sha256:d674e24da9370659baf24cb4e3e32384d53910682c44ee4d75f6e7a1629bd587",
+      "path": "apps/launch-studio-textual-v1/repo/primary/README.md"
+    },
+    {
+      "bytes": 7630,
+      "checksum": "sha256:4a798548f4e01bd19625fedcf0a990aa0cf1bb2b5d1b386a33d0382e56b490cd",
+      "path": "apps/launch-studio-textual-v1/repo/primary/index.html"
+    },
+    {
+      "bytes": 570,
+      "checksum": "sha256:359828fb6b874b47687ad1f8e8accbcc7b3c2d9d6836e1e9b7ca4fce8ccacbf3",
+      "path": "apps/launch-studio-textual-v1/repo/primary/public/config.json"
+    },
+    {
+      "bytes": 3628,
+      "checksum": "sha256:e075282eb8c52baa77e53a8f67846e77b1d5a06d8566098c5824e54f90dad776",
+      "path": "apps/launch-studio-textual-v1/repo/primary/src/app.js"
+    },
+    {
+      "bytes": 4970,
+      "checksum": "sha256:21b0c8f85029e962e9fcc7979f2ae71d326594f1dd8839d116cc068a6a9aa18a",
+      "path": "apps/launch-studio-textual-v1/repo/primary/src/styles.css"
+    }
+  ],
+  "public_safe": true,
+  "schema": "weave/source-manifest/v1",
+  "secret_value_printed": false,
+  "status": "passed",
+  "updated_at": "2026-06-15T23:21:28Z"
+}

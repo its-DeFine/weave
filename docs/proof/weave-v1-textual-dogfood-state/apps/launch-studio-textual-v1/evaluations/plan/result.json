@@ -1,0 +1,117 @@
+{
+  "artifact": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+  "artifact_refs": [
+    {
+      "checksum": "sha256:7cfbbb18edb87eeb1a0336f01eb2db720550dc1092a548af234256fcc73da52d",
+      "kind": "artifact",
+      "path": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+      "stage": "plan"
+    }
+  ],
+  "blockers": [],
+  "contract": "packages/weave-tool/evals/lifecycle/plan.yaml",
+  "decision": "advance",
+  "hard_gates": [
+    {
+      "command": null,
+      "detail": "manual gate passed per eval review evidence; evaluator did not independently execute this gate; Plan contains concrete acceptance criteria.",
+      "exit_code": null,
+      "gate_id": "acceptance_criteria_present",
+      "output_excerpt": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+      "passed": true,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "command": null,
+      "detail": "manual gate passed per eval review evidence; evaluator did not independently execute this gate; Plan names the tests/smokes/readbacks needed to prove completion.",
+      "exit_code": null,
+      "gate_id": "verification_surface_present",
+      "output_excerpt": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+      "passed": true,
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "command": null,
+      "detail": "manual gate passed per eval review evidence; evaluator did not independently execute this gate; Agent-runtime plans name isolated runtime topology, tools, scenario matrix, evidence, and allowed claim boundary when applicable.",
+      "exit_code": null,
+      "gate_id": "runtime_agent_qa_contract_present",
+      "output_excerpt": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+      "passed": true,
+      "required": true,
+      "status": "passed"
+    }
+  ],
+  "next_actions": [
+    "advance to next lifecycle stage"
+  ],
+  "proof_scope": "local_deterministic_runtime",
+  "request_id": "c1ca5e8237a23409f5e455f2",
+  "rubric_score": {
+    "dimensions": [
+      {
+        "evidence": [
+          "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+        ],
+        "id": "task_granularity",
+        "max_score": 4.0,
+        "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+        "score": 4.0,
+        "status": "scored"
+      },
+      {
+        "evidence": [
+          "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+        ],
+        "id": "path_specificity",
+        "max_score": 4.0,
+        "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+        "score": 4.0,
+        "status": "scored"
+      },
+      {
+        "evidence": [
+          "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+        ],
+        "id": "dependency_awareness",
+        "max_score": 4.0,
+        "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+        "score": 4.0,
+        "status": "scored"
+      },
+      {
+        "evidence": [
+          "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+        ],
+        "id": "proof_quality",
+        "max_score": 4.0,
+        "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+        "score": 4.0,
+        "status": "scored"
+      },
+      {
+        "evidence": [
+          "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+        ],
+        "id": "runtime_qa_specificity",
+        "max_score": 4.0,
+        "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+        "score": 4.0,
+        "status": "scored"
+      }
+    ],
+    "evidence_gaps": [],
+    "invalid": [],
+    "max_total": 20.0,
+    "missing": [],
+    "percent": 100.0,
+    "status": "scored",
+    "total": 20.0
+  },
+  "schema": "weave.eval-result/v0.1",
+  "slug": "plan",
+  "stage": "Plan",
+  "state": "verified",
+  "transcript_turn_id": "978afc53999fab8be1abd9f8"
+}

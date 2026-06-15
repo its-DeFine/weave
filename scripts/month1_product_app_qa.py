@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -100,6 +101,22 @@ def node_syntax_check(app_dir: Path, source_path: str) -> dict[str, Any]:
 def assert_pass(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
+
+
+def run_with_eval_gate_depth(callback):
+    previous = os.environ.get("WEAVE_EVAL_GATE_DEPTH")
+    try:
+        depth = int(previous or "0")
+    except ValueError:
+        depth = 0
+    os.environ["WEAVE_EVAL_GATE_DEPTH"] = str(max(depth, 1))
+    try:
+        return callback()
+    finally:
+        if previous is None:
+            os.environ.pop("WEAVE_EVAL_GATE_DEPTH", None)
+        else:
+            os.environ["WEAVE_EVAL_GATE_DEPTH"] = previous
 
 
 def required_files(app_dir: Path) -> list[Path]:
@@ -232,12 +249,14 @@ def record_stage_review_turn(root: Path, app_id: str, stage_id: str, artifact_pa
         next_action=f"Approve {stage_label} if the linked artifact is acceptable.",
     )
     appended = runtime.append_conversation_turn(root, app_id, turn)
-    evaluation = runtime.complete_evaluation_from_latest_artifact(
-        root,
-        app_id,
-        stage_id,
-        reviewer="month1-product-qa-local-evaluator",
-        run_gates=True,
+    evaluation = run_with_eval_gate_depth(
+        lambda: runtime.complete_evaluation_from_latest_artifact(
+            root,
+            app_id,
+            stage_id,
+            reviewer="month1-product-qa-local-evaluator",
+            run_gates=True,
+        )
     )
     assert_pass(
         evaluation["result"].get("decision") in runtime.EVALUATION_PASS_DECISIONS,

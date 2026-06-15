@@ -1,0 +1,335 @@
+{
+  "app": {
+    "app_id": "launch-studio-textual-v1",
+    "approved_stages": [
+      "intent",
+      "research",
+      "selection",
+      "plan",
+      "engineering",
+      "qa"
+    ],
+    "current_stage": "qa",
+    "name": "Launch Studio Textual v1"
+  },
+  "created_at": "2026-06-15T23:21:49Z",
+  "duration_seconds": 221.021,
+  "non_claims": [
+    "WEAVE itself was not deployed and does not need a URL",
+    "no live Telegram/Hermes gateway proof",
+    "no raw credentials captured",
+    "no public sends",
+    "no paid spend",
+    "no market validation"
+  ],
+  "passed": true,
+  "proof": {
+    "artifacts": 7,
+    "executor_manifest_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
+    "external_effects_executed": [],
+    "frame_count": 11,
+    "frames": [
+      {
+        "action_count": 0,
+        "index": 1,
+        "path": "docs/ux/weave-v1-textual-dogfood/01-first-run.svg",
+        "slug": "first-run",
+        "title": "WEAVE Textual - First Run"
+      },
+      {
+        "action_count": 3,
+        "index": 2,
+        "path": "docs/ux/weave-v1-textual-dogfood/02-foundation-saved.svg",
+        "slug": "foundation-saved",
+        "title": "WEAVE Textual - Foundation Saved"
+      },
+      {
+        "action_count": 8,
+        "index": 3,
+        "path": "docs/ux/weave-v1-textual-dogfood/03-intent-approved.svg",
+        "slug": "intent-approved",
+        "title": "WEAVE Textual - Intent Approved"
+      },
+      {
+        "action_count": 14,
+        "index": 4,
+        "path": "docs/ux/weave-v1-textual-dogfood/04-research-approved.svg",
+        "slug": "research-approved",
+        "title": "WEAVE Textual - Research Approved"
+      },
+      {
+        "action_count": 20,
+        "index": 5,
+        "path": "docs/ux/weave-v1-textual-dogfood/05-selection-approved.svg",
+        "slug": "selection-approved",
+        "title": "WEAVE Textual - Selection Approved"
+      },
+      {
+        "action_count": 26,
+        "index": 6,
+        "path": "docs/ux/weave-v1-textual-dogfood/06-plan-approved.svg",
+        "slug": "plan-approved",
+        "title": "WEAVE Textual - Plan Approved"
+      },
+      {
+        "action_count": 27,
+        "index": 7,
+        "path": "docs/ux/weave-v1-textual-dogfood/07-engineering-ready.svg",
+        "slug": "engineering-ready",
+        "title": "WEAVE Textual - Engineering Ready"
+      },
+      {
+        "action_count": 30,
+        "index": 8,
+        "path": "docs/ux/weave-v1-textual-dogfood/08-engineering-codex-result.svg",
+        "slug": "engineering-codex-result",
+        "title": "WEAVE Textual - Engineering Codex Result"
+      },
+      {
+        "action_count": 34,
+        "index": 9,
+        "path": "docs/ux/weave-v1-textual-dogfood/09-engineering-approved.svg",
+        "slug": "engineering-approved",
+        "title": "WEAVE Textual - Engineering Approved"
+      },
+      {
+        "action_count": 40,
+        "index": 10,
+        "path": "docs/ux/weave-v1-textual-dogfood/10-qa-approved.svg",
+        "slug": "qa-approved",
+        "title": "WEAVE Textual - QA Approved"
+      },
+      {
+        "action_count": 41,
+        "index": 11,
+        "path": "docs/ux/weave-v1-textual-dogfood/11-resume-qa.svg",
+        "slug": "resume-qa",
+        "title": "WEAVE Textual - Resume At QA"
+      }
+    ],
+    "human_journey_actions": [
+      {
+        "action": "button.create_app",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "launch-studio-textual-v1"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "foundation intent"
+      },
+      {
+        "action": "button.save_setup",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "owner profile and foundation context"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "intent owner input"
+      },
+      {
+        "action": "button.prepare_prompt",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "intent"
+      },
+      {
+        "action": "button.submit_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "intent"
+      },
+      {
+        "action": "button.evaluate_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "intent"
+      },
+      {
+        "action": "button.approve_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "intent"
+      },
+      {
+        "action": "button.advance_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "intent"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "research owner input"
+      },
+      {
+        "action": "button.prepare_prompt",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "research"
+      },
+      {
+        "action": "button.submit_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "research"
+      },
+      {
+        "action": "button.evaluate_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "research"
+      },
+      {
+        "action": "button.approve_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "research"
+      },
+      {
+        "action": "button.advance_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "research"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "selection owner input"
+      },
+      {
+        "action": "button.prepare_prompt",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "selection"
+      },
+      {
+        "action": "button.submit_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "selection"
+      },
+      {
+        "action": "button.evaluate_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "selection"
+      },
+      {
+        "action": "button.approve_stage",
+        "at": "2026-06-15T23:18:08Z",
+        "detail": "selection"
+      },
+      {
+        "action": "button.advance_stage",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "selection"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "plan owner input"
+      },
+      {
+        "action": "button.prepare_prompt",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "plan"
+      },
+      {
+        "action": "button.submit_stage",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "plan"
+      },
+      {
+        "action": "button.evaluate_stage",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "plan"
+      },
+      {
+        "action": "button.approve_stage",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "plan"
+      },
+      {
+        "action": "button.advance_stage",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "plan"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "engineering owner build request"
+      },
+      {
+        "action": "button.prepare_prompt",
+        "at": "2026-06-15T23:18:09Z",
+        "detail": "engineering"
+      },
+      {
+        "action": "button.run_codex",
+        "at": "2026-06-15T23:21:28Z",
+        "detail": "engineering"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:21:29Z",
+        "detail": "file-specific feedback"
+      },
+      {
+        "action": "button.record_feedback",
+        "at": "2026-06-15T23:21:29Z",
+        "detail": "engineering file feedback"
+      },
+      {
+        "action": "button.evaluate_stage",
+        "at": "2026-06-15T23:21:46Z",
+        "detail": "engineering"
+      },
+      {
+        "action": "button.approve_stage",
+        "at": "2026-06-15T23:21:46Z",
+        "detail": "engineering"
+      },
+      {
+        "action": "button.advance_stage",
+        "at": "2026-06-15T23:21:46Z",
+        "detail": "engineering"
+      },
+      {
+        "action": "composer.write",
+        "at": "2026-06-15T23:21:46Z",
+        "detail": "qa owner input"
+      },
+      {
+        "action": "button.prepare_prompt",
+        "at": "2026-06-15T23:21:46Z",
+        "detail": "qa"
+      },
+      {
+        "action": "button.submit_stage",
+        "at": "2026-06-15T23:21:47Z",
+        "detail": "qa"
+      },
+      {
+        "action": "button.evaluate_stage",
+        "at": "2026-06-15T23:21:48Z",
+        "detail": "qa"
+      },
+      {
+        "action": "button.approve_stage",
+        "at": "2026-06-15T23:21:48Z",
+        "detail": "qa"
+      },
+      {
+        "action": "session.resume",
+        "at": "2026-06-15T23:21:49Z",
+        "detail": "reopened Textual cockpit from saved state"
+      }
+    ],
+    "prompt_packets": 8,
+    "resume_stage": "qa",
+    "screen_recording_ref": "docs/ux/weave-v1-textual-dogfood/weave-v1-textual-dogfood-recording.svg",
+    "scrubbed_non_reviewable_refs": [
+      "runtime/tokens/local-api-token",
+      "runtime/tokens/",
+      "runtime/source-map.json"
+    ],
+    "secret_value_printed": false,
+    "source_files": 5,
+    "source_manifest_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
+    "state_root_ref": "docs/proof/weave-v1-textual-dogfood-state",
+    "turns": 6,
+    "used_codex_executor": true,
+    "used_textual_app": true
+  },
+  "reason": "completed_through_qa",
+  "schema": "weave-v1-textual-dogfood/v1"
+}

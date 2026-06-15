@@ -1,0 +1,53 @@
+{
+  "artifact": "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md",
+  "hard_gates": {
+    "facts_assumptions_split": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md"
+      ],
+      "notes": "Facts, assumptions, and opinions are labeled separately.",
+      "passed": true
+    },
+    "source_refs_present": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md"
+      ],
+      "notes": "Research packet cites source references or explicit observed evidence.",
+      "passed": true
+    }
+  },
+  "overall_notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+  "reviewer": "textual-local-evaluator",
+  "schema": "weave.eval-review/v0.1",
+  "scores": {
+    "coverage": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "decision_readiness": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "risk_identification": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "source_quality": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    }
+  },
+  "stage": "Research"
+}

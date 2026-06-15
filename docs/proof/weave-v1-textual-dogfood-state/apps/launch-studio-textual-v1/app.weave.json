@@ -1,0 +1,625 @@
+{
+  "app_id": "launch-studio-textual-v1",
+  "app_type": "product",
+  "approved_stages": [
+    "intent",
+    "research",
+    "selection",
+    "plan",
+    "engineering",
+    "qa"
+  ],
+  "blockers": [],
+  "capabilities": [
+    "local-filesystem",
+    "git-tracked-workspace",
+    "append-only-ledger",
+    "conversation-turn-ledger",
+    "conversation-event-ledger",
+    "local-a2a-collaboration",
+    "local-a2a-work-packets",
+    "rest-dispatch-skeleton",
+    "telegram-deterministic-slash-commands"
+  ],
+  "collaboration_ledger_path": "collaboration/ledger.jsonl",
+  "collaboration_path": "collaboration",
+  "collaboration_paths": {
+    "attention_requests": "collaboration/attention-requests.json",
+    "context_capsules": "collaboration/context-capsules.json",
+    "discussions": "collaboration/discussions.json",
+    "peers": "collaboration/peers.json",
+    "work_packet_evidence": "collaboration/work-packet-evidence.json",
+    "work_packet_inbox": "collaboration/work-packet-inbox.json",
+    "work_packet_outbox": "collaboration/work-packet-outbox.json"
+  },
+  "context_paths": [
+    "context/app-context.md",
+    "context/user-context-for-this-app.md",
+    "context/domain-context.md",
+    "context/decisions.md"
+  ],
+  "contract_version": "0.1-template",
+  "conversation_events_path": "ledger/conversation-events.jsonl",
+  "conversation_turns_path": "ledger/conversation-turns.jsonl",
+  "created_at": "2026-06-15T23:18:08Z",
+  "credential_requirements": [],
+  "current_stage": "qa",
+  "decision_log_path": "context/decisions.md",
+  "evaluation_statuses": {
+    "engineering": {
+      "decision": "advance",
+      "duty_path": "apps/launch-studio-textual-v1/evaluations/engineering/duty.json",
+      "request_path": "apps/launch-studio-textual-v1/evaluations/engineering/request.json",
+      "result_path": "apps/launch-studio-textual-v1/evaluations/engineering/result.json",
+      "review_path": "apps/launch-studio-textual-v1/evaluations/engineering/review.json",
+      "status": "completed",
+      "updated_at": "2026-06-15T23:21:46Z"
+    },
+    "intent": {
+      "decision": "advance",
+      "duty_path": "apps/launch-studio-textual-v1/evaluations/intent/duty.json",
+      "request_path": "apps/launch-studio-textual-v1/evaluations/intent/request.json",
+      "result_path": "apps/launch-studio-textual-v1/evaluations/intent/result.json",
+      "review_path": "apps/launch-studio-textual-v1/evaluations/intent/review.json",
+      "status": "completed",
+      "updated_at": "2026-06-15T23:18:08Z"
+    },
+    "plan": {
+      "decision": "advance",
+      "duty_path": "apps/launch-studio-textual-v1/evaluations/plan/duty.json",
+      "request_path": "apps/launch-studio-textual-v1/evaluations/plan/request.json",
+      "result_path": "apps/launch-studio-textual-v1/evaluations/plan/result.json",
+      "review_path": "apps/launch-studio-textual-v1/evaluations/plan/review.json",
+      "status": "completed",
+      "updated_at": "2026-06-15T23:18:09Z"
+    },
+    "qa": {
+      "decision": "advance",
+      "duty_path": "apps/launch-studio-textual-v1/evaluations/qa/duty.json",
+      "request_path": "apps/launch-studio-textual-v1/evaluations/qa/request.json",
+      "result_path": "apps/launch-studio-textual-v1/evaluations/qa/result.json",
+      "review_path": "apps/launch-studio-textual-v1/evaluations/qa/review.json",
+      "status": "completed",
+      "updated_at": "2026-06-15T23:21:48Z"
+    },
+    "research": {
+      "decision": "advance",
+      "duty_path": "apps/launch-studio-textual-v1/evaluations/research/duty.json",
+      "request_path": "apps/launch-studio-textual-v1/evaluations/research/request.json",
+      "result_path": "apps/launch-studio-textual-v1/evaluations/research/result.json",
+      "review_path": "apps/launch-studio-textual-v1/evaluations/research/review.json",
+      "status": "completed",
+      "updated_at": "2026-06-15T23:18:08Z"
+    },
+    "selection": {
+      "decision": "advance",
+      "duty_path": "apps/launch-studio-textual-v1/evaluations/selection/duty.json",
+      "request_path": "apps/launch-studio-textual-v1/evaluations/selection/request.json",
+      "result_path": "apps/launch-studio-textual-v1/evaluations/selection/result.json",
+      "review_path": "apps/launch-studio-textual-v1/evaluations/selection/review.json",
+      "status": "completed",
+      "updated_at": "2026-06-15T23:18:08Z"
+    }
+  },
+  "ledger_path": "ledger/events.jsonl",
+  "local_a2a_peer_id": "weave-runtime",
+  "name": "Launch Studio Textual v1",
+  "owner_questions": [],
+  "primary_repo": "repo/primary",
+  "required_inputs": [],
+  "schema": "weave-app/v0.1",
+  "stage_approvals": {
+    "engineering": {
+      "approved_at": "2026-06-15T23:21:46Z",
+      "approved_by": "owner",
+      "conversation_turn_id": "3a3d3cd678c184c4b572849d",
+      "gate": {
+        "app_id": "launch-studio-textual-v1",
+        "approved_previous_stages": [
+          "intent",
+          "research",
+          "selection",
+          "plan"
+        ],
+        "artifact_refs": [
+          {
+            "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
+            "stage": "engineering"
+          },
+          {
+            "checksum": "sha256:87582416d6572b60a3b34fe86649e98018756b5cce23e81c05e9c882b9f63bcc",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
+            "stage": "engineering"
+          }
+        ],
+        "credential_blockers": [],
+        "evaluation": {
+          "app_id": "launch-studio-textual-v1",
+          "blockers": [],
+          "decision": "advance",
+          "duty_path": "apps/launch-studio-textual-v1/evaluations/engineering/duty.json",
+          "next_actions": [
+            "advance to next lifecycle stage"
+          ],
+          "passed": true,
+          "request_path": "apps/launch-studio-textual-v1/evaluations/engineering/request.json",
+          "result_path": "apps/launch-studio-textual-v1/evaluations/engineering/result.json",
+          "review_path": "apps/launch-studio-textual-v1/evaluations/engineering/review.json",
+          "schema": "weave-stage-evaluation-status/v0.1",
+          "stage": "engineering",
+          "state": "verified",
+          "status": "completed"
+        },
+        "foundation_gate": {
+          "app_id": "launch-studio-textual-v1",
+          "communication_channel": "telegram",
+          "incomplete": [],
+          "missing": [],
+          "next_action": "continue",
+          "passed": true,
+          "schema": "weave-foundation-gate/v0.1"
+        },
+        "missing": [],
+        "missing_previous_stages": [],
+        "passed": true,
+        "proof_artifact_refs": [
+          {
+            "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
+            "stage": "engineering"
+          },
+          {
+            "checksum": "sha256:87582416d6572b60a3b34fe86649e98018756b5cce23e81c05e9c882b9f63bcc",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
+            "stage": "engineering"
+          }
+        ],
+        "proof_label": "implementation evidence artifact",
+        "schema": "weave-stage-gate/v0.1",
+        "stage": "engineering",
+        "transcript_capture": {
+          "app_id": "launch-studio-textual-v1",
+          "latest_artifact_ref": {
+            "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
+            "stage": "engineering"
+          },
+          "latest_turn_at": "2026-06-15T23:21:28Z",
+          "latest_turn_id": "3a3d3cd678c184c4b572849d",
+          "linked_turn_count": 1,
+          "missing": [],
+          "passed": true,
+          "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
+          "required": true,
+          "schema": "weave-transcript-capture-gate/v0.1",
+          "stage": "engineering",
+          "turn_count": 1
+        },
+        "warnings": []
+      },
+      "note": "Approved in Textual cockpit."
+    },
+    "intent": {
+      "approved_at": "2026-06-15T23:18:08Z",
+      "approved_by": "owner",
+      "conversation_turn_id": "c4fbd1dd91142b5acb3cf4d0",
+      "gate": {
+        "app_id": "launch-studio-textual-v1",
+        "approved_previous_stages": [],
+        "artifact_refs": [
+          {
+            "checksum": "sha256:042b42e088b3f22b64acb00338d99e578aeeea383fd916df414958476d454788",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md",
+            "stage": "intent"
+          }
+        ],
+        "credential_blockers": [],
+        "evaluation": {
+          "app_id": "launch-studio-textual-v1",
+          "blockers": [],
+          "decision": "advance",
+          "duty_path": "apps/launch-studio-textual-v1/evaluations/intent/duty.json",
+          "next_actions": [
+            "advance to next lifecycle stage"
+          ],
+          "passed": true,
+          "request_path": "apps/launch-studio-textual-v1/evaluations/intent/request.json",
+          "result_path": "apps/launch-studio-textual-v1/evaluations/intent/result.json",
+          "review_path": "apps/launch-studio-textual-v1/evaluations/intent/review.json",
+          "schema": "weave-stage-evaluation-status/v0.1",
+          "stage": "intent",
+          "state": "verified",
+          "status": "completed"
+        },
+        "foundation_gate": {
+          "app_id": "launch-studio-textual-v1",
+          "communication_channel": "telegram",
+          "incomplete": [],
+          "missing": [],
+          "next_action": "continue",
+          "passed": true,
+          "schema": "weave-foundation-gate/v0.1"
+        },
+        "missing": [],
+        "missing_previous_stages": [],
+        "passed": true,
+        "proof_artifact_refs": [
+          {
+            "checksum": "sha256:042b42e088b3f22b64acb00338d99e578aeeea383fd916df414958476d454788",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md",
+            "stage": "intent"
+          }
+        ],
+        "proof_label": "intent artifact",
+        "schema": "weave-stage-gate/v0.1",
+        "stage": "intent",
+        "transcript_capture": {
+          "app_id": "launch-studio-textual-v1",
+          "latest_artifact_ref": {
+            "checksum": "sha256:042b42e088b3f22b64acb00338d99e578aeeea383fd916df414958476d454788",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md",
+            "stage": "intent"
+          },
+          "latest_turn_at": "2026-06-15T23:18:08Z",
+          "latest_turn_id": "c4fbd1dd91142b5acb3cf4d0",
+          "linked_turn_count": 1,
+          "missing": [],
+          "passed": true,
+          "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
+          "required": true,
+          "schema": "weave-transcript-capture-gate/v0.1",
+          "stage": "intent",
+          "turn_count": 1
+        },
+        "warnings": []
+      },
+      "note": "Approved in Textual cockpit."
+    },
+    "plan": {
+      "approved_at": "2026-06-15T23:18:09Z",
+      "approved_by": "owner",
+      "conversation_turn_id": "978afc53999fab8be1abd9f8",
+      "gate": {
+        "app_id": "launch-studio-textual-v1",
+        "approved_previous_stages": [
+          "intent",
+          "research",
+          "selection"
+        ],
+        "artifact_refs": [
+          {
+            "checksum": "sha256:7cfbbb18edb87eeb1a0336f01eb2db720550dc1092a548af234256fcc73da52d",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+            "stage": "plan"
+          }
+        ],
+        "credential_blockers": [],
+        "evaluation": {
+          "app_id": "launch-studio-textual-v1",
+          "blockers": [],
+          "decision": "advance",
+          "duty_path": "apps/launch-studio-textual-v1/evaluations/plan/duty.json",
+          "next_actions": [
+            "advance to next lifecycle stage"
+          ],
+          "passed": true,
+          "request_path": "apps/launch-studio-textual-v1/evaluations/plan/request.json",
+          "result_path": "apps/launch-studio-textual-v1/evaluations/plan/result.json",
+          "review_path": "apps/launch-studio-textual-v1/evaluations/plan/review.json",
+          "schema": "weave-stage-evaluation-status/v0.1",
+          "stage": "plan",
+          "state": "verified",
+          "status": "completed"
+        },
+        "foundation_gate": {
+          "app_id": "launch-studio-textual-v1",
+          "communication_channel": "telegram",
+          "incomplete": [],
+          "missing": [],
+          "next_action": "continue",
+          "passed": true,
+          "schema": "weave-foundation-gate/v0.1"
+        },
+        "missing": [],
+        "missing_previous_stages": [],
+        "passed": true,
+        "proof_artifact_refs": [
+          {
+            "checksum": "sha256:7cfbbb18edb87eeb1a0336f01eb2db720550dc1092a548af234256fcc73da52d",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+            "stage": "plan"
+          }
+        ],
+        "proof_label": "implementation plan artifact",
+        "schema": "weave-stage-gate/v0.1",
+        "stage": "plan",
+        "transcript_capture": {
+          "app_id": "launch-studio-textual-v1",
+          "latest_artifact_ref": {
+            "checksum": "sha256:7cfbbb18edb87eeb1a0336f01eb2db720550dc1092a548af234256fcc73da52d",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+            "stage": "plan"
+          },
+          "latest_turn_at": "2026-06-15T23:18:09Z",
+          "latest_turn_id": "978afc53999fab8be1abd9f8",
+          "linked_turn_count": 1,
+          "missing": [],
+          "passed": true,
+          "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
+          "required": true,
+          "schema": "weave-transcript-capture-gate/v0.1",
+          "stage": "plan",
+          "turn_count": 1
+        },
+        "warnings": []
+      },
+      "note": "Approved in Textual cockpit."
+    },
+    "qa": {
+      "approved_at": "2026-06-15T23:21:48Z",
+      "approved_by": "owner",
+      "conversation_turn_id": "6082c0dcde28796e050c767b",
+      "gate": {
+        "app_id": "launch-studio-textual-v1",
+        "approved_previous_stages": [
+          "intent",
+          "research",
+          "selection",
+          "plan",
+          "engineering"
+        ],
+        "artifact_refs": [
+          {
+            "checksum": "sha256:ed0063002a53cd4df5f8ea3eb70ce305435a05da0054aaff597bdd980c682a1a",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+            "stage": "qa"
+          }
+        ],
+        "credential_blockers": [],
+        "evaluation": {
+          "app_id": "launch-studio-textual-v1",
+          "blockers": [],
+          "decision": "advance",
+          "duty_path": "apps/launch-studio-textual-v1/evaluations/qa/duty.json",
+          "next_actions": [
+            "advance to next lifecycle stage"
+          ],
+          "passed": true,
+          "request_path": "apps/launch-studio-textual-v1/evaluations/qa/request.json",
+          "result_path": "apps/launch-studio-textual-v1/evaluations/qa/result.json",
+          "review_path": "apps/launch-studio-textual-v1/evaluations/qa/review.json",
+          "schema": "weave-stage-evaluation-status/v0.1",
+          "stage": "qa",
+          "state": "verified",
+          "status": "completed"
+        },
+        "foundation_gate": {
+          "app_id": "launch-studio-textual-v1",
+          "communication_channel": "telegram",
+          "incomplete": [],
+          "missing": [],
+          "next_action": "continue",
+          "passed": true,
+          "schema": "weave-foundation-gate/v0.1"
+        },
+        "missing": [],
+        "missing_previous_stages": [],
+        "passed": true,
+        "proof_artifact_refs": [
+          {
+            "checksum": "sha256:ed0063002a53cd4df5f8ea3eb70ce305435a05da0054aaff597bdd980c682a1a",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+            "stage": "qa"
+          }
+        ],
+        "proof_label": "QA proof artifact",
+        "schema": "weave-stage-gate/v0.1",
+        "stage": "qa",
+        "transcript_capture": {
+          "app_id": "launch-studio-textual-v1",
+          "latest_artifact_ref": {
+            "checksum": "sha256:ed0063002a53cd4df5f8ea3eb70ce305435a05da0054aaff597bdd980c682a1a",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+            "stage": "qa"
+          },
+          "latest_turn_at": "2026-06-15T23:21:46Z",
+          "latest_turn_id": "6082c0dcde28796e050c767b",
+          "linked_turn_count": 1,
+          "missing": [],
+          "passed": true,
+          "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
+          "required": true,
+          "schema": "weave-transcript-capture-gate/v0.1",
+          "stage": "qa",
+          "turn_count": 1
+        },
+        "warnings": []
+      },
+      "note": "Approved in Textual cockpit."
+    },
+    "research": {
+      "approved_at": "2026-06-15T23:18:08Z",
+      "approved_by": "owner",
+      "conversation_turn_id": "21de69c4d604efe8c6973f0a",
+      "gate": {
+        "app_id": "launch-studio-textual-v1",
+        "approved_previous_stages": [
+          "intent"
+        ],
+        "artifact_refs": [
+          {
+            "checksum": "sha256:8a5b8d135178a7cc6e540c8ec914fd648c1bba4b07f3660f2873c2112652e604",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md",
+            "stage": "research"
+          }
+        ],
+        "credential_blockers": [],
+        "evaluation": {
+          "app_id": "launch-studio-textual-v1",
+          "blockers": [],
+          "decision": "advance",
+          "duty_path": "apps/launch-studio-textual-v1/evaluations/research/duty.json",
+          "next_actions": [
+            "advance to next lifecycle stage"
+          ],
+          "passed": true,
+          "request_path": "apps/launch-studio-textual-v1/evaluations/research/request.json",
+          "result_path": "apps/launch-studio-textual-v1/evaluations/research/result.json",
+          "review_path": "apps/launch-studio-textual-v1/evaluations/research/review.json",
+          "schema": "weave-stage-evaluation-status/v0.1",
+          "stage": "research",
+          "state": "verified",
+          "status": "completed"
+        },
+        "foundation_gate": {
+          "app_id": "launch-studio-textual-v1",
+          "communication_channel": "telegram",
+          "incomplete": [],
+          "missing": [],
+          "next_action": "continue",
+          "passed": true,
+          "schema": "weave-foundation-gate/v0.1"
+        },
+        "missing": [],
+        "missing_previous_stages": [],
+        "passed": true,
+        "proof_artifact_refs": [
+          {
+            "checksum": "sha256:8a5b8d135178a7cc6e540c8ec914fd648c1bba4b07f3660f2873c2112652e604",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md",
+            "stage": "research"
+          }
+        ],
+        "proof_label": "research evidence artifact",
+        "schema": "weave-stage-gate/v0.1",
+        "stage": "research",
+        "transcript_capture": {
+          "app_id": "launch-studio-textual-v1",
+          "latest_artifact_ref": {
+            "checksum": "sha256:8a5b8d135178a7cc6e540c8ec914fd648c1bba4b07f3660f2873c2112652e604",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md",
+            "stage": "research"
+          },
+          "latest_turn_at": "2026-06-15T23:18:08Z",
+          "latest_turn_id": "21de69c4d604efe8c6973f0a",
+          "linked_turn_count": 1,
+          "missing": [],
+          "passed": true,
+          "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
+          "required": true,
+          "schema": "weave-transcript-capture-gate/v0.1",
+          "stage": "research",
+          "turn_count": 1
+        },
+        "warnings": []
+      },
+      "note": "Approved in Textual cockpit."
+    },
+    "selection": {
+      "approved_at": "2026-06-15T23:18:08Z",
+      "approved_by": "owner",
+      "conversation_turn_id": "751f01273f62e16478661820",
+      "gate": {
+        "app_id": "launch-studio-textual-v1",
+        "approved_previous_stages": [
+          "intent",
+          "research"
+        ],
+        "artifact_refs": [
+          {
+            "checksum": "sha256:6252efd8430e4620a80026ffc87bc4e501825a9ad45ee75edafd9ed2b025b752",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md",
+            "stage": "selection"
+          }
+        ],
+        "credential_blockers": [],
+        "evaluation": {
+          "app_id": "launch-studio-textual-v1",
+          "blockers": [],
+          "decision": "advance",
+          "duty_path": "apps/launch-studio-textual-v1/evaluations/selection/duty.json",
+          "next_actions": [
+            "advance to next lifecycle stage"
+          ],
+          "passed": true,
+          "request_path": "apps/launch-studio-textual-v1/evaluations/selection/request.json",
+          "result_path": "apps/launch-studio-textual-v1/evaluations/selection/result.json",
+          "review_path": "apps/launch-studio-textual-v1/evaluations/selection/review.json",
+          "schema": "weave-stage-evaluation-status/v0.1",
+          "stage": "selection",
+          "state": "verified",
+          "status": "completed"
+        },
+        "foundation_gate": {
+          "app_id": "launch-studio-textual-v1",
+          "communication_channel": "telegram",
+          "incomplete": [],
+          "missing": [],
+          "next_action": "continue",
+          "passed": true,
+          "schema": "weave-foundation-gate/v0.1"
+        },
+        "missing": [],
+        "missing_previous_stages": [],
+        "passed": true,
+        "proof_artifact_refs": [
+          {
+            "checksum": "sha256:6252efd8430e4620a80026ffc87bc4e501825a9ad45ee75edafd9ed2b025b752",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md",
+            "stage": "selection"
+          }
+        ],
+        "proof_label": "selection decision artifact",
+        "schema": "weave-stage-gate/v0.1",
+        "stage": "selection",
+        "transcript_capture": {
+          "app_id": "launch-studio-textual-v1",
+          "latest_artifact_ref": {
+            "checksum": "sha256:6252efd8430e4620a80026ffc87bc4e501825a9ad45ee75edafd9ed2b025b752",
+            "kind": "artifact",
+            "path": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md",
+            "stage": "selection"
+          },
+          "latest_turn_at": "2026-06-15T23:18:08Z",
+          "latest_turn_id": "751f01273f62e16478661820",
+          "linked_turn_count": 1,
+          "missing": [],
+          "passed": true,
+          "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
+          "required": true,
+          "schema": "weave-transcript-capture-gate/v0.1",
+          "stage": "selection",
+          "turn_count": 1
+        },
+        "warnings": []
+      },
+      "note": "Approved in Textual cockpit."
+    }
+  },
+  "stage_completion_requires_owner_review": true,
+  "stage_deferrals": [],
+  "stage_source": "approved_advance",
+  "stage_state": "approved",
+  "status": "active",
+  "tasks": []
+}

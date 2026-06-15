@@ -1,0 +1,60 @@
+{
+  "artifact": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+  "hard_gates": {
+    "runtime_agent_mesh_readback": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md"
+      ],
+      "notes": "Runtime-agent QA includes isolated sender/receiver topology, per-runtime config readback, scenario execution, matching evidence from both sides when applicable, and a teardown policy with lifecycle cleanup states.",
+      "passed": true
+    }
+  },
+  "overall_notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+  "reviewer": "textual-local-evaluator",
+  "schema": "weave.eval-review/v0.1",
+  "scores": {
+    "evidence_quality": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "failure_path_proof": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "happy_path_proof": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "regression_awareness": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "rollback_clarity": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "runtime_mesh_proof": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    }
+  },
+  "stage": "QA"
+}
