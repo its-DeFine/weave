@@ -68,11 +68,15 @@ Runtime surfaces:
 - `bin/weave tui`: runs the local lifecycle cockpit. It supports interactive
   prompts or `--scripted-demo --write` proof mode, accepts `--control-mode
   handoff` for full local-safe handoff, writes website SEO artifacts when the
-  app surface is `website`, records Codex CLI metadata proof without claiming
-  Codex auth/model invocation, runs surface-adapted QA, records formal
-  Engineering command gates as pending unless `--run-engineering-gates` is set,
-  and stops before credentials, deployment, public sends, paid spend,
-  destructive changes, and security-boundary changes.
+  app surface is `website`, and can use either `--executor codex` or
+  `--executor fixture`. The Codex executor invokes `codex exec`
+  non-interactively, requires generated app files under `repo/primary`, runs
+  real local static-server/source/SEO QA, and fails if Codex or QA fails. The
+  fixture executor is deterministic CI/local proof only and is labeled as not
+  live Codex model output. The TUI records formal Engineering command gates as
+  pending unless `--run-engineering-gates` is set, and stops before
+  credentials, deployment, public sends, paid spend, destructive changes, and
+  security-boundary changes.
 - `bin/weave start`: starts the containerized Hermes gateway from the generated
   gateway workdir.
 - `bin/weave stop`: stops the gateway container.
@@ -102,10 +106,11 @@ requires the same five method slots for any agent runtime:
 
 For this release, `hermes-default` is the supported adapter path. `local-fallback`
 is recorded as fallback-contract-only and cannot satisfy Hermes completion
-claims. `codex` is explicitly listed as unsupported until a real Codex adapter
-implements the same contract and passes conformance tests. This prevents provider
-metadata such as `openai-codex` from being mistaken for a plug-and-play WEAVE
-runtime.
+claims. The TUI has a bounded Codex app-builder executor for local source
+generation, but `codex` is still not a full runtime adapter until it implements
+the complete probe/invoke/capture/post-event/doctor contract and passes
+conformance tests. This prevents provider metadata such as `openai-codex` from
+being mistaken for a plug-and-play WEAVE runtime.
 
 ## Status UX
 
