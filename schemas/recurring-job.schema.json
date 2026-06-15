@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weave.dev/schemas/recurring-job.schema.json",
+  "title": "WEAVE Recurring Job",
+  "type": "object",
+  "required": ["schema", "job_id", "app_id", "job_type", "status", "created_at", "cadence", "owner_visible_name", "purpose", "external_effect", "public_safe"],
+  "properties": {
+    "schema": {
+      "const": "weave/recurring-job/v0.1"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.:-]*$"
+    },
+    "app_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "job_type": {
+      "$ref": "#/$defs/job_type"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "pending_owner_approval", "active", "paused", "blocked", "kill_switched", "completed", "cancelled", "failed"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cadence": {
+      "type": "object",
+      "required": ["kind", "description"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["manual", "once", "hourly", "daily", "weekly", "cron", "event_driven"]
+        },
+        "cron": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "owner_visible_name": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "lifecycle_stages": {
+      "$ref": "#/$defs/stage_list"
+    },
+    "capability_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "approval_required_for": {
+      "$ref": "#/$defs/action_list"
+    },
+    "external_effect": {
+      "$ref": "#/$defs/external_effect"
+    },
+    "kill_switch_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "evidence_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "claims": {
+      "$ref": "#/$defs/string_list"
+    },
+    "non_claims": {
+      "$ref": "#/$defs/string_list"
+    },
+    "public_safe": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "$defs": {
+    "job_type": {
+      "type": "string",
+      "enum": ["marketing_engagement", "feedback_intake", "competitor_scan", "staged_implementation", "feature_recommendation", "analytics_review", "owner_followup", "capability_health_check"]
+    },
+    "external_effect": {
+      "type": "string",
+      "enum": ["none", "read_only", "local_write", "staging_write", "production_write", "public_send", "paid_spend", "credential_scope_change", "destructive_change"]
+    },
+    "stage_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["first_run", "owner_profile", "create_app", "intent", "research", "selection", "plan", "engineering", "qa", "deployment", "kpi", "marketing", "iteration", "analysis"]
+      }
+    },
+    "action_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      }
+    },
+    "ref_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": true
+}

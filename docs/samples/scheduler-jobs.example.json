@@ -1,0 +1,92 @@
+{
+  "schema": "weave/scheduler-job-fixtures/v0.1",
+  "updated_at": "2026-06-15T12:00:00Z",
+  "jobs": [
+    {
+      "schema": "weave/recurring-job/v0.1",
+      "job_id": "job-marketing-engagement-001",
+      "app_id": "pocket-orchard",
+      "job_type": "marketing_engagement",
+      "status": "pending_owner_approval",
+      "created_at": "2026-06-15T12:00:00Z",
+      "cadence": {
+        "kind": "weekly",
+        "description": "Review approved channels and draft engagement suggestions once per week."
+      },
+      "owner_visible_name": "Marketing engagement heartbeat",
+      "purpose": "Track channel replies and propose owner-reviewed responses.",
+      "lifecycle_stages": ["marketing", "iteration"],
+      "capability_refs": ["capability:social-draft-access"],
+      "approval_required_for": ["public-send"],
+      "external_effect": "read_only",
+      "kill_switch_refs": ["kill-switch:public-actions"],
+      "evidence_refs": ["artifact:marketing-plan-v1"],
+      "non_claims": ["no public message is sent by this fixture"],
+      "public_safe": true
+    },
+    {
+      "schema": "weave/recurring-job/v0.1",
+      "job_id": "job-feedback-intake-001",
+      "app_id": "pocket-orchard",
+      "job_type": "feedback_intake",
+      "status": "active",
+      "created_at": "2026-06-15T12:00:00Z",
+      "cadence": {
+        "kind": "daily",
+        "description": "Aggregate local feedback artifacts and summarize open themes."
+      },
+      "owner_visible_name": "Feedback intake heartbeat",
+      "purpose": "Turn support, QA, and owner feedback into reviewable issue candidates.",
+      "lifecycle_stages": ["iteration", "analysis"],
+      "capability_refs": ["capability:local-feedback-artifacts"],
+      "approval_required_for": ["create-production-change"],
+      "external_effect": "local_write",
+      "kill_switch_refs": [],
+      "evidence_refs": ["artifact:feedback-source-list"],
+      "public_safe": true
+    },
+    {
+      "schema": "weave/recurring-job/v0.1",
+      "job_id": "job-competitor-scan-001",
+      "app_id": "pocket-orchard",
+      "job_type": "competitor_scan",
+      "status": "active",
+      "created_at": "2026-06-15T12:00:00Z",
+      "cadence": {
+        "kind": "weekly",
+        "description": "Refresh public competitor and positioning notes."
+      },
+      "owner_visible_name": "Competitor scan heartbeat",
+      "purpose": "Keep analysis grounded in current public sources before recommendations.",
+      "lifecycle_stages": ["research", "analysis", "iteration"],
+      "capability_refs": ["capability:public-web-research"],
+      "approval_required_for": ["public-claim"],
+      "external_effect": "read_only",
+      "kill_switch_refs": [],
+      "evidence_refs": ["artifact:research-source-policy"],
+      "public_safe": true
+    },
+    {
+      "schema": "weave/recurring-job/v0.1",
+      "job_id": "job-staged-implementation-001",
+      "app_id": "pocket-orchard",
+      "job_type": "staged_implementation",
+      "status": "blocked",
+      "created_at": "2026-06-15T12:00:00Z",
+      "cadence": {
+        "kind": "event_driven",
+        "description": "Run after owner approves an iteration issue."
+      },
+      "owner_visible_name": "Staged implementation loop",
+      "purpose": "Build approved iteration items in staging and route to QA before production.",
+      "lifecycle_stages": ["engineering", "qa", "deployment", "iteration"],
+      "capability_refs": ["capability:repo-worktree", "capability:staging-deploy"],
+      "approval_required_for": ["production-deploy"],
+      "external_effect": "staging_write",
+      "kill_switch_refs": ["kill-switch:production-actions"],
+      "evidence_refs": ["artifact:iteration-plan-v1"],
+      "non_claims": ["does not deploy production changes"],
+      "public_safe": true
+    }
+  ]
+}

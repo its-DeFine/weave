@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weave.dev/schemas/job-run-event.schema.json",
+  "title": "WEAVE Job Run Event",
+  "type": "object",
+  "required": ["schema", "run_id", "job_id", "app_id", "started_at", "result", "external_effect", "summary", "public_safe"],
+  "properties": {
+    "schema": {
+      "const": "weave/job-run-event/v0.1"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.:-]*$"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.:-]*$"
+    },
+    "app_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["started", "succeeded", "blocked", "failed", "skipped", "cancelled", "timed_out", "needs_owner"]
+    },
+    "external_effect": {
+      "$ref": "#/$defs/external_effect"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "retry": {
+      "type": "object",
+      "properties": {
+        "attempt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "evidence_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "notification_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "kill_switch_refs": {
+      "$ref": "#/$defs/ref_list"
+    },
+    "claims": {
+      "$ref": "#/$defs/string_list"
+    },
+    "non_claims": {
+      "$ref": "#/$defs/string_list"
+    },
+    "public_safe": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "$defs": {
+    "external_effect": {
+      "type": "string",
+      "enum": ["none", "read_only", "local_write", "staging_write", "production_write", "public_send", "paid_spend", "credential_scope_change", "destructive_change"]
+    },
+    "ref_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": true
+}
