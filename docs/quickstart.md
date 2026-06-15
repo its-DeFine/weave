@@ -115,6 +115,7 @@ Use the doctor and dry-run commands before writing runtime state:
 bin/weave help
 bin/weave doctor
 bin/weave first-run --app-id demo-app --app-name "Demo App"
+bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave onboard --dry-run
 ```
 
@@ -123,6 +124,13 @@ bin/weave onboard --dry-run
 create-app choices, and proof boundaries. With `--write` it creates local WEAVE
 app state and a validated first-run lifecycle artifact. It does not connect
 credentials, send Telegram messages, deploy, or prove live Hermes chat.
+
+`bin/weave early-lifecycle` runs the deterministic local Intent, Research,
+Selection, and Plan workflow. With `--write`, it writes stage artifacts,
+ready-for-review conversation turns, local evaluator reviews, owner approvals,
+stage advances, and a validated lifecycle bundle ending at Engineering. It does
+not perform live public-web research, send public messages, deploy, or connect
+provider credentials.
 
 Pick one mode:
 
