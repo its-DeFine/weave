@@ -26,6 +26,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 import setup_gateway
 import setup_runtime
 import weave_dashboard
+import weave_early_lifecycle
 import weave_eval
 import weave_first_run
 import weave_hermes_setup
@@ -389,6 +390,10 @@ def dashboard(args: argparse.Namespace, output: TextIO) -> int:
 
 def first_run(args: argparse.Namespace, output: TextIO) -> int:
     return weave_first_run.run(args, output=output)
+
+
+def early_lifecycle(args: argparse.Namespace, output: TextIO) -> int:
+    return weave_early_lifecycle.run(args, output=output)
 
 
 def docker_status(container_name: str) -> str:
@@ -1247,6 +1252,31 @@ def build_parser() -> argparse.ArgumentParser:
     first_run_parser.add_argument("--write", action="store_true", help="create local runtime/app state and validated first-run artifact")
     first_run_parser.add_argument("--json", action="store_true", help="print first-run snapshot as JSON")
 
+    early_lifecycle_parser = subparsers.add_parser(
+        "early-lifecycle",
+        help="run the local Intent, Research, Selection, and Plan workflow",
+    )
+    early_lifecycle_parser.add_argument("--runtime-home", type=Path, default=None)
+    early_lifecycle_parser.add_argument("--weave-root", type=Path, default=None)
+    early_lifecycle_parser.add_argument("--hermes-home", type=Path, default=None)
+    early_lifecycle_parser.add_argument("--profile-out", type=Path, default=None)
+    early_lifecycle_parser.add_argument("--app-id", default="new-app")
+    early_lifecycle_parser.add_argument("--app-name", default="New App")
+    early_lifecycle_parser.add_argument("--intent", default=weave_early_lifecycle.DEFAULT_INTENT)
+    early_lifecycle_parser.add_argument("--target-user", default=weave_early_lifecycle.DEFAULT_TARGET_USER)
+    early_lifecycle_parser.add_argument("--deployment-region", default=weave_early_lifecycle.DEFAULT_DEPLOYMENT_REGION)
+    early_lifecycle_parser.add_argument("--marketing-budget", default=weave_early_lifecycle.DEFAULT_MARKETING_BUDGET)
+    early_lifecycle_parser.add_argument("--owner-feedback", default="")
+    early_lifecycle_parser.add_argument(
+        "--control-mode",
+        choices=("hands-on", "hands-off"),
+        default=weave_first_run.DEFAULT_CONTROL_MODE,
+        help="whether later lifecycle agents should stop for consequential owner decisions",
+    )
+    early_lifecycle_parser.add_argument("--create-app", action="store_true", help="create the local app if it does not exist")
+    early_lifecycle_parser.add_argument("--write", action="store_true", help="write stage artifacts, reviews, approvals, and lifecycle bundle")
+    early_lifecycle_parser.add_argument("--json", action="store_true", help="print early lifecycle snapshot as JSON")
+
     command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
     command_parser.add_argument("--runtime-home", type=Path, default=None)
     command_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1343,6 +1373,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "  weave help [command]")
         print_line(output, "  weave attach-hermes [onboard flags]  # alias for weave onboard --existing-hermes")
         print_line(output, "  weave first-run --app-id demo --app-name 'Demo App'")
+        print_line(output, "  weave early-lifecycle --app-id demo --create-app --write")
         print_line(output, "  weave runtime-qa --dry-run --out runs/runtime-qa/plan.json")
         print_line(output, "  weave eval --list")
         return 0
@@ -1393,6 +1424,8 @@ def main(
             return dashboard(args, output)
         if args.command == "first-run":
             return first_run(args, output)
+        if args.command == "early-lifecycle":
+            return early_lifecycle(args, output)
         if args.command == "doctor":
             return doctor(args, output)
         if args.command == "command":

@@ -361,6 +361,114 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("attach-existing requires an initialized WEAVE root", text)
             self.assertFalse(runtime_home.exists())
 
+    def test_early_lifecycle_preview_is_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "early-lifecycle",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--intent",
+                    "Build a public-safe local product proof",
+                    "--target-user",
+                    "operator reviewing a local proof",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Early Lifecycle Runner", text)
+            self.assertIn("Intent -> Research -> Selection -> Plan", text)
+            self.assertIn("[Proof Boundary]", text)
+            self.assertIn("root_ready: false", text)
+            self.assertIn("live_effects: false", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_early_lifecycle_write_advances_through_plan_with_valid_bundle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "early-lifecycle",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--intent",
+                    "Build a public-safe local product proof",
+                    "--target-user",
+                    "operator reviewing a local proof",
+                    "--deployment-region",
+                    "global",
+                    "--marketing-budget",
+                    "none",
+                    "--create-app",
+                    "--write",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("intent: approved -> research", text)
+            self.assertIn("research: approved -> selection", text)
+            self.assertIn("selection: approved -> plan", text)
+            self.assertIn("plan: approved -> engineering", text)
+            self.assertIn("artifact_valid: true", text)
+            weave_root = runtime_home / "weave-state"
+            runtime = weave_cli.weave_early_lifecycle.weave_runtime_slice
+            app = runtime.load_app(weave_root, "demo-app")
+            self.assertEqual(app["current_stage"], "engineering")
+            self.assertEqual(app["stage_state"], "collecting")
+            self.assertEqual(app["approved_stages"], ["intent", "research", "selection", "plan"])
+
+            turns = runtime.read_conversation_turns(weave_root, "demo-app")
+            self.assertEqual(len(turns), 4)
+            for stage_id in ("intent", "research", "selection", "plan"):
+                artifact_path = (
+                    weave_root
+                    / "apps"
+                    / "demo-app"
+                    / "lifecycle"
+                    / runtime.stage_by_id(stage_id).directory
+                    / "artifacts"
+                    / f"early-{stage_id}.md"
+                )
+                self.assertTrue(artifact_path.exists(), stage_id)
+                status = runtime.stage_evaluation_status(weave_root, "demo-app", stage_id)
+                self.assertTrue(status["passed"], stage_id)
+
+            plan_text = (
+                weave_root
+                / "apps"
+                / "demo-app"
+                / "lifecycle"
+                / "04-plan"
+                / "artifacts"
+                / "early-plan.md"
+            ).read_text(encoding="utf-8")
+            for expected in ("Deployment Plan", "QA Plan", "KPI Plan", "Marketing Plan", "Iteration Plan", "Capability Gaps"):
+                self.assertIn(expected, plan_text)
+
+            bundle_path = weave_root / "apps" / "demo-app" / "lifecycle" / "04-plan" / "artifacts" / "early-lifecycle-bundle.json"
+            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+            weave_cli.weave_early_lifecycle.validate_lifecycle_artifacts.validate_bundle(bundle)
+            self.assertEqual(bundle["lifecycle_state"]["current_stage"], "engineering")
+            self.assertEqual(bundle["owner_decision_cards"][0]["status"], "answered")
+            self.assertIn("deployment provider not connected", bundle["world_model"]["capability_gaps"])
+
     def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
