@@ -114,8 +114,15 @@ Use the doctor and dry-run commands before writing runtime state:
 ```bash
 bin/weave help
 bin/weave doctor
+bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave onboard --dry-run
 ```
+
+`bin/weave first-run` is the local product first-run surface. Without
+`--write` it only previews environment detection, owner profile choices,
+create-app choices, and proof boundaries. With `--write` it creates local WEAVE
+app state and a validated first-run lifecycle artifact. It does not connect
+credentials, send Telegram messages, deploy, or prove live Hermes chat.
 
 Pick one mode:
 

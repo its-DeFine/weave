@@ -254,6 +254,113 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("full invoke/capture adapter bridge is not proven", payload["gaps"])
             self.assertNotIn(bot_fixture, text)
 
+    def test_first_run_preview_is_digestible_and_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "first-run",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--owner-experience",
+                    "non-engineer founder",
+                    "--coworker-style",
+                    "short, direct, proof-backed",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE First Run Console", text)
+            self.assertIn("[Signal]", text)
+            self.assertIn("[Proof Boundary]", text)
+            self.assertIn("live_effects: false", text)
+            self.assertIn("secret_value_printed: false", text)
+            self.assertIn("non-engineer founder", text)
+            self.assertIn("short, direct, proof-backed", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_first_run_write_creates_valid_local_lifecycle_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "first-run",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--owner-experience",
+                    "hands-on product owner",
+                    "--coworker-style",
+                    "decision-first and explicit about assumptions",
+                    "--control-mode",
+                    "hands-on",
+                    "--write",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("[Written]", text)
+            self.assertIn("artifact_valid: true", text)
+            self.assertNotIn("123456789:abcdefghijklmnopqrstuvwxyzABCDEF", text)
+            artifact_path = (
+                runtime_home
+                / "weave-state"
+                / "apps"
+                / "demo-app"
+                / "lifecycle"
+                / "01-intent"
+                / "artifacts"
+                / "first-run-lifecycle-bundle.json"
+            )
+            self.assertTrue(artifact_path.exists())
+            bundle = json.loads(artifact_path.read_text(encoding="utf-8"))
+            weave_cli.weave_first_run.validate_lifecycle_artifacts.validate_bundle(bundle)
+            self.assertEqual(bundle["lifecycle_state"]["current_stage"], "intent")
+            self.assertEqual(bundle["world_model"]["owner_preferences"]["control_mode"], "hands-on")
+            self.assertEqual(bundle["capability_grants"][0]["external_effect"], "local_write")
+            active_app = json.loads((runtime_home / "weave-state" / "runtime" / "profiles" / "active-app.json").read_text(encoding="utf-8"))
+            self.assertEqual(active_app["app_id"], "demo-app")
+            owner_profile = (runtime_home / "weave-state" / "artifacts" / "general" / "owner-profile.md").read_text(encoding="utf-8")
+            self.assertIn("hands-on product owner", owner_profile)
+            self.assertIn("Provider credentials", owner_profile)
+
+    def test_first_run_attach_existing_requires_initialized_runtime(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "first-run",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--setup-choice",
+                    "attach-existing",
+                    "--write",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 1, text)
+            self.assertIn("attach-existing requires an initialized WEAVE root", text)
+            self.assertFalse(runtime_home.exists())
+
     def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
