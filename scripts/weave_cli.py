@@ -1289,6 +1289,8 @@ def build_parser() -> argparse.ArgumentParser:
     tui_parser.add_argument("--scripted-demo", action="store_true", help="run non-interactively for CI and local proof")
     tui_parser.add_argument("--write", action="store_true", help="write local lifecycle artifacts through QA and gated launch plans")
     tui_parser.add_argument("--no-color", action="store_true", help="disable ANSI color")
+    tui_parser.add_argument("--textual", action="store_true", help="force the full-screen Textual cockpit")
+    tui_parser.add_argument("--plain", action="store_true", help="force the legacy/plain cockpit renderer")
     tui_parser.add_argument("--json", action="store_true", help="print machine-readable TUI session proof")
 
     first_run_parser = subparsers.add_parser("first-run", help="preview or write local WEAVE product first-run state")

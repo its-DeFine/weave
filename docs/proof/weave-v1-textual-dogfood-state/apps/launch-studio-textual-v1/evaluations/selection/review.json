@@ -1,0 +1,53 @@
+{
+  "artifact": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md",
+  "hard_gates": {
+    "alternatives_compared": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md"
+      ],
+      "notes": "Selection packet compares at least two alternatives or explicitly justifies one-option selection.",
+      "passed": true
+    },
+    "reversibility_labeled": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md"
+      ],
+      "notes": "Decision notes whether it is reversible and what rollback/pivot means.",
+      "passed": true
+    }
+  },
+  "overall_notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+  "reviewer": "textual-local-evaluator",
+  "schema": "weave.eval-review/v0.1",
+  "scores": {
+    "anti_overbuild": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "fit_to_intent": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "option_fairness": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "tradeoff_clarity": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    }
+  },
+  "stage": "Selection"
+}

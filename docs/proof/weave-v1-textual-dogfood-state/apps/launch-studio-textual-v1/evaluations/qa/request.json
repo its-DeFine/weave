@@ -1,0 +1,104 @@
+{
+  "app_id": "launch-studio-textual-v1",
+  "app_name": "Launch Studio Textual v1",
+  "artifact": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+  "artifact_refs": [
+    {
+      "checksum": "sha256:ed0063002a53cd4df5f8ea3eb70ce305435a05da0054aaff597bdd980c682a1a",
+      "kind": "artifact",
+      "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+      "stage": "qa"
+    }
+  ],
+  "contract": "packages/weave-tool/evals/lifecycle/qa.yaml",
+  "contract_schema": "weave.lifecycle-eval/v0.1",
+  "created_at": "2026-06-15T23:21:46Z",
+  "hard_gates": [
+    "runtime_smoke_pass",
+    "package_validation_pass",
+    "public_safe_scan_pass",
+    "runtime_agent_mesh_readback"
+  ],
+  "instructions": [
+    "Fill review.json with schema weave.eval-review/v0.1.",
+    "Every rubric score and manual gate pass must cite concrete evidence.",
+    "Do not include secrets, credentials, private locators, or hidden chain-of-thought."
+  ],
+  "public_safe": true,
+  "request_id": "0975bcbd20d117079491839c",
+  "rubric_dimensions": [
+    "happy_path_proof",
+    "failure_path_proof",
+    "regression_awareness",
+    "rollback_clarity",
+    "evidence_quality",
+    "runtime_mesh_proof"
+  ],
+  "schema": "weave-evaluation-request/v0.1",
+  "secret_payload_allowed": false,
+  "stage": "qa",
+  "stage_gate": {
+    "app_id": "launch-studio-textual-v1",
+    "approved_previous_stages": [
+      "intent",
+      "research",
+      "selection",
+      "plan",
+      "engineering"
+    ],
+    "artifact_refs": [
+      {
+        "checksum": "sha256:ed0063002a53cd4df5f8ea3eb70ce305435a05da0054aaff597bdd980c682a1a",
+        "kind": "artifact",
+        "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+        "stage": "qa"
+      }
+    ],
+    "credential_blockers": [],
+    "evaluation": null,
+    "foundation_gate": {
+      "app_id": "launch-studio-textual-v1",
+      "communication_channel": "telegram",
+      "incomplete": [],
+      "missing": [],
+      "next_action": "continue",
+      "passed": true,
+      "schema": "weave-foundation-gate/v0.1"
+    },
+    "missing": [],
+    "missing_previous_stages": [],
+    "passed": true,
+    "proof_artifact_refs": [
+      {
+        "checksum": "sha256:ed0063002a53cd4df5f8ea3eb70ce305435a05da0054aaff597bdd980c682a1a",
+        "kind": "artifact",
+        "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+        "stage": "qa"
+      }
+    ],
+    "proof_label": "QA proof artifact",
+    "schema": "weave-stage-gate/v0.1",
+    "stage": "qa",
+    "transcript_capture": {
+      "app_id": "launch-studio-textual-v1",
+      "latest_artifact_ref": {
+        "checksum": "sha256:ed0063002a53cd4df5f8ea3eb70ce305435a05da0054aaff597bdd980c682a1a",
+        "kind": "artifact",
+        "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
+        "stage": "qa"
+      },
+      "latest_turn_at": "2026-06-15T23:21:46Z",
+      "latest_turn_id": "6082c0dcde28796e050c767b",
+      "linked_turn_count": 1,
+      "missing": [],
+      "passed": true,
+      "policy": "Stage approval requires a ready-for-review current-stage conversation turn linked to a proof artifact.",
+      "required": true,
+      "schema": "weave-transcript-capture-gate/v0.1",
+      "stage": "qa",
+      "turn_count": 1
+    },
+    "warnings": []
+  },
+  "transcript_turn_id": "6082c0dcde28796e050c767b"
+}

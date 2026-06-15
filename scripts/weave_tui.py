@@ -33,8 +33,10 @@ import weave_early_lifecycle
 import weave_engineering_decisions
 import weave_first_run
 import weave_launch_ops
+import weave_prompt_library
 import weave_qa_proof
 import weave_runtime_slice
+import weave_textual_app
 
 
 TUI_SCHEMA = "weave-tui-session/v0.1"
@@ -1768,6 +1770,38 @@ def write_codex_prompt(root: Path, inputs: TuiInputs) -> str:
     return rel(path, root)
 
 
+def existing_stage_artifact_refs(root: Path, inputs: TuiInputs, *, limit: int = 12) -> list[str]:
+    base = weave_runtime_slice.app_root(root, inputs.app_id) / "lifecycle"
+    if not base.exists():
+        return []
+    refs: list[str] = []
+    for path in sorted(base.glob("*/artifacts/*")):
+        if path.is_file() and path.suffix.lower() in {".json", ".md", ".txt"}:
+            refs.append(rel(path, root))
+    return refs[-limit:]
+
+
+def write_engineering_prompt_packet(root: Path, inputs: TuiInputs, *, substage: str, reason: str) -> dict[str, Any]:
+    return weave_prompt_library.build_prompt_packet(
+        root=root,
+        app_id=inputs.app_id,
+        stage="engineering",
+        substage=substage,
+        latest_owner_message=inputs.intent,
+        input_refs=existing_stage_artifact_refs(root, inputs),
+        selected_context_refs=[
+            "context/app-context.md",
+            "context/user-context-for-this-app.md",
+            "contract/gestaltian-contract.md",
+        ],
+        owner_profile_summary=f"{inputs.owner_experience}; coworker style: {inputs.coworker_style}",
+        world_model_summary=f"{inputs.app_name}: {inputs.intent}",
+        reason=reason,
+        allowed_actions=["write_local_source", "write_artifacts", "run_local_checks", "ask_owner_when_hard_gate_appears"],
+        gate_criteria=["source_manifest_complete", "executor_manifest_written", "no_live_effects", "qa_handoff_ready"],
+    )
+
+
 def write_executor_manifest(root: Path, inputs: TuiInputs, payload: dict[str, Any]) -> dict[str, Any]:
     path = engineering_artifact_dir(root, inputs.app_id) / "app-executor-manifest.json"
     manifest = {
@@ -1786,6 +1820,12 @@ def write_executor_manifest(root: Path, inputs: TuiInputs, payload: dict[str, An
 
 def run_fixture_executor(args: Any, inputs: TuiInputs) -> dict[str, Any]:
     clear_generated_app_workspace(args.weave_root, inputs.app_id)
+    prompt_packet = write_engineering_prompt_packet(
+        args.weave_root,
+        inputs,
+        substage="build",
+        reason="fixture executor requested by local deterministic proof path",
+    )
     source_manifest = write_generated_app(
         args.weave_root,
         inputs,
@@ -1799,6 +1839,8 @@ def run_fixture_executor(args: Any, inputs: TuiInputs) -> dict[str, Any]:
             "executor": "fixture",
             "status": "passed",
             "live_agent_execution": False,
+            "prompt_packet_ref": prompt_packet.get("packet_ref", ""),
+            "rendered_prompt_ref": prompt_packet.get("rendered_prompt_ref", ""),
             "source_manifest_ref": rel(generated_app_manifest_path(args.weave_root, inputs.app_id), args.weave_root),
             "claims": ["deterministic fixture source was written for local CI/proof"],
             "non_claims": ["not live Codex model output", "not deployed", "not live user proof"],
@@ -1811,6 +1853,12 @@ def run_codex_executor(args: Any, inputs: TuiInputs) -> dict[str, Any]:
     root = args.weave_root
     clear_generated_app_workspace(root, inputs.app_id)
     prompt_ref = write_codex_prompt(root, inputs)
+    prompt_packet = write_engineering_prompt_packet(
+        root,
+        inputs,
+        substage="build",
+        reason="Codex executor requested by WEAVE engineering stage",
+    )
     binary_found = bool(shutil.which("codex"))
     if not binary_found:
         executor = write_executor_manifest(
@@ -1821,6 +1869,8 @@ def run_codex_executor(args: Any, inputs: TuiInputs) -> dict[str, Any]:
                 "status": "failed",
                 "failure_class": "environment",
                 "prompt_ref": prompt_ref,
+                "prompt_packet_ref": prompt_packet.get("packet_ref", ""),
+                "rendered_prompt_ref": prompt_packet.get("rendered_prompt_ref", ""),
                 "live_agent_execution": False,
                 "binary_found": False,
                 "command_label": "codex exec --sandbox workspace-write -C generated-app-workspace -",
@@ -1878,6 +1928,8 @@ def run_codex_executor(args: Any, inputs: TuiInputs) -> dict[str, Any]:
                 "status": "failed",
                 "failure_class": "timeout" if timed_out else "agent_execution",
                 "prompt_ref": prompt_ref,
+                "prompt_packet_ref": prompt_packet.get("packet_ref", ""),
+                "rendered_prompt_ref": prompt_packet.get("rendered_prompt_ref", ""),
                 "live_agent_execution": False,
                 "binary_found": True,
                 "command_label": "codex exec --sandbox workspace-write -C generated-app-workspace -",
@@ -1903,6 +1955,8 @@ def run_codex_executor(args: Any, inputs: TuiInputs) -> dict[str, Any]:
                 "status": "failed",
                 "failure_class": "missing_required_files",
                 "prompt_ref": prompt_ref,
+                "prompt_packet_ref": prompt_packet.get("packet_ref", ""),
+                "rendered_prompt_ref": prompt_packet.get("rendered_prompt_ref", ""),
                 "source_manifest_ref": rel(generated_app_manifest_path(root, inputs.app_id), root),
                 "missing_files": source_manifest["missing_files"],
                 "live_agent_execution": True,
@@ -1928,6 +1982,8 @@ def run_codex_executor(args: Any, inputs: TuiInputs) -> dict[str, Any]:
             "status": "passed",
             "failure_class": "",
             "prompt_ref": prompt_ref,
+            "prompt_packet_ref": prompt_packet.get("packet_ref", ""),
+            "rendered_prompt_ref": prompt_packet.get("rendered_prompt_ref", ""),
             "source_manifest_ref": rel(generated_app_manifest_path(root, inputs.app_id), root),
             "live_agent_execution": True,
             "binary_found": True,
@@ -2684,6 +2740,8 @@ def render_summary(inputs: TuiInputs, step_results: list[dict[str, Any]], manife
 def run(args: Any, *, input_stream: TextIO = sys.stdin, output: TextIO = sys.stdout) -> int:
     palette = Palette(color_enabled(args, output))
     try:
+        if should_run_textual(args, input_stream=input_stream, output=output):
+            return weave_textual_app.run(args)
         if getattr(args, "cockpit", False) or not args.scripted_demo:
             return run_cockpit(args, input_stream=input_stream, output=output)
         inputs = collect_inputs(args, input_stream=input_stream, output=output, palette=palette)
@@ -2706,3 +2764,15 @@ def run(args: Any, *, input_stream: TextIO = sys.stdin, output: TextIO = sys.std
 
     print(render_summary(inputs, step_results, manifest, palette), end="", file=output)
     return 0 if all(item.get("rc", 0) == 0 for item in step_results) else 1
+
+
+def should_run_textual(args: Any, *, input_stream: TextIO, output: TextIO) -> bool:
+    if getattr(args, "plain", False):
+        return False
+    if getattr(args, "scripted_demo", False) or getattr(args, "json", False):
+        return False
+    if getattr(args, "textual", False):
+        return True
+    if getattr(args, "cockpit", False):
+        return False
+    return bool(getattr(input_stream, "isatty", lambda: False)() and getattr(output, "isatty", lambda: False)())

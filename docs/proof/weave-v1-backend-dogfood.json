@@ -1,0 +1,209 @@
+{
+  "app": {
+    "app_id": "launch-studio-v1-dogfood",
+    "approved_stages": [
+      "intent",
+      "research",
+      "selection",
+      "plan",
+      "engineering",
+      "qa"
+    ],
+    "current_stage": "qa",
+    "name": "Launch Studio v1 Dogfood",
+    "stage_state": "approved"
+  },
+  "created_at": "2026-06-15T23:00:11Z",
+  "duration_seconds": 211.888,
+  "executor": {
+    "artifacts_written": [
+      "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/executor-manifest.json",
+      "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/source-manifest.json",
+      "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-ec0779f1536f72a1.json"
+    ],
+    "blocked_by": [],
+    "ok": true
+  },
+  "non_claims": [
+    "not deployed",
+    "not live Telegram/Hermes gateway proof",
+    "no raw credentials captured",
+    "no public sends",
+    "no paid spend",
+    "no market validation"
+  ],
+  "passed": true,
+  "proof": {
+    "artifact_count": 7,
+    "conversation_turn_count": 6,
+    "executor_manifest_ref": "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/executor-manifest.json",
+    "external_effects_executed": [],
+    "prompt_packet_count": 6,
+    "prompt_packet_refs": [
+      "apps/launch-studio-v1-dogfood/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-cf31a6b7ee17997d.json",
+      "apps/launch-studio-v1-dogfood/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-48ff433d2827b70b.json",
+      "apps/launch-studio-v1-dogfood/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-500182576568365a.json",
+      "apps/launch-studio-v1-dogfood/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-4d79a1e88043ef21.json",
+      "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-ec0779f1536f72a1.json",
+      "apps/launch-studio-v1-dogfood/lifecycle/06-qa/artifacts/prompt-packets/prompt-qa-start-ea581d4c00031112.json"
+    ],
+    "secret_value_printed": false,
+    "source_manifest_ref": "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/source-manifest.json"
+  },
+  "reason": "completed_through_qa",
+  "schema": "weave-v1-backend-dogfood/v0.1",
+  "stage_results": {
+    "engineering": {
+      "approve": {
+        "artifacts_written": [],
+        "blocked_by": [],
+        "message": "Stage approval recorded for engineering.",
+        "ok": true
+      },
+      "evaluate": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/evaluations/engineering/result.json",
+          "apps/launch-studio-v1-dogfood/evaluations/engineering/review.json"
+        ],
+        "blocked_by": [],
+        "message": "Evaluation completed for engineering: advance.",
+        "ok": true
+      },
+      "executor": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/executor-manifest.json",
+          "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/source-manifest.json",
+          "apps/launch-studio-v1-dogfood/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-ec0779f1536f72a1.json"
+        ],
+        "blocked_by": [],
+        "message": "Codex engineering execution completed.",
+        "ok": true
+      }
+    },
+    "intent": {
+      "approve": {
+        "artifacts_written": [],
+        "blocked_by": [],
+        "message": "Stage approval recorded for intent.",
+        "ok": true
+      },
+      "evaluate": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/evaluations/intent/result.json",
+          "apps/launch-studio-v1-dogfood/evaluations/intent/review.json"
+        ],
+        "blocked_by": [],
+        "message": "Evaluation completed for intent: advance.",
+        "ok": true
+      },
+      "submit": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/lifecycle/01-intent/artifacts/intent-v1-dogfood-proof.md"
+        ],
+        "blocked_by": [],
+        "message": "Submitted intent proof and transcript turn.",
+        "ok": true
+      }
+    },
+    "plan": {
+      "approve": {
+        "artifacts_written": [],
+        "blocked_by": [],
+        "message": "Stage approval recorded for plan.",
+        "ok": true
+      },
+      "evaluate": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/evaluations/plan/result.json",
+          "apps/launch-studio-v1-dogfood/evaluations/plan/review.json"
+        ],
+        "blocked_by": [],
+        "message": "Evaluation completed for plan: advance.",
+        "ok": true
+      },
+      "submit": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/lifecycle/04-plan/artifacts/plan-v1-dogfood-proof.md"
+        ],
+        "blocked_by": [],
+        "message": "Submitted plan proof and transcript turn.",
+        "ok": true
+      }
+    },
+    "qa": {
+      "approve": {
+        "artifacts_written": [],
+        "blocked_by": [],
+        "message": "Stage approval recorded for qa.",
+        "ok": true
+      },
+      "evaluate": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/evaluations/qa/result.json",
+          "apps/launch-studio-v1-dogfood/evaluations/qa/review.json"
+        ],
+        "blocked_by": [],
+        "message": "Evaluation completed for qa: advance.",
+        "ok": true
+      },
+      "submit": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/lifecycle/06-qa/artifacts/qa-v1-dogfood-proof.md"
+        ],
+        "blocked_by": [],
+        "message": "Submitted qa proof and transcript turn.",
+        "ok": true
+      }
+    },
+    "research": {
+      "approve": {
+        "artifacts_written": [],
+        "blocked_by": [],
+        "message": "Stage approval recorded for research.",
+        "ok": true
+      },
+      "evaluate": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/evaluations/research/result.json",
+          "apps/launch-studio-v1-dogfood/evaluations/research/review.json"
+        ],
+        "blocked_by": [],
+        "message": "Evaluation completed for research: advance.",
+        "ok": true
+      },
+      "submit": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/lifecycle/02-research/artifacts/research-v1-dogfood-proof.md"
+        ],
+        "blocked_by": [],
+        "message": "Submitted research proof and transcript turn.",
+        "ok": true
+      }
+    },
+    "selection": {
+      "approve": {
+        "artifacts_written": [],
+        "blocked_by": [],
+        "message": "Stage approval recorded for selection.",
+        "ok": true
+      },
+      "evaluate": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/evaluations/selection/result.json",
+          "apps/launch-studio-v1-dogfood/evaluations/selection/review.json"
+        ],
+        "blocked_by": [],
+        "message": "Evaluation completed for selection: advance.",
+        "ok": true
+      },
+      "submit": {
+        "artifacts_written": [
+          "apps/launch-studio-v1-dogfood/lifecycle/03-selection/artifacts/selection-v1-dogfood-proof.md"
+        ],
+        "blocked_by": [],
+        "message": "Submitted selection proof and transcript turn.",
+        "ok": true
+      }
+    }
+  }
+}

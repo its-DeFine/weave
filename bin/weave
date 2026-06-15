@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-exec python3 "$SCRIPT_DIR/../scripts/weave_cli.py" "$@"
+REPO_ROOT="$SCRIPT_DIR/.."
+if [ -x "$REPO_ROOT/.venv/bin/python" ]; then
+  exec "$REPO_ROOT/.venv/bin/python" "$REPO_ROOT/scripts/weave_cli.py" "$@"
+fi
+exec python3 "$REPO_ROOT/scripts/weave_cli.py" "$@"

@@ -1,0 +1,30 @@
+{
+  "app_id": "launch-studio-textual-v1",
+  "app_name": "Launch Studio Textual v1",
+  "mode": "local_only",
+  "analytics": {
+    "status": "disabled",
+    "disabled": true,
+    "enabled": false
+  },
+  "deployment": {
+    "status": "disabled",
+    "disabled": true,
+    "enabled": false
+  },
+  "paid_spend": {
+    "status": "disabled",
+    "disabled": true,
+    "enabled": false
+  },
+  "public_send": {
+    "status": "disabled",
+    "disabled": true,
+    "enabled": false
+  },
+  "credentials": {
+    "status": "disabled",
+    "disabled": true,
+    "enabled": false
+  }
+}

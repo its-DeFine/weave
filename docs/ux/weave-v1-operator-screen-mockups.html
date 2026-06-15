@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WEAVE V1 Operator Screen Mockups</title>
+<style>
+:root {
+  --bg:#070a0d; --shell:#0d1116; --panel:#141a20; --panel2:#1c242c; --panel3:#252f38;
+  --text:#f7f2e9; --muted:#a8b3bf; --line:#344350; --cyan:#37d5ff; --green:#7bd88f; --yellow:#ffd166; --red:#ff6b6b;
+}
+* { box-sizing: border-box; }
+body { margin:0; background: radial-gradient(circle at top left, #14202a 0, #070a0d 38%, #050709 100%); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.page { min-height:100vh; display:grid; grid-template-rows:auto 1fr; }
+.topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:14px 22px; border-bottom:1px solid #22303b; background:rgba(7,10,13,.86); backdrop-filter: blur(10px); position:sticky; top:0; z-index:20; }
+.topbar h1 { margin:0; font-size:17px; letter-spacing:0; }
+.topbar .links { display:flex; gap:10px; flex-wrap:wrap; }
+.topbar a, .topbar button { color:var(--text); border:1px solid #2d3a45; background:#111820; padding:7px 10px; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px; }
+.topbar button.active { border-color:var(--cyan); color:#061017; background:var(--cyan); }
+.wrap { padding:22px; display:grid; gap:18px; }
+.note { max-width:1500px; margin:0 auto; width:100%; color:var(--muted); font-size:14px; display:flex; justify-content:space-between; gap:18px; }
+.terminal { width:min(1500px, 100%); height:min(860px, calc(100vh - 132px)); min-height:720px; margin:0 auto; border:1px solid #3a4a58; border-radius:18px; background:#090d11; box-shadow:0 30px 90px rgba(0,0,0,.45); overflow:hidden; display:grid; grid-template-rows:58px 1fr 48px; }
+.term-head { display:grid; grid-template-columns:1fr auto; align-items:center; padding:0 18px; border-bottom:1px solid var(--line); background:#111820; }
+.brand { display:flex; align-items:center; gap:14px; min-width:0; }
+.dots { display:flex; gap:7px; } .dot { width:11px; height:11px; border-radius:50%; } .r { background:#ff5f56; } .y { background:#ffbd2e; } .g { background:#27c93f; }
+.brand-title { font-weight:900; font-size:18px; white-space:nowrap; }
+.session-line { color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mode { display:flex; gap:8px; align-items:center; font-size:12px; color:var(--muted); }
+.pill { border:1px solid var(--line); background:#0c1217; color:var(--muted); padding:5px 8px; border-radius:999px; font-weight:800; }
+.shell-body { display:grid; grid-template-columns:208px minmax(560px,1fr) 330px; min-height:0; }
+.rail { border-right:1px solid var(--line); background:#0b1015; padding:14px 10px; display:grid; grid-template-rows:auto 1fr auto; gap:12px; }
+.app-card { border:1px solid var(--line); background:var(--panel); border-radius:12px; padding:11px; }
+.app-name { font-weight:900; font-size:15px; } .app-meta { color:var(--muted); font-size:12px; margin-top:3px; }
+.stage-list { overflow:auto; padding-right:3px; display:grid; gap:5px; align-content:start; }
+.stage-row { width:100%; border:1px solid transparent; background:transparent; color:var(--muted); padding:8px 9px; border-radius:9px; display:grid; grid-template-columns:8px 1fr auto; gap:8px; align-items:center; text-align:left; cursor:pointer; }
+.stage-row:hover { background:#121a21; } .stage-row.active { background:color-mix(in srgb, var(--accent) 17%, #10161c); border-color:var(--accent); color:var(--text); }
+.stage-dot { width:8px; height:8px; border-radius:50%; background:#52616e; } .stage-row.active .stage-dot { background:var(--accent); box-shadow:0 0 16px var(--accent); }
+.stage-label { font-size:13px; font-weight:800; } .stage-code { font-size:11px; opacity:.75; }
+.rail-foot { border:1px solid #263541; border-radius:12px; padding:10px; color:var(--muted); font-size:12px; background:#10161c; }
+.main { min-width:0; display:grid; grid-template-rows:auto 1fr auto; background:#0d1116; }
+.stage-banner { padding:16px 18px; border-bottom:1px solid var(--line); background:linear-gradient(90deg, color-mix(in srgb, var(--accent) 18%, #111820), #111820 58%); display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; }
+.stage-title { margin:0; font-size:24px; line-height:1.1; } .stage-status { color:var(--muted); font-weight:800; font-size:13px; margin-top:5px; }
+.next-action { border:1px solid var(--accent); color:var(--accent); background:#0a0f14; padding:10px 12px; border-radius:10px; font-weight:900; font-size:13px; }
+.chat { overflow:auto; padding:18px; display:grid; gap:12px; align-content:start; }
+.msg { max-width:880px; display:grid; grid-template-columns:34px 1fr; gap:10px; align-items:start; }
+.avatar { width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font-weight:1000; font-size:13px; background:#24313b; color:var(--text); }
+.msg.agent .avatar { background:var(--accent); color:#061017; } .msg.system .avatar { background:#ffd166; color:#111; } .msg.user { margin-left:auto; grid-template-columns:1fr 34px; } .msg.user .avatar { grid-column:2; background:#2b3742; } .msg.user .bubble { grid-column:1; grid-row:1; border-color:#536474; }
+.bubble { border:1px solid #2d3a45; background:#141a20; border-radius:14px; padding:11px 13px; line-height:1.38; font-size:15px; }
+.action-card { margin-top:4px; border:1px solid var(--accent); border-radius:16px; background:#10161c; padding:14px; display:grid; gap:12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.025); }
+.action-title { display:flex; justify-content:space-between; gap:14px; align-items:center; font-weight:1000; color:var(--accent); }
+.actions { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:9px; }
+.action { border:1px solid color-mix(in srgb, var(--accent) 70%, #ffffff 0%); background:#0b1116; color:var(--text); padding:10px 8px; border-radius:10px; text-align:center; font-weight:900; font-size:13px; min-height:38px; display:grid; place-items:center; }
+.composer { border-top:1px solid var(--line); padding:12px 18px; background:#10161c; display:grid; grid-template-columns:1fr auto; gap:10px; }
+.input { border:1px solid #31404d; border-radius:11px; background:#070b0f; color:#d9e2ea; padding:12px 13px; font-size:14px; }
+.send { border:0; border-radius:11px; background:var(--accent); color:#061017; font-weight:1000; padding:0 16px; }
+.side { border-left:1px solid var(--line); background:#0b1015; display:grid; grid-template-rows:auto 1fr 1fr; min-height:0; }
+.side-head { padding:14px; border-bottom:1px solid var(--line); display:grid; gap:8px; }
+.meter-label { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; font-weight:800; }
+.meter { height:9px; background:#26323c; border-radius:999px; overflow:hidden; } .meter > div { height:100%; width:68%; background:var(--accent); }
+.pane { padding:14px; border-bottom:1px solid var(--line); overflow:auto; }
+.pane h3 { margin:0 0 10px; font-size:14px; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; }
+.item { border:1px solid #263541; border-radius:9px; padding:8px 9px; margin-bottom:7px; background:#111820; font-size:13px; color:#dce5ed; }
+.item.muted { color:var(--muted); }
+.footer { display:grid; grid-template-columns:1fr auto; align-items:center; padding:0 16px; border-top:1px solid var(--line); background:#111820; color:var(--muted); font-size:12px; }
+.keys { display:flex; gap:8px; flex-wrap:wrap; } .key { border:1px solid #33424f; background:#0b1116; padding:5px 7px; border-radius:7px; font-weight:900; color:#d8e1e8; }
+.boundary { color:#ffcf70; font-weight:900; }
+@media (max-width: 1100px) { .terminal { height:auto; min-height:900px; } .shell-body { grid-template-columns:1fr; } .rail,.side { border:0; } .side { grid-template-rows:auto auto auto; } .actions { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <h1>WEAVE V1 operator screen mockups</h1>
+    <div class="links" id="topButtons"></div>
+  </header>
+  <main class="wrap">
+    <div class="note"><span>This is a proposed completed-state TUI screen, not the current implementation.</span><span>Use the stage buttons to see what the operator would see.</span></div>
+    <section class="terminal" id="terminal"></section>
+  </main>
+</div>
+<script>
+const stages = [{"id": "first-run", "label": "First Run", "state": "needs choice", "accent": "#37d5ff", "title": "Choose how WEAVE should attach", "status": "No app selected yet", "chat": [["agent", "I found local WEAVE state, Codex CLI, and a Hermes lane that is not confirmed yet."], ["agent", "Do you want to create a local WEAVE app workspace, attach an existing one, or connect a remote environment?"]], "actions": ["Create local app", "Attach existing", "Connect remote", "Inspect environment"], "evidence": ["Codex: available", "Hermes: blocked until confirmed", "Remote attach: deferred", "External effects: none"], "files": ["No app files yet"], "review": ["Owner choice required: environment setup"], "input": "Type a reply or choose an action..."}, {"id": "owner-profile", "label": "Owner Profile", "state": "collecting", "accent": "#9ae66e", "title": "Tell WEAVE how to work with you", "status": "Profile informs future prompts", "chat": [["agent", "Before we build, I need collaboration context."], ["agent", "What is your engineering/product experience? What style should the ideal coworker have?"], ["user", "I want direct, proof-backed updates and I want the agent to ask before consequential choices."]], "actions": ["Save profile", "Edit answers", "Skip for now"], "evidence": ["Profile is local context", "No secrets allowed", "Control mode: hands-on"], "files": ["owner-profile.md", "user-context-for-this-app.md"], "review": ["Profile ready for save"], "input": "Describe yourself and preferred coworker style..."}, {"id": "intent", "label": "Intent", "state": "validating", "accent": "#ff7eb6", "title": "Make the app intent buildable", "status": "Agent is checking sufficiency", "chat": [["agent", "Describe the app, users, flows, constraints, deployment posture, budget, examples, and non-goals."], ["user", "Build a launch readiness cockpit for a founder to review lifecycle status, risks, QA, SEO, and launch boundaries."], ["agent", "I found two missing pieces: primary audience detail and preferred deployment region. Do you want to add them now?"]], "actions": ["Intent is ready", "Continue editing", "Ask what is missing", "Inspect artifact"], "evidence": ["Intent artifact: draft", "Sufficiency: needs 2 clarifications", "Axioms: no contradiction found"], "files": ["intent.md", "missing-information.json", "worldmodel.md"], "review": ["Owner decision: add missing details or approve with assumptions"], "input": "Add missing context or approve assumptions..."}, {"id": "research", "label": "Research", "state": "plan review", "accent": "#8bd3ff", "title": "Approve the research plan", "status": "Research has not started yet", "chat": [["agent", "I turned the intent into a research plan."], ["agent", "I will research user workflows, competitors, regulatory/deployment constraints, libraries, QA methods, SEO, and launch metrics. Would you like to change this plan?"]], "actions": ["Accept plan", "Add question", "Remove question", "Start research"], "evidence": ["7 research questions", "Public web only", "Credentialed sources blocked", "Source log will be required"], "files": ["research-plan.md", "research-questions.json"], "review": ["Research plan awaiting owner approval"], "input": "Add research feedback or press Accept plan..."}, {"id": "selection", "label": "Selection", "state": "choosing", "accent": "#cba6ff", "title": "Pick the direction to build", "status": "3 options prepared from research", "chat": [["agent", "Research produced three viable directions."], ["agent", "Option A: founder launch cockpit. Option B: agency GTM tracker. Option C: internal QA gateboard."], ["agent", "I recommend Option A because it best matches the original intent and has the clearest QA path."]], "actions": ["Select A", "Select B", "Select C", "Discuss/edit", "Create option"], "evidence": ["Selection matrix: ready", "Option A: recommended", "Tradeoffs linked to research"], "files": ["selection-matrix.json", "option-a.md", "option-b.md", "option-c.md"], "review": ["Selected direction not confirmed"], "input": "Choose an option or ask to edit it..."}, {"id": "plan", "label": "Plan", "state": "reviewing", "accent": "#f4d35e", "title": "Review business and engineering plan", "status": "Plan tracks ready", "chat": [["agent", "I created the business plan, engineering plan, QA plan, KPI plan, deployment gate, marketing plan, and iteration loop."], ["agent", "Credential needs are capability placeholders only. No secrets are collected here."], ["user", "Make the QA plan include CLI/TUI readability and interruption handling."]], "actions": ["Approve plan", "Edit business", "Edit engineering", "Remake plan", "Inspect plan"], "evidence": ["Business track: ready", "Engineering track: ready", "QA track: revised", "Capabilities: gated"], "files": ["business-plan.md", "engineering-plan.md", "qa-plan.md", "capability-requirements.json"], "review": ["Plan revision pending: QA readability included"], "input": "Give plan feedback or approve..."}, {"id": "engineering", "label": "Engineering", "state": "running", "accent": "#6ee7b7", "title": "Codex is building the app", "status": "Executor active: codex", "chat": [["agent", "I am starting Codex with the approved intent, research, selection, and plan artifacts."], ["agent", "Current task: create local static app, UI components, state model, and public-safe config."], ["system", "Codex wrote 5 files and is running local source checks."]], "actions": ["Pause", "Inspect files", "Attach file feedback", "View manifest"], "evidence": ["Executor: running", "Files changed: 5", "External effects disabled", "Hard gates: closed"], "files": ["index.html", "src/app.js", "src/styles.css", "public/config.json", "README.md"], "review": ["No owner decision required unless scope changes"], "input": "Ask about progress, inspect a file, or attach feedback..."}, {"id": "qa", "label": "QA", "state": "ready for review", "accent": "#fb7185", "title": "Review QA proof", "status": "QA passed, owner review needed", "chat": [["agent", "QA completed for the website + TUI control surface."], ["agent", "30 checks passed. I served the app locally, checked routes, JS syntax, SEO tags, disabled external effects, and TUI resume/interruption behavior."], ["agent", "Do you accept this QA result, or should I route feedback back to engineering?"]], "actions": ["Accept QA", "Inspect failed checks", "Rerun QA", "Send feedback"], "evidence": ["QA status: passed", "Checks: 30 / 30", "SEO: passed locally", "Non-claim: not deployed"], "files": ["real-app-qa.json", "seo-qa.json", "terminal-capture.png", "qa-summary.md"], "review": ["Owner approval needed before deployment gate"], "input": "Accept QA or describe what should be changed..."}, {"id": "deployment", "label": "Deployment", "state": "blocked", "accent": "#93c5fd", "title": "Deployment is planned but gated", "status": "Live deployment blocked", "chat": [["agent", "The app passed local QA. Deployment requires provider/domain credentials."], ["agent", "I can record preferences now, but I will not deploy or buy domains without separate authorization."]], "actions": ["Record provider", "Mark unavailable", "Hold before live setup", "Inspect plan"], "evidence": ["Deployment provider: deferred", "Domain: not connected", "Post-deploy QA: required", "External mutation: none"], "files": ["deployment-plan.md", "capability-gates.json"], "review": ["Blocked on owner-approved deployment capability"], "input": "Record provider preference or hold..."}, {"id": "kpi", "label": "KPI", "state": "draft", "accent": "#fbbf24", "title": "Choose starter KPIs", "status": "Production analytics gated", "chat": [["agent", "Based on the app and plan, I propose five starter KPIs: activation review, QA pass rate, risk burn-down, decision latency, and launch readiness score."], ["agent", "These are local/staging definitions until production analytics is authorized."]], "actions": ["Accept KPIs", "Edit KPI", "Add KPI", "Mark blocked"], "evidence": ["5 KPI drafts", "Analytics provider: deferred", "Local counters allowed"], "files": ["kpi-plan.md", "kpi-definitions.json"], "review": ["KPI definitions awaiting owner review"], "input": "Edit KPI list or approve..."}, {"id": "marketing", "label": "Marketing", "state": "gated plan", "accent": "#f472b6", "title": "Plan marketing without public sends", "status": "No public action allowed yet", "chat": [["agent", "Do you have a marketing budget for this app?"], ["user", "No paid budget for now."], ["agent", "I will create an organic-only plan and a gated recurring heartbeat for drafts and engagement suggestions. Nothing will be posted."]], "actions": ["Organic only", "Record budget", "Add channel", "Hold sends"], "evidence": ["Budget: none", "Organic plan: draft", "Paid spend: blocked", "Public sends: blocked"], "files": ["marketing-plan.md", "organic-heartbeat.json"], "review": ["Marketing plan ready, execution gated"], "input": "Add channel feedback or approve plan..."}, {"id": "iteration", "label": "Iteration", "state": "monitoring", "accent": "#34d399", "title": "Turn feedback into approved issues", "status": "Local feedback loop active", "chat": [["agent", "I found three feedback signals: QA note, owner file feedback, and launch checklist gap."], ["agent", "I propose one issue: improve risk panel copy and add a deployment blocker badge."], ["agent", "Approve this issue for the engineering loop?"]], "actions": ["Approve issue", "Reject issue", "Add feedback", "Send to engineering"], "evidence": ["Feedback signals: 3", "Issue candidates: 1", "Route: engineering then QA"], "files": ["feedback-aggregate.md", "issue-candidate-001.md"], "review": ["Issue candidate awaiting owner approval"], "input": "Approve, reject, or revise the issue..."}, {"id": "analysis", "label": "Analysis", "state": "planned", "accent": "#a78bfa", "title": "Review analysis cadence", "status": "External scanning gated", "chat": [["agent", "I can summarize feedback, competitors, sentiment, and improvement candidates on a cadence."], ["agent", "External scanning requires authorization. Until then I will use local evidence and clearly label stale assumptions."]], "actions": ["Accept cadence", "Edit sources", "Generate candidates", "Hold external scan"], "evidence": ["Cadence: weekly draft", "Sources: local only", "External scan: blocked"], "files": ["analysis-plan.md", "improvement-candidates.md"], "review": ["Analysis plan awaiting owner review"], "input": "Edit cadence or approve..."}];
+let active = 'first-run';
+const byId = Object.fromEntries(stages.map(s => [s.id, s]));
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function msgHtml(pair) {
+  const [role, text] = pair;
+  const mark = role === 'agent' ? 'W' : role === 'system' ? '!' : 'U';
+  return `<div class="msg ${role}"><div class="avatar">${mark}</div><div class="bubble">${esc(text)}</div></div>`;
+}
+function renderButtons() {
+  document.getElementById('topButtons').innerHTML = stages.map(s => `<button class="${s.id===active?'active':''}" onclick="setStage('${s.id}')">${esc(s.label)}</button>`).join('');
+}
+function render() {
+  const s = byId[active];
+  document.documentElement.style.setProperty('--accent', s.accent);
+  renderButtons();
+  const rows = stages.map((st, i) => `<button class="stage-row ${st.id===active?'active':''}" onclick="setStage('${st.id}')"><span class="stage-dot"></span><span class="stage-label">${esc(st.label)}</span><span class="stage-code">${String(i+1).padStart(2,'0')}</span></button>`).join('');
+  const evidence = s.evidence.map(x => `<div class="item">${esc(x)}</div>`).join('');
+  const files = s.files.map(x => `<div class="item ${x.includes('No app')?'muted':''}">${esc(x)}</div>`).join('');
+  const review = s.review.map(x => `<div class="item">${esc(x)}</div>`).join('');
+  document.getElementById('terminal').innerHTML = `
+    <div class="term-head">
+      <div class="brand"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><div><div class="brand-title">WEAVE Cockpit</div><div class="session-line">app: Launch Studio / session: founder-launch / executor: Codex / mode: handoff until hard gate</div></div></div>
+      <div class="mode"><span class="pill">local proof</span><span class="pill">no secrets</span><span class="pill">no live effects</span></div>
+    </div>
+    <div class="shell-body">
+      <aside class="rail"><div class="app-card"><div class="app-name">Launch Studio</div><div class="app-meta">active app • resumable</div></div><div class="stage-list">${rows}</div><div class="rail-foot"><b>Boundary</b><br>Stop before credentials, deployment, public sends, paid spend, or live mutation.</div></aside>
+      <section class="main">
+        <div class="stage-banner"><div><h2 class="stage-title">${esc(s.title)}</h2><div class="stage-status">${esc(s.label)} • ${esc(s.state)} • ${esc(s.status)}</div></div><div class="next-action">Next: ${esc(s.actions[0])}</div></div>
+        <div class="chat">${s.chat.map(msgHtml).join('')}<div class="action-card"><div class="action-title"><span>What the user sees now</span><span>${esc(s.label)}</span></div><div class="actions">${s.actions.map(a => `<div class="action">${esc(a)}</div>`).join('')}</div></div></div>
+        <div class="composer"><div class="input">${esc(s.input)}</div><button class="send">Reply</button></div>
+      </section>
+      <aside class="side"><div class="side-head"><div class="meter-label"><span>Stage confidence</span><span>${s.state.includes('blocked')?'blocked':'visible'}</span></div><div class="meter"><div></div></div><div class="boundary">Live-risk boundary visible at all times</div></div><div class="pane"><h3>Evidence</h3>${evidence}</div><div class="pane"><h3>Files + review queue</h3>${files}<h3 style="margin-top:14px">Review</h3>${review}</div></aside>
+    </div>
+    <div class="footer"><div class="keys"><span class="key">approve</span><span class="key">revise</span><span class="key">inspect</span><span class="key">feedback</span><span class="key">run</span><span class="key">files</span><span class="key">proof</span><span class="key">help</span></div><div>WEAVE v1 completed-state screen mockup</div></div>`;
+}
+function setStage(id) { active = id; render(); }
+render();
+</script>
+</body>
+</html>

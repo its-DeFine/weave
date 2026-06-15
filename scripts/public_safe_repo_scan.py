@@ -77,6 +77,11 @@ ALLOWLIST_LINE_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "private-ipv4",
         re.compile(r"is_loopback_bind_host\(\"192\.168\.1\.25\"\)"),
     ),
+    (
+        "scripts/weave_prompt_library.py",
+        "loopback-host",
+        re.compile(r"r\"\\b\(\?:localhost\|127\\|\"\.localhost\""),
+    ),
 )
 
 PRIVATE_DEVICE_NAME = "p" + "c2"

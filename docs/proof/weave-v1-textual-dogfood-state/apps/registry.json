@@ -1,0 +1,16 @@
+{
+  "apps": [
+    {
+      "app_id": "launch-studio-textual-v1",
+      "app_type": "product",
+      "contract_version": "0.1-template",
+      "last_changed_at": "2026-06-15T23:21:48Z",
+      "name": "Launch Studio Textual v1",
+      "path": "apps/launch-studio-textual-v1",
+      "stage": "qa",
+      "stage_source": "approved_advance",
+      "stage_state": "approved"
+    }
+  ],
+  "schema": "weave-app-registry/v0.1"
+}

@@ -1,0 +1,67 @@
+{
+  "artifact": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
+  "hard_gates": {
+    "acceptance_criteria_present": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Plan contains concrete acceptance criteria.",
+      "passed": true
+    },
+    "runtime_agent_qa_contract_present": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Agent-runtime plans name isolated runtime topology, tools, scenario matrix, evidence, and allowed claim boundary when applicable.",
+      "passed": true
+    },
+    "verification_surface_present": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Plan names the tests/smokes/readbacks needed to prove completion.",
+      "passed": true
+    }
+  },
+  "overall_notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+  "reviewer": "textual-local-evaluator",
+  "schema": "weave.eval-review/v0.1",
+  "scores": {
+    "dependency_awareness": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "path_specificity": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "proof_quality": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "runtime_qa_specificity": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    },
+    "task_granularity": {
+      "evidence": [
+        "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md"
+      ],
+      "notes": "Deterministic local evaluation cites the linked stage proof artifact.",
+      "score": 4.0
+    }
+  },
+  "stage": "Plan"
+}

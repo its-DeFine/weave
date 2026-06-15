@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Launch Studio Textual v1</title>
+    <meta
+      name="description"
+      content="A local-only launch readiness cockpit for reviewing lifecycle status, risks, QA, SEO readiness, and launch boundaries."
+    >
+    <meta property="og:title" content="Launch Studio Textual v1">
+    <meta
+      property="og:description"
+      content="Review launch lifecycle, risk, QA, SEO, and boundary status before making a founder launch decision."
+    >
+    <link rel="stylesheet" href="src/styles.css">
+    <script src="src/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar" aria-label="Launch cockpit header">
+      <div>
+        <p class="eyebrow">Local readiness cockpit</p>
+        <h1>Launch Studio Textual v1</h1>
+      </div>
+      <div class="decision-pill" id="decisionPill" aria-live="polite">Decision pending</div>
+    </header>
+
+    <main>
+      <section class="overview" aria-labelledby="overview-title">
+        <div>
+          <h2 id="overview-title">Founder launch review</h2>
+          <p>
+            Review the current lifecycle, risks, QA, SEO posture, and hard launch
+            boundaries before choosing a launch stance.
+          </p>
+        </div>
+        <div class="score-panel" aria-label="Launch readiness score">
+          <span class="score-value" id="readinessScore">0%</span>
+          <span class="score-label">Readiness</span>
+        </div>
+      </section>
+
+      <section class="dashboard-grid" aria-label="Readiness dashboard">
+        <article class="panel" aria-labelledby="lifecycle-title">
+          <div class="panel-heading">
+            <p class="eyebrow">Lifecycle</p>
+            <h2 id="lifecycle-title">Status checkpoints</h2>
+          </div>
+          <ul class="checklist" id="lifecycleList">
+            <li>
+              <label>
+                <input type="checkbox" data-area="lifecycle" data-weight="10">
+                <span>Offer, audience, and positioning are confirmed.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" data-area="lifecycle" data-weight="10">
+                <span>Launch owner and decision deadline are explicit.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" data-area="lifecycle" data-weight="10">
+                <span>Rollback and pause criteria are written down.</span>
+              </label>
+            </li>
+          </ul>
+          <p class="status-line" id="lifecycleStatus">Waiting for lifecycle checks.</p>
+        </article>
+
+        <article class="panel risk-panel" aria-labelledby="risks-title">
+          <div class="panel-heading">
+            <p class="eyebrow">Risks</p>
+            <h2 id="risks-title">Launch risk register</h2>
+          </div>
+          <ul class="risk-list">
+            <li>
+              <strong>Message clarity</strong>
+              <span>Risk if the promise is unclear or unsupported by proof.</span>
+            </li>
+            <li>
+              <strong>Operational load</strong>
+              <span>Risk if support, refunds, or fulfillment exceed capacity.</span>
+            </li>
+            <li>
+              <strong>Boundary drift</strong>
+              <span>Risk if launch expands into public sends, spend, or credentialed systems.</span>
+            </li>
+          </ul>
+          <label class="field-label" for="riskNote">Founder risk note</label>
+          <textarea id="riskNote" rows="4" placeholder="Write the one risk that would stop launch."></textarea>
+        </article>
+
+        <article class="panel" aria-labelledby="qa-title">
+          <div class="panel-heading">
+            <p class="eyebrow">QA</p>
+            <h2 id="qa-title">Quality gates</h2>
+          </div>
+          <ul class="checklist" id="qaList">
+            <li>
+              <label>
+                <input type="checkbox" data-area="qa" data-weight="12">
+                <span>Primary user path has been manually reviewed.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" data-area="qa" data-weight="12">
+                <span>Broken, empty, and loading states have owner-readable copy.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" data-area="qa" data-weight="12">
+                <span>Mobile layout has been checked for overflow and overlap.</span>
+              </label>
+            </li>
+          </ul>
+          <p class="status-line" id="qaStatus">Waiting for QA checks.</p>
+        </article>
+
+        <article class="panel" aria-labelledby="seo-title">
+          <div class="panel-heading">
+            <p class="eyebrow">SEO</p>
+            <h2 id="seo-title">Readiness review</h2>
+          </div>
+          <ul class="checklist" id="seoList">
+            <li>
+              <label>
+                <input type="checkbox" data-area="seo" data-weight="8">
+                <span>Page title and meta description match the launch promise.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" data-area="seo" data-weight="8">
+                <span>Open Graph title and description are launch-ready.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" data-area="seo" data-weight="8">
+                <span>Content describes the audience, product state, and decision boundary.</span>
+              </label>
+            </li>
+          </ul>
+          <p class="status-line" id="seoStatus">Waiting for SEO checks.</p>
+        </article>
+
+        <article class="panel boundary-panel" aria-labelledby="boundaries-title">
+          <div class="panel-heading">
+            <p class="eyebrow">Boundaries</p>
+            <h2 id="boundaries-title">Launch limits</h2>
+          </div>
+          <dl class="boundary-list">
+            <div>
+              <dt>Deployment</dt>
+              <dd>Disabled</dd>
+            </div>
+            <div>
+              <dt>Credentials</dt>
+              <dd>Disabled</dd>
+            </div>
+            <div>
+              <dt>Public sends</dt>
+              <dd>Disabled</dd>
+            </div>
+            <div>
+              <dt>Paid spend</dt>
+              <dd>Disabled</dd>
+            </div>
+            <div>
+              <dt>Analytics</dt>
+              <dd>Disabled</dd>
+            </div>
+          </dl>
+          <p class="status-line strong">This app is useful locally and does not require a backend.</p>
+        </article>
+
+        <article class="panel decision-panel" aria-labelledby="decision-title">
+          <div class="panel-heading">
+            <p class="eyebrow">Decision</p>
+            <h2 id="decision-title">Founder stance</h2>
+          </div>
+          <div class="decision-controls" role="group" aria-label="Founder launch stance">
+            <button type="button" data-decision="Hold">Hold</button>
+            <button type="button" data-decision="Revise">Revise</button>
+            <button type="button" data-decision="Ready">Ready</button>
+          </div>
+          <p class="status-line" id="decisionSummary">No launch stance selected.</p>
+          <button class="secondary-action" type="button" id="resetButton">Reset local review</button>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

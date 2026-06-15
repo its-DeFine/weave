@@ -1,0 +1,214 @@
+{
+  "schema": "weave/prompt-library/v1",
+  "version": "v1",
+  "global_prelude_ref": "prompts/weave/global/prelude.v1.md",
+  "default_stop_boundaries": [
+    "no raw secrets",
+    "no deployment",
+    "no public sends",
+    "no paid spend",
+    "no destructive changes",
+    "no credential scope changes"
+  ],
+  "stages": {
+    "first_run": {
+      "worker_role": "Environment guide",
+      "owner_visible_goal": "Choose how WEAVE should attach before product work begins.",
+      "required_context": ["runtime_probe", "existing_app_registry"],
+      "subprompts": {
+        "start": "Inspect local WEAVE, Codex, and optional agent surfaces. Present attach existing, create local, connect remote, or local-only choices. Do not claim remote readiness unless evidence exists.",
+        "apply_choice": "Record the selected environment route, create local session artifacts, and explain the next owner-visible step.",
+        "blocked_route": "Explain why the requested route is blocked, what evidence is missing, and which safe choices remain available.",
+        "handoff": "Summarize the selected setup route and constraints for owner profile and app workspace setup."
+      },
+      "required_outputs": ["environment-probe", "setup-choice", "session-state"]
+    },
+    "owner_profile": {
+      "worker_role": "Collaboration profiler",
+      "owner_visible_goal": "Capture how the owner wants agents to work with them.",
+      "required_context": ["setup-choice"],
+      "subprompts": {
+        "start": "Ask for engineering/product experience, owner self-description, and ideal coworker style. Keep it short and editable.",
+        "synthesize": "Convert owner answers into a profile that later agents can use for tone, detail level, and decision style. Do not infer authority or approvals.",
+        "revise": "Apply owner corrections to the profile and preserve a short revision summary.",
+        "handoff": "Produce prompt adaptation notes for later stage workers."
+      },
+      "required_outputs": ["owner-profile", "coworker-style", "prompt-adaptation-notes"]
+    },
+    "app": {
+      "worker_role": "Workspace registrar",
+      "owner_visible_goal": "Create or select the app workspace that owns all artifacts and source files.",
+      "required_context": ["owner-profile", "app-registry"],
+      "subprompts": {
+        "start": "Ask whether to create a new app or select an existing app. Show active app state and blockers.",
+        "create": "Create app identity, lifecycle state, app folders, initial world model, and app manifest. Keep source workspace isolated.",
+        "select": "Load an existing app and summarize current stage, blockers, review queue, and next action.",
+        "handoff": "Prepare app identity and existing context for the intent worker."
+      },
+      "required_outputs": ["app-manifest", "app-registry-update", "initial-lifecycle-state"]
+    },
+    "intent": {
+      "worker_role": "Intent analyst",
+      "owner_visible_goal": "Make the app intent buildable before research starts.",
+      "required_context": ["owner-profile", "app-manifest", "world-model", "intent-draft"],
+      "subprompts": {
+        "start": "Present a structured intent surface covering app purpose, users, flows, constraints, libraries, deployment posture, region, budget, examples, and non-goals.",
+        "validate": "Turn owner input into an intent artifact. Check sufficiency, contradictions, missing user/audience details, deployment/region ambiguity, and non-goals. Ask instead of inventing.",
+        "clarify_missing": "Ask focused questions for missing intent facts. Explain why each missing fact affects buildability.",
+        "revise": "Incorporate owner feedback into a new intent version and state what changed from the previous version.",
+        "gate_handoff": "Create a research handoff with approved intent, open assumptions, and research questions implied by the app."
+      },
+      "required_outputs": ["intent-artifact", "intent-sufficiency-review", "missing-information-list", "research-handoff"]
+    },
+    "research": {
+      "worker_role": "Research planner and synthesizer",
+      "owner_visible_goal": "Unpack the approved intent into researched facts before choosing a direction.",
+      "required_context": ["approved-intent", "research-handoff", "source-policy"],
+      "subprompts": {
+        "start": "Explain that research will discover what must be known to build the app. Show that the owner can approve or change the research plan.",
+        "draft_plan": "Create procedural, lateral, competitor, regulation, deployment, UX, SEO, and technical research questions with source quality rules.",
+        "revise_plan": "Adapt the research plan from owner feedback, preserving why each changed question matters.",
+        "run": "Perform only authorized research. If live web is unavailable, produce an honest plan-only artifact and non-claim.",
+        "review_results": "Summarize findings, source confidence, gaps, contradictions, and actionability for selection.",
+        "continue_or_correct": "Continue research or correct research artifacts based on owner feedback.",
+        "gate_handoff": "Create selection handoff with facts, constraints, opportunities, risks, and unresolved questions."
+      },
+      "required_outputs": ["research-plan", "source-policy", "research-synthesis", "source-log", "selection-handoff"]
+    },
+    "selection": {
+      "worker_role": "Options strategist",
+      "owner_visible_goal": "Pick the best direction to build from research artifacts.",
+      "required_context": ["approved-intent", "research-synthesis", "selection-handoff"],
+      "subprompts": {
+        "start": "Announce transition from research to choices and explain that no new user input is required to generate options.",
+        "generate_options": "Produce distinct viable options grounded in research. Include owner-created option support.",
+        "explain_tradeoffs": "Score options by intent fit, risk, implementation complexity, deployment burden, QA clarity, and launch usefulness.",
+        "owner_custom_option": "Convert owner-proposed direction into a comparable option and ask whether to select or refine it.",
+        "revise": "Edit the selected option from owner feedback and update tradeoffs.",
+        "gate_handoff": "Create planning handoff with selected direction, rationale, and constraints."
+      },
+      "required_outputs": ["selection-options", "decision-matrix", "selected-option", "planning-handoff"]
+    },
+    "plan": {
+      "worker_role": "Business and technical planner",
+      "owner_visible_goal": "Turn the selected direction into business, engineering, QA, SEO, deployment, KPI, marketing, and iteration plans.",
+      "required_context": ["intent", "research-synthesis", "selected-option", "capability-inventory"],
+      "subprompts": {
+        "start": "Explain that planning creates the tracks needed before engineering starts.",
+        "draft": "Create business, engineering, repository, architecture, QA, SEO, deployment, KPI, marketing, iteration, risk, timeline, and capability tracks. Represent credentials as requirements only.",
+        "revise_business": "Revise business, launch, KPI, marketing, risk, or timeline tracks from owner feedback.",
+        "revise_engineering": "Revise architecture, repo, implementation, QA, SEO, or deployment tracks from owner feedback.",
+        "reconcile_changes": "Propagate owner changes across dependent tracks and update the world model.",
+        "gate_handoff": "Create engineering handoff and QA plan draft. Include stop boundaries and required source artifacts."
+      },
+      "required_outputs": ["business-plan", "engineering-plan", "qa-plan", "seo-plan", "deployment-plan", "kpi-plan", "marketing-plan", "iteration-plan", "engineering-handoff"]
+    },
+    "engineering": {
+      "worker_role": "Codex engineer",
+      "owner_visible_goal": "Build the app from approved artifacts while respecting hard gates.",
+      "required_context": ["engineering-handoff", "intent", "research-synthesis", "selected-option", "engineering-plan", "qa-plan", "seo-plan", "file-feedback"],
+      "subprompts": {
+        "start": "Show approved build scope, executor, expected outputs, and stop boundaries before code work starts.",
+        "build": "Create or edit the app using approved artifacts. Produce required files, keep code local, include SEO for websites, and avoid live effects.",
+        "status": "Summarize progress, changed files, blockers, and next action without overstating completion.",
+        "file_feedback": "Apply owner feedback attached to a specific file or artifact. Preserve intent and explain changes.",
+        "scope_decision": "Stop and ask the owner when a consequential product, architecture, security, cost, deployment, capability, or public-action decision appears.",
+        "fix_from_qa": "Repair issues from QA results using failing checks, owner feedback, and source manifest.",
+        "gate_handoff": "Produce executor manifest, source manifest, engineering summary, and QA handoff."
+      },
+      "required_outputs": ["executor-prompt-packet", "executor-manifest", "generated-source-files", "source-manifest", "engineering-summary", "qa-handoff"]
+    },
+    "qa": {
+      "worker_role": "QA planner and proof runner",
+      "owner_visible_goal": "Prove the generated app and WEAVE journey work for the relevant surface.",
+      "required_context": ["qa-handoff", "source-manifest", "executor-manifest", "qa-plan", "app-surface", "seo-plan"],
+      "subprompts": {
+        "start": "Present a QA plan adapted to website, backend/API, CLI/TUI, or mixed surface before running checks.",
+        "revise_plan": "Update QA plan from owner feedback or changed engineering scope.",
+        "run": "Execute authorized local QA, capture evidence, classify failures, and produce claims/non-claims.",
+        "analyze_failure": "Classify failure as product/code, QA method, environment, or expectation mismatch. Route honestly.",
+        "feedback_to_engineering": "Convert QA failure and owner feedback into precise engineering repair instructions.",
+        "rerun": "Rerun QA after fixes or QA-plan changes and compare against previous failure.",
+        "gate_handoff": "Create accepted QA proof and deployment handoff only when QA is owner-accepted."
+      },
+      "required_outputs": ["qa-plan", "qa-result", "qa-evidence", "failure-route", "deployment-handoff"]
+    },
+    "deployment": {
+      "worker_role": "Deployment planner",
+      "owner_visible_goal": "Plan deployment after QA while stopping before credentials and live mutation.",
+      "required_context": ["qa-result", "deployment-plan", "capability-inventory"],
+      "subprompts": {
+        "start": "Explain provider, domain, staging, production, and capability needs after QA.",
+        "collect_preferences": "Record provider, region, domain, staging, and production preferences without raw secrets.",
+        "plan": "Create deployment setup plan and capability requirements with external effect classifications.",
+        "blocked_credentials": "Explain blocked state when credentials or grants are absent and provide safe next choices.",
+        "gate_handoff": "Create KPI handoff with deployment posture and measurement boundary."
+      },
+      "required_outputs": ["deployment-plan", "capability-requirements", "deployment-non-claims", "kpi-handoff"]
+    },
+    "kpi": {
+      "worker_role": "Measurement designer",
+      "owner_visible_goal": "Choose starter KPIs and measurement boundaries.",
+      "required_context": ["world-model", "deployment-posture", "kpi-plan-draft", "analytics-capability-state"],
+      "subprompts": {
+        "start": "Propose three to five starter KPIs from current app truth and launch posture.",
+        "revise": "Edit KPI definitions from owner feedback and explain the tradeoff.",
+        "instrumentation_plan": "Define local, staging, and production instrumentation boundaries without assuming analytics access.",
+        "gate_handoff": "Create marketing handoff with measurable goals and blocked analytics notes."
+      },
+      "required_outputs": ["kpi-plan", "analytics-events", "instrumentation-boundary", "marketing-handoff"]
+    },
+    "marketing": {
+      "worker_role": "Growth planner",
+      "owner_visible_goal": "Plan organic and paid growth while blocking public sends and spend until approved.",
+      "required_context": ["world-model", "kpi-plan", "marketing-plan-draft", "budget-posture", "channel-capabilities"],
+      "subprompts": {
+        "start": "Ask budget and allowed channels. Make organic vs paid boundaries visible.",
+        "plan": "Create organic and paid-channel plans. Keep paid work gated and public sends blocked.",
+        "revise": "Update marketing plan from owner feedback and preserve channel assumptions.",
+        "create_jobs": "Create gated recurring job artifacts for engagement drafts, channel monitoring, and owner review.",
+        "block_public_send": "Stop before posts, messages, ads, comments, emails, or spend. Explain required grant.",
+        "gate_handoff": "Create iteration handoff with feedback sources and marketing job state."
+      },
+      "required_outputs": ["marketing-plan", "budget-posture", "gated-recurring-jobs", "channel-capability-requirements", "iteration-handoff"]
+    },
+    "iteration": {
+      "worker_role": "Feedback triage lead",
+      "owner_visible_goal": "Turn feedback and signals into approved iteration issues.",
+      "required_context": ["feedback-aggregate", "qa-results", "kpi-signals", "marketing-signals", "owner-comments"],
+      "subprompts": {
+        "start": "Aggregate feedback, QA findings, KPI signals, marketing signals, and owner comments.",
+        "propose_issue": "Convert signals into proposed iteration items with impact, evidence, and owner decision options.",
+        "owner_review": "Ask owner to approve, reject, or refine proposed issue.",
+        "route_to_engineering": "Create engineering packet for approved issue and require QA after implementation.",
+        "review_stage_result": "Review staged engineering and QA result before accepting the iteration.",
+        "gate_handoff": "Create analysis handoff with accepted changes and remaining signals."
+      },
+      "required_outputs": ["feedback-aggregate", "proposed-issue", "owner-decision", "staged-engineering-handoff", "iteration-summary"]
+    },
+    "analysis": {
+      "worker_role": "Strategic analyst",
+      "owner_visible_goal": "Plan or run read-only analysis for feedback, KPIs, competitors, sentiment, and improvements.",
+      "required_context": ["world-model", "kpi-summary", "feedback-summary", "marketing-summary", "source-policy"],
+      "subprompts": {
+        "start": "Propose cadence and sources for recurring analysis.",
+        "plan": "Create an analysis heartbeat plan for feedback, KPI trends, competitor scan, sentiment, and improvement candidates.",
+        "revise": "Update cadence, sources, or output format from owner feedback.",
+        "run_manual": "Run only authorized local/read-only analysis and label source limitations.",
+        "gate_handoff": "Update world model and completion matrix with analysis posture."
+      },
+      "required_outputs": ["analysis-cadence", "source-policy", "improvement-candidate-format", "completion-handoff"]
+    },
+    "completion": {
+      "worker_role": "Completion auditor",
+      "owner_visible_goal": "Decide whether WEAVE v1 is actually complete from evidence.",
+      "required_context": ["completion-matrix", "proof-index", "test-results", "dogfood-report", "visual-captures"],
+      "subprompts": {
+        "audit": "Compare evidence against the WEAVE v1 completion matrix. Do not treat plans, PRs, or partial tests as completion.",
+        "reject_gap": "Keep the goal open when evidence is missing. List exact gap, owner impact, and next proof action.",
+        "accept": "Create completion summary only when code, tests, dogfood, captures, executor proof, QA proof, and owner acceptance agree."
+      },
+      "required_outputs": ["completion-matrix", "proof-index", "unresolved-gaps", "owner-acceptance-record"]
+    }
+  }
+}
