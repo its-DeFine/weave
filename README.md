@@ -31,6 +31,7 @@ Useful first commands:
 bin/weave help
 bin/weave doctor
 bin/weave eval --list
+bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave onboard --dry-run
 bin/weave command /status
 python3 scripts/full_conversation_app_dogfood.py --help

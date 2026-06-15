@@ -27,6 +27,7 @@ import setup_gateway
 import setup_runtime
 import weave_dashboard
 import weave_eval
+import weave_first_run
 import weave_hermes_setup
 
 
@@ -384,6 +385,11 @@ def dashboard(args: argparse.Namespace, output: TextIO) -> int:
     )
     weave_dashboard.print_dashboard(snapshot, output=output, as_json=args.json)
     return 0
+
+
+def first_run(args: argparse.Namespace, output: TextIO) -> int:
+    return weave_first_run.run(args, output=output)
+
 
 def docker_status(container_name: str) -> str:
     docker = shutil.which("docker")
@@ -1216,6 +1222,31 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard_parser.add_argument("--no-container-check", action="store_true", help="skip the read-only container status probe")
     dashboard_parser.add_argument("--json", action="store_true", help="print dashboard snapshot as JSON")
 
+    first_run_parser = subparsers.add_parser("first-run", help="preview or write local WEAVE product first-run state")
+    first_run_parser.add_argument("--runtime-home", type=Path, default=None)
+    first_run_parser.add_argument("--weave-root", type=Path, default=None)
+    first_run_parser.add_argument("--hermes-home", type=Path, default=None)
+    first_run_parser.add_argument("--profile-out", type=Path, default=None)
+    first_run_parser.add_argument("--hermes-command", default="hermes")
+    first_run_parser.add_argument("--app-id", default="new-app")
+    first_run_parser.add_argument("--app-name", default="New App")
+    first_run_parser.add_argument("--owner-experience", default=weave_first_run.DEFAULT_OWNER_EXPERIENCE)
+    first_run_parser.add_argument("--coworker-style", default=weave_first_run.DEFAULT_COWORKER_STYLE)
+    first_run_parser.add_argument(
+        "--control-mode",
+        choices=("hands-on", "hands-off"),
+        default=weave_first_run.DEFAULT_CONTROL_MODE,
+        help="whether future lifecycle agents should stop for consequential owner decisions",
+    )
+    first_run_parser.add_argument(
+        "--setup-choice",
+        choices=("create-local", "attach-existing", "defer-runtime"),
+        default=weave_first_run.DEFAULT_SETUP_CHOICE,
+        help="local runtime posture for this product surface; remote attach is deliberately deferred in ATM-245",
+    )
+    first_run_parser.add_argument("--write", action="store_true", help="create local runtime/app state and validated first-run artifact")
+    first_run_parser.add_argument("--json", action="store_true", help="print first-run snapshot as JSON")
+
     command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
     command_parser.add_argument("--runtime-home", type=Path, default=None)
     command_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1311,6 +1342,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "Convenience aliases:")
         print_line(output, "  weave help [command]")
         print_line(output, "  weave attach-hermes [onboard flags]  # alias for weave onboard --existing-hermes")
+        print_line(output, "  weave first-run --app-id demo --app-name 'Demo App'")
         print_line(output, "  weave runtime-qa --dry-run --out runs/runtime-qa/plan.json")
         print_line(output, "  weave eval --list")
         return 0
@@ -1359,6 +1391,8 @@ def main(
             return status_container_runtime(args, output)
         if args.command == "dashboard":
             return dashboard(args, output)
+        if args.command == "first-run":
+            return first_run(args, output)
         if args.command == "doctor":
             return doctor(args, output)
         if args.command == "command":
