@@ -1269,10 +1269,17 @@ def build_parser() -> argparse.ArgumentParser:
     tui_parser.add_argument("--marketing-budget", default=weave_early_lifecycle.DEFAULT_MARKETING_BUDGET)
     tui_parser.add_argument("--owner-feedback", default="")
     tui_parser.add_argument("--engineering-owner-response", default="owner accepts local-safe engineering scaffold")
+    tui_parser.add_argument(
+        "--executor",
+        choices=weave_tui.APP_EXECUTORS,
+        default="codex",
+        help="codex runs the real non-interactive Codex app builder; fixture is deterministic CI/local proof only",
+    )
     tui_parser.add_argument("--qa-command", default=weave_tui.DEFAULT_QA_COMMAND)
     tui_parser.add_argument("--codex-command", default=weave_tui.DEFAULT_CODEX_COMMAND)
-    tui_parser.add_argument("--codex-timeout", type=int, default=5)
+    tui_parser.add_argument("--codex-timeout", type=int, default=weave_tui.DEFAULT_CODEX_TIMEOUT)
     tui_parser.add_argument("--skip-codex-proof", action="store_true")
+    tui_parser.add_argument("--fixture-broken-app", action="store_true", help=argparse.SUPPRESS)
     tui_parser.add_argument("--run-engineering-gates", action="store_true", help="run Engineering eval command gates before formal approval")
     tui_parser.add_argument("--scripted-demo", action="store_true", help="run non-interactively for CI and local proof")
     tui_parser.add_argument("--write", action="store_true", help="write local lifecycle artifacts through QA and gated launch plans")
@@ -1490,7 +1497,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "Convenience aliases:")
         print_line(output, "  weave help [command]")
         print_line(output, "  weave attach-hermes [onboard flags]  # alias for weave onboard --existing-hermes")
-        print_line(output, "  weave tui --scripted-demo --write --no-color")
+        print_line(output, "  weave tui --executor fixture --scripted-demo --write --no-color")
         print_line(output, "  weave first-run --app-id demo --app-name 'Demo App'")
         print_line(output, "  weave early-lifecycle --app-id demo --create-app --write")
         print_line(output, "  weave engineering-decisions --app-id demo --hard-boundary production_deploy --write")

@@ -314,6 +314,8 @@ class WeaveCliTests(unittest.TestCase):
                         "website",
                         "--control-mode",
                         "handoff",
+                        "--executor",
+                        "fixture",
                         "--scripted-demo",
                         "--write",
                         "--no-color",
@@ -327,21 +329,30 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("Intent-Plan", text)
             self.assertIn("Owner decision", text)
             self.assertIn("Engineering", text)
-            self.assertIn("QA proof", text)
+            self.assertIn("Real app QA", text)
+            self.assertIn("Lifecycle QA bundle", text)
             self.assertIn("Launch gates", text)
             self.assertIn("eval needs_gate_execution", text)
             self.assertIn("Codex proof passed", text)
-            self.assertIn("SEO: checklist and local QA artifact written", text)
+            self.assertIn("executor: fixture", text)
+            self.assertIn("SEO: checklist and real local SEO QA artifact written", text)
 
             weave_root = runtime_home / "weave-state"
             app_root = weave_root / "apps" / "tui-smoke"
             engineering_dir = app_root / "lifecycle" / "05-engineering" / "artifacts"
             qa_dir = app_root / "lifecycle" / "06-qa" / "artifacts"
             launch_dir = app_root / "lifecycle" / "07-deployment" / "artifacts"
+            app_source_dir = app_root / "repo" / "primary"
 
             self.assertTrue((engineering_dir / "local-implementation-scaffold.md").exists())
             self.assertTrue((engineering_dir / "codex-adapter-proof.json").exists())
+            self.assertTrue((engineering_dir / "app-executor-manifest.json").exists())
+            self.assertTrue((engineering_dir / "generated-app-manifest.json").exists())
             self.assertTrue((engineering_dir / "seo-checklist.md").exists())
+            for filename in ("index.html", "src/app.js", "src/styles.css", "public/config.json", "README.md"):
+                self.assertTrue((app_source_dir / filename).exists(), filename)
+                self.assertGreater((app_source_dir / filename).stat().st_size, 0, filename)
+            self.assertTrue((qa_dir / "real-app-qa.json").exists())
             self.assertTrue((qa_dir / "qa-proof-manifest.json").exists())
             self.assertTrue((qa_dir / "seo-qa.json").exists())
             self.assertTrue((qa_dir / "tui-session-manifest.json").exists())
@@ -350,6 +361,22 @@ class WeaveCliTests(unittest.TestCase):
             codex = json.loads((engineering_dir / "codex-adapter-proof.json").read_text(encoding="utf-8"))
             self.assertEqual(codex["status"], "passed")
             self.assertFalse(codex["live_agent_execution"])
+
+            executor = json.loads((engineering_dir / "app-executor-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(executor["executor"], "fixture")
+            self.assertEqual(executor["status"], "passed")
+            self.assertFalse(executor["live_agent_execution"])
+
+            source_manifest = json.loads((engineering_dir / "generated-app-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(source_manifest["executor"], "fixture")
+            self.assertEqual(source_manifest["status"], "passed")
+            self.assertEqual(sorted(source_manifest["files"]), sorted(["index.html", "src/app.js", "src/styles.css", "public/config.json", "README.md"]))
+
+            real_qa = json.loads((qa_dir / "real-app-qa.json").read_text(encoding="utf-8"))
+            self.assertEqual(real_qa["summary"]["status"], "passed")
+            self.assertEqual(real_qa["summary"]["route"], "owner_review")
+            self.assertEqual(real_qa["executor"], "fixture")
+            self.assertGreaterEqual(real_qa["summary"]["check_count"], 20)
 
             qa_manifest = json.loads((qa_dir / "qa-proof-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(qa_manifest["summary"]["route"], "owner_review")
@@ -361,6 +388,7 @@ class WeaveCliTests(unittest.TestCase):
             tui_manifest = json.loads((qa_dir / "tui-session-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(tui_manifest["control_mode"], "hands-off")
             self.assertEqual(tui_manifest["control_label"], "handoff")
+            self.assertEqual(tui_manifest["executor"], "fixture")
             self.assertEqual(tui_manifest["external_effects_executed"], [])
             self.assertIn("credentials", tui_manifest["hard_boundaries_stopped"])
 
@@ -368,6 +396,98 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(app["current_stage"], "deployment")
             self.assertEqual(app["stage_state"], "blocked")
             self.assertIn("launch capabilities deferred", app["blockers"])
+
+    def test_tui_fixture_source_failure_stops_before_launch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "tui-broken",
+                    "--app-name",
+                    "TUI Broken",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--fixture-broken-app",
+                    "--skip-codex-proof",
+                    "--scripted-demo",
+                    "--write",
+                    "--no-color",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 1, text)
+            self.assertIn("Real app QA", text)
+            self.assertIn("failed, route engineering", text)
+
+            app_root = runtime_home / "weave-state" / "apps" / "tui-broken"
+            qa_dir = app_root / "lifecycle" / "06-qa" / "artifacts"
+            launch_dir = app_root / "lifecycle" / "07-deployment" / "artifacts"
+            real_qa = json.loads((qa_dir / "real-app-qa.json").read_text(encoding="utf-8"))
+            self.assertEqual(real_qa["summary"]["status"], "failed")
+            self.assertEqual(real_qa["summary"]["route"], "engineering")
+            self.assertGreater(real_qa["summary"]["failed_count"], 0)
+            self.assertFalse((launch_dir / "launch-ops-manifest.json").exists())
+            self.assertFalse((qa_dir / "tui-session-manifest.json").exists())
+
+            app = weave_cli.weave_tui.weave_runtime_slice.load_app(runtime_home / "weave-state", "tui-broken")
+            self.assertEqual(app["current_stage"], "engineering")
+            self.assertEqual(app["stage_state"], "blocked")
+
+    def test_tui_codex_executor_failure_is_strict(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+            failed_exec = weave_cli.subprocess.CompletedProcess(["codex"], 7, "", "failed")
+
+            with mock.patch.object(weave_cli.weave_tui.shutil, "which", return_value="codex"), mock.patch.object(
+                weave_cli.weave_tui.subprocess, "run", return_value=failed_exec
+            ):
+                rc = weave_cli.main(
+                    [
+                        "tui",
+                        "--runtime-home",
+                        str(runtime_home),
+                        "--app-id",
+                        "tui-codex-fail",
+                        "--app-name",
+                        "TUI Codex Fail",
+                        "--app-surface",
+                        "website",
+                        "--control-mode",
+                        "handoff",
+                        "--executor",
+                        "codex",
+                        "--skip-codex-proof",
+                        "--scripted-demo",
+                        "--write",
+                        "--no-color",
+                    ],
+                    output=output,
+                )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 1, text)
+            self.assertIn("codex executor failed", text)
+
+            engineering_dir = runtime_home / "weave-state" / "apps" / "tui-codex-fail" / "lifecycle" / "05-engineering" / "artifacts"
+            executor = json.loads((engineering_dir / "app-executor-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(executor["executor"], "codex")
+            self.assertEqual(executor["status"], "failed")
+            self.assertEqual(executor["failure_class"], "agent_execution")
+            self.assertTrue(executor["binary_found"])
+            self.assertFalse((engineering_dir / "generated-app-manifest.json").exists())
 
     def test_first_run_preview_is_digestible_and_read_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

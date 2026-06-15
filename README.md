@@ -31,7 +31,8 @@ Useful first commands:
 bin/weave help
 bin/weave doctor
 bin/weave eval --list
-bin/weave tui --scripted-demo --write --no-color
+bin/weave tui --executor codex --scripted-demo --write --no-color
+bin/weave tui --executor fixture --scripted-demo --write --no-color
 bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
@@ -46,14 +47,17 @@ python3 scripts/private_app_operating_profile_eval.py --list
 `bin/weave tui` is the operator-first product cockpit. In interactive mode it
 asks for app, owner profile, coworker style, handoff mode, intent, target user,
 deployment region, and marketing budget. In `--scripted-demo --write` mode it
-writes the local first-run, Intent/Research/Selection/Plan, Engineering, QA, SEO
-for website surfaces, and gated deployment/KPI/marketing/iteration artifacts.
-It stops before credentials, deployment, public sends, paid spend, and raw
-secret handling. By default, Engineering records command hard gates as pending
-and lets QA run as a labeled local rehearsal; pass `--run-engineering-gates`
-when you want formal Engineering approval before QA. The Codex v1 proof is local
-CLI metadata only; it does not claim Codex auth, model invocation, or Hermes
-primitive integration.
+writes the local first-run, Intent/Research/Selection/Plan, Engineering, real
+generated app source, real local QA, SEO for website surfaces, the lifecycle QA
+bundle, and gated deployment/KPI/marketing/iteration artifacts. Use
+`--executor codex` for the strict product path: WEAVE invokes `codex exec`
+non-interactively, requires generated source files, and fails if Codex or QA
+fails. Use `--executor fixture` only for no-network CI/local deterministic
+proofs; fixture output is labeled as not live Codex model output. It stops
+before credentials, deployment, public sends, paid spend, and raw secret
+handling. By default, Engineering records command hard gates as pending and lets
+QA run as a labeled local rehearsal; pass `--run-engineering-gates` when you
+want formal Engineering approval before QA.
 
 ## Version
 

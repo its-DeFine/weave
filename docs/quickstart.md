@@ -118,7 +118,8 @@ Use the doctor and dry-run commands before writing runtime state:
 ```bash
 bin/weave help
 bin/weave doctor
-bin/weave tui --scripted-demo --write --no-color
+bin/weave tui --executor fixture --scripted-demo --write --no-color
+bin/weave tui --executor codex --scripted-demo --write --no-color
 bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
@@ -130,12 +131,17 @@ bin/weave onboard --dry-run
 `bin/weave tui` is the fastest local product surface for the intended WEAVE UX.
 Without `--write` it previews the cockpit and leaves the runtime home untouched.
 With `--scripted-demo --write`, it runs the local flow through first-run,
-Intent/Research/Selection/Plan, Engineering, QA, and gated launch operations.
-Use `--control-mode handoff` when the operator wants full handoff for local-safe
-work; WEAVE still stops before hard gates such as credentials, deployment,
-public sends, paid spend, destructive actions, and security-boundary changes.
-Website surfaces create SEO planning and SEO QA artifacts. Codex v1 proof is a
-local CLI metadata boundary only, not a claim of Codex auth or model execution.
+Intent/Research/Selection/Plan, Engineering, generated source, real local QA,
+the lifecycle QA bundle, and gated launch operations. Use `--executor codex`
+when you want the real agent path: WEAVE invokes `codex exec`, requires the
+generated files under `repo/primary`, runs static-server/source/SEO QA, and
+returns non-zero if Codex or QA fails. Use `--executor fixture` for the
+no-network deterministic quickstart path; fixture output is labeled as not live
+Codex model output. Use `--control-mode handoff` when the operator wants full
+handoff for local-safe work; WEAVE still stops before hard gates such as
+credentials, deployment, public sends, paid spend, destructive actions, and
+security-boundary changes. Website surfaces create SEO planning and real local
+SEO QA artifacts.
 By default, formal Engineering approval records command hard gates as pending
 and QA runs as a local rehearsal; pass `--run-engineering-gates` when you want
 the Engineering eval command gates to run before stage approval.
