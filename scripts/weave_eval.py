@@ -23,6 +23,7 @@ STAGE_ORDER = [
     "plan",
     "engineering",
     "qa",
+    "deployment",
     "kpi-setup",
     "marketing",
     "iteration",

@@ -38,7 +38,7 @@ APP_INTENT = (
     "reviewable JSON artifact. It should feel like a concrete product, not a "
     "runtime placeholder."
 )
-FUTURE_CREDENTIAL_STAGES = {"kpi", "marketing", "analysis"}
+FUTURE_CREDENTIAL_STAGES = {"deployment", "kpi", "marketing", "analysis"}
 
 STAGE_SCRIPT: dict[str, dict[str, Any]] = {
     "intent": {
@@ -164,6 +164,26 @@ STAGE_SCRIPT: dict[str, dict[str, Any]] = {
         ),
         "questions": ["Did checks run?", "Are non-proofs explicit?", "Is evidence reviewable?"],
         "basis": ["local QA checks", "negative claims withheld", "reviewable proof artifacts"],
+    },
+    "deployment": {
+        "title": "Deployment Readiness",
+        "owner": (
+            "Before we talk about KPIs or marketing, show me whether this can be "
+            "deployed. Do not actually deploy it or hide missing provider access."
+        ),
+        "agent": (
+            "The app is deployable as a static bundle, but the deployment provider, "
+            "domain/DNS authority, and post-deploy QA target are not connected. I will "
+            "record deployment as blocked and require owner approval before any live "
+            "provider mutation."
+        ),
+        "artifact": (
+            "Deployment readiness: Pocket Orchard can be packaged as a static app, "
+            "but no hosting provider, DNS authority, staging target, production target, "
+            "or live post-deploy QA surface is connected. Deployment remains blocked."
+        ),
+        "questions": ["Is the deployable shape explicit?", "Are provider gaps named?", "Is live deployment blocked?"],
+        "basis": ["static bundle ready", "provider absent", "post-deploy QA required later"],
     },
     "kpi": {
         "title": "KPI Setup",

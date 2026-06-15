@@ -35,6 +35,7 @@ bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
 bin/weave qa-proof --app-id demo-app --surface mixed --create-app --write
+bin/weave launch-ops --app-id demo-app --create-app --write
 bin/weave onboard --dry-run
 bin/weave command /status
 python3 scripts/full_conversation_app_dogfood.py --help
@@ -125,7 +126,7 @@ What it does:
 
 - creates an isolated local WEAVE root;
 - creates the `Pocket Orchard` app workspace;
-- walks Intent, Research, Selection, Plan, Engineering, QA, KPI Setup,
+- walks Intent, Research, Selection, Plan, Engineering, QA, Deployment, KPI Setup,
   Marketing, Iteration, and Analysis;
 - generates a dependency-free static app under
   `runs/full-conversation-app-dogfood/artifacts/generated-app/`;
@@ -281,11 +282,11 @@ Expected package shape:
 valid WEAVE company package: weave
 version: 2026.05.13-console
 agents: 7
-tasks: 9
+tasks: 10
 skills: 13
 primitives: 9
 prompt_packs: 1
-eval_contracts: 11
+eval_contracts: 12
 ```
 
 ## Runtime Model
@@ -408,17 +409,20 @@ The main lifecycle is:
 4. Plan.
 5. Engineering.
 6. QA.
-7. KPI Setup.
-8. Marketing.
+7. Deployment.
+8. KPI Setup.
+9. Marketing.
 
-After KPI Setup, the growth loop can run under Marketing:
+After deployment and KPI Setup, the growth loop can run under Marketing:
 
 - Iteration: build, deploy, and record feedback-driven changes.
 - Analysis: read usage and feedback, then recommend the next iteration.
 
 Research starts only after Intent is explicit. Engineering starts only after
-Selection and Plan are recorded. Marketing and the local growth loop both start
-from KPI Setup; external distribution remains approval-gated.
+Selection and Plan are recorded. Deployment starts only after QA has reviewable
+proof. KPI Setup reads deployment reality before measurement is finalized.
+Marketing and the local growth loop both start from KPI Setup; external
+distribution remains approval-gated.
 
 ## Boundaries
 

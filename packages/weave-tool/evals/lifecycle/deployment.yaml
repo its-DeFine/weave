@@ -1,0 +1,66 @@
+{
+  "advance_min_score_percent": 82,
+  "blockers": [
+    "deployment target missing",
+    "provider or DNS authority unclear",
+    "post-deploy QA absent",
+    "production mutation implied without approval"
+  ],
+  "description": "Evaluate whether deployment readiness is explicit, capability-gated, and honest about what is not yet live.",
+  "hard_gates": [
+    {
+      "description": "Deployment target, package shape, and environment boundary are named.",
+      "id": "deployment_target_named",
+      "kind": "manual"
+    },
+    {
+      "description": "Provider credentials, DNS authority, production writes, and public launch remain owner-approval-gated.",
+      "id": "launch_capability_boundary_present",
+      "kind": "manual"
+    },
+    {
+      "description": "Post-deploy QA or staging validation is required before KPI or marketing claims depend on production reality.",
+      "id": "post_deploy_qa_required",
+      "kind": "manual"
+    }
+  ],
+  "require_evidence_for_scores": true,
+  "required_inputs": [
+    "deployment target",
+    "package shape",
+    "capability and credential boundary",
+    "post-deploy QA plan",
+    "rollback or recovery note"
+  ],
+  "requires_review": true,
+  "rubric": [
+    {
+      "id": "target_clarity",
+      "max_score": 4,
+      "question": "Is the intended deployment surface and environment clearly named?"
+    },
+    {
+      "id": "capability_gating",
+      "max_score": 4,
+      "question": "Are provider, DNS, credential, and production-write powers gated behind owner approval?"
+    },
+    {
+      "id": "qa_after_deploy",
+      "max_score": 4,
+      "question": "Does the plan require staging or production QA before downstream claims?"
+    },
+    {
+      "id": "non_claims",
+      "max_score": 4,
+      "question": "Does the artifact avoid implying a live deployment when no deployment occurred?"
+    },
+    {
+      "id": "recovery_path",
+      "max_score": 4,
+      "question": "Is rollback, redeploy, or recovery described for failed launch attempts?"
+    }
+  ],
+  "schema": "weave.lifecycle-eval/v0.1",
+  "slug": "deployment",
+  "stage": "Deployment"
+}

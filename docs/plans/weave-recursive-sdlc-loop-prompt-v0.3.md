@@ -11,8 +11,8 @@ specific loop was not yet captured as one loop-ready spec before this draft.
 Current reusable ingredients:
 
 - Lifecycle contract: `docs/month1/weave-lifecycle-contract-v0.md` defines
-  Intent, Research, Selection, Plan, Engineering, QA, KPI Setup, Marketing,
-  Iteration, and Analysis.
+  Intent, Research, Selection, Plan, Engineering, QA, Deployment, KPI Setup,
+  Marketing, Iteration, and Analysis.
 - Eval contracts: `packages/weave-tool/evals/lifecycle/*.yaml` define required
   inputs, hard gates, evidence-constrained rubric scoring, and decisions.
 - Release contract: `packages/weave-tool/evals/release_readiness.yaml` defines

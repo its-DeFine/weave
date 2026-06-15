@@ -120,10 +120,13 @@ LIFECYCLE_STAGES = [
     ("plan", "04-plan"),
     ("engineering", "05-engineering"),
     ("qa", "06-qa"),
-    ("kpi", "07-kpi"),
-    ("marketing", "08-marketing"),
-    ("iteration", "09-iteration"),
-    ("analysis", "10-analysis"),
+    # Deployment is a first-class shelf because KPI and marketing proofs depend
+    # on whether we are measuring localhost, staging, or production reality.
+    ("deployment", "07-deployment"),
+    ("kpi", "08-kpi"),
+    ("marketing", "09-marketing"),
+    ("iteration", "10-iteration"),
+    ("analysis", "11-analysis"),
 ]
 
 APP_DIRS = [
@@ -4627,7 +4630,10 @@ def credential_requirement_relevant_to_stage(item: dict[str, Any], stage_id: str
 
 def credential_blockers_for_stage(app: dict[str, Any], stage_id: str) -> list[str]:
     stage = normalize_stage_id(stage_id)
-    if stage not in {"kpi", "marketing", "analysis"}:
+    # Deployment is credential-sensitive too: provider access, DNS authority, and
+    # production writes must be explicitly connected or owner-deferred before the
+    # lifecycle can treat later KPI/marketing work as launch-aware.
+    if stage not in {"deployment", "kpi", "marketing", "analysis"}:
         return []
     blockers: list[str] = []
     for item in app.get("credential_requirements", []):
@@ -5175,6 +5181,7 @@ OWNER_STAGE_LABELS = {
     "plan": "Plan",
     "engineering": "Engineering",
     "qa": "QA",
+    "deployment": "Deployment",
     "kpi": "KPI Setup",
     "marketing": "Marketing",
     "iteration": "Iteration",

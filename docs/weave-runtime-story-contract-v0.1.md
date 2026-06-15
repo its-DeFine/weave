@@ -366,9 +366,9 @@ worktree. Work should move through branches and pull-request-like review
 records, even if the repo is private and never published.
 
 The app context is loaded throughout the lifecycle. Intent, Kernel, Contract,
-Premortem, Handoff, Implementation, QA, KPI Setup, Marketing, Iteration, and
-Analysis all use it. When the context changes, Hermes records what changed and
-why.
+Premortem, Handoff, Implementation, QA, Deployment, KPI Setup, Marketing,
+Iteration, and Analysis all use it. When the context changes, Hermes records
+what changed and why.
 
 Failure if skipped: apps become anonymous folders, context scatters, and future
 agents cannot recover what happened.
@@ -484,10 +484,19 @@ Hermes validates through three lenses:
 The QA lifecycle shelf owns the QA artifacts. If QA uses the contract artifact,
 it stores a reference JSON pointing to the contract rather than duplicating it.
 
+### Deployment
+
+Hermes prepares staging or production deployment only after QA has reviewable
+proof. Provider credentials, DNS changes, public writes, and production
+mutations stay behind capability and owner-approval gates.
+
+If deployment is unavailable, the lifecycle records a blocked deployment plan
+instead of pretending KPI or marketing can observe production reality.
+
 ### KPI Setup
 
-Hermes identifies what signals should prove the app is working after launch or
-use.
+Hermes identifies what signals should prove the app is working after deployment
+or use.
 
 This does not mean public reporting or production tracking is automatically
 enabled. It means the app has a measurement plan.

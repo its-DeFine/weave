@@ -275,18 +275,19 @@ def lifecycle_rehearsal(app_dir: Path, qa_summary: dict[str, Any]) -> dict[str, 
             "plan": ("Plan", "Build static app, QA locally, prepare Vercel, keep checkout disabled until configured."),
             "engineering": ("Engineering", f"Implemented source under {rel(app_dir)} with deterministic story engine and canvas UI."),
             "qa": ("QA", f"Local QA passed with {qa_summary['check_count']} deterministic checks."),
+            "deployment": ("Deployment", "Static deployment package is ready locally; hosting provider and DNS mutation remain gated."),
             "kpi": ("KPI Setup", "KPI estimates are generated locally: completion, share intent, conversion intent."),
             "marketing": ("Marketing", "Marketing is emulated as draft positioning only; no public send is performed."),
             "iteration": ("Iteration", f"Mocked feedback applied: {mocked_feedback}."),
         }
         for stage_id, (title, body) in stage_artifacts.items():
             artifact_path = write_stage_artifact(root, app_id, stage_id, title, body)
-            if stage_id == "marketing":
+            if stage_id in {"deployment", "marketing"}:
                 app = runtime.load_app(root, app_id)
                 app.setdefault("credential_requirements", []).append(
                     {
-                        "id": "distribution-account",
-                        "label": "Distribution account",
+                        "id": "deployment-provider" if stage_id == "deployment" else "distribution-account",
+                        "label": "Deployment provider" if stage_id == "deployment" else "Distribution account",
                         "required": True,
                         "status": "missing",
                     }

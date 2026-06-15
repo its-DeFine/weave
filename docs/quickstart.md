@@ -25,11 +25,11 @@ Expected output:
 valid WEAVE company package: weave
 version: 2026.05.13-console
 agents: 7
-tasks: 9
+tasks: 10
 skills: 13
 primitives: 9
 prompt_packs: 1
-eval_contracts: 11
+eval_contracts: 12
 ```
 
 If you see an error, the package is malformed or a required file is missing.
@@ -84,7 +84,7 @@ full conversation app dogfood: ok (runs/full-conversation-app-dogfood/report.jso
 ```
 
 The script creates an isolated local WEAVE root, creates the `Pocket Orchard`
-app, walks all 10 lifecycle stages, generates a dependency-free static app, runs
+app, walks all 11 lifecycle stages, generates a dependency-free static app, runs
 QA checks, exports conversation review artifacts, and writes a holistic review.
 The generated app is at:
 
@@ -118,6 +118,7 @@ bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
 bin/weave qa-proof --app-id demo-app --surface mixed --create-app --write
+bin/weave launch-ops --app-id demo-app --create-app --write
 bin/weave onboard --dry-run
 ```
 
@@ -147,6 +148,12 @@ pipeline, infrastructure, or mixed surfaces; records terminal/log/fixture
 evidence; classifies failures as product, code, environment, or QA-method; and
 routes failed QA back to Engineering or QA-plan revision. It does not prove
 deployed production behavior or live-user behavior.
+
+`bin/weave launch-ops` writes local deployment, KPI, marketing, and iteration
+plans behind capability gates. It records deferred deployment/analytics/marketing
+capabilities, owner notifications, kill switches, scheduler fixtures, and a
+validated lifecycle bundle. It does not deploy, send public messages, spend
+money, or handle raw credentials.
 
 Pick one mode:
 
@@ -356,19 +363,20 @@ WEAVE lifecycle stages:
   4. Plan
   5. Engineering
   6. QA
-  7. KPI Setup
-  8. Marketing
-  9. Iteration
-  10. Analysis
+  7. Deployment
+  8. KPI Setup
+  9. Marketing
+  10. Iteration
+  11. Analysis
 
 valid WEAVE company package: weave
 version: 2026.05.13-console
 agents: 7
-tasks: 9
+tasks: 10
 skills: 13
 primitives: 9
 prompt_packs: 1
-eval_contracts: 11
+eval_contracts: 12
 runtime setup check: ok
 container runtime profile check: ok
 Hermes provisioner check: ok
@@ -447,7 +455,7 @@ A full worked example with body text lives at
 The main lifecycle stages a mission passes through, in order:
 
 ```text
-Intent -> Research -> Selection -> Plan -> Engineering -> QA -> KPI Setup -> Marketing -> Iteration -> Analysis
+Intent -> Research -> Selection -> Plan -> Engineering -> QA -> Deployment -> KPI Setup -> Marketing -> Iteration -> Analysis
 ```
 
 Iteration and Analysis are explicit lifecycle stages for local proof and review,
@@ -463,7 +471,9 @@ Stage rules enforced by the package:
   (`plan-gate` task).
 - QA starts only after Engineering delivers one primitive
   (`engineering-first-primitive` task).
-- KPI Setup starts only after QA clears readiness (`qa-runtime-readiness` task).
+- Deployment starts only after QA clears readiness (`qa-runtime-readiness` task).
+- KPI Setup starts only after Deployment readiness is explicit
+  (`deployment-readiness-gate` task).
 - Marketing starts only after KPI Setup opens the gate (`kpi-setup-gate` task).
 - Iteration and Analysis start locally from KPI Setup and run while Marketing
   gathers evidence (`iteration-from-analytics` task).

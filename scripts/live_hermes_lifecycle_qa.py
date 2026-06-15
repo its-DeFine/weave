@@ -75,6 +75,11 @@ OWNER_STAGE_MESSAGES = {
         "QA the app as a reviewer would. Use the current source files as evidence. "
         "Separate what is proven locally from what is not proven."
     ),
+    "deployment": (
+        "Prepare deployment readiness for Lantern Archive without deploying it. "
+        "Name the package shape, provider/DNS gaps, post-deploy QA requirement, "
+        "and owner approvals needed before any live mutation."
+    ),
     "kpi": (
         "Define the KPI and measurement plan for Lantern Archive. Identify what "
         "can be checked locally and what needs analytics credentials later."
@@ -591,9 +596,9 @@ def setup_clean_runtime(root: Path, model: str, provider: str, reasoning_effort:
         # Gestaltian Contract
 
         Lantern Archive must progress through intent, research, selection, plan,
-        engineering, QA, KPI, marketing, iteration, and analysis. Each stage needs
-        a live Hermes transcript turn, stage artifact, gate check, and owner
-        approval before advancement.
+        engineering, QA, deployment, KPI, marketing, iteration, and analysis.
+        Each stage needs a live Hermes transcript turn, stage artifact, gate
+        check, and owner approval before advancement.
         """,
     )
     app = runtime.load_app(root, APP_ID)
@@ -1458,7 +1463,7 @@ def run_app_verification(app_repo: Path) -> dict[str, Any]:
 
 
 def approve_and_advance(root: Path, stage_id: str) -> dict[str, Any]:
-    defer = stage_id in {"kpi", "marketing", "analysis"}
+    defer = stage_id in {"deployment", "kpi", "marketing", "analysis"}
     approval = runtime.approve_stage(
         root,
         APP_ID,
