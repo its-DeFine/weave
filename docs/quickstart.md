@@ -116,6 +116,7 @@ bin/weave help
 bin/weave doctor
 bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
+bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
 bin/weave onboard --dry-run
 ```
 
@@ -131,6 +132,13 @@ ready-for-review conversation turns, local evaluator reviews, owner approvals,
 stage advances, and a validated lifecycle bundle ending at Engineering. It does
 not perform live public-web research, send public messages, deploy, or connect
 provider credentials.
+
+`bin/weave engineering-decisions` records Engineering owner decision cards,
+notification-board state, an assumption log, app blockers/resume state, and a
+validated lifecycle bundle. Hands-off mode can continue on safe local
+assumptions, but still stops at hard boundaries such as spend, public sends,
+production deploys, destructive actions, security-boundary changes, and
+credential-scope changes until an owner response is recorded.
 
 Pick one mode:
 

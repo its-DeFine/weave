@@ -469,6 +469,177 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(bundle["owner_decision_cards"][0]["status"], "answered")
             self.assertIn("deployment provider not connected", bundle["world_model"]["capability_gaps"])
 
+    def test_engineering_decisions_preview_is_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "engineering-decisions",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--control-mode",
+                    "hands-off",
+                    "--hard-boundary",
+                    "production_deploy",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Engineering Decision Queue", text)
+            self.assertIn("hard_boundaries: production_deploy", text)
+            self.assertIn("requires_owner: true", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_engineering_decisions_hands_off_still_blocks_at_hard_boundary_then_resumes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            prepare = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "early-lifecycle",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--intent",
+                    "Build a public-safe local product proof",
+                    "--create-app",
+                    "--write",
+                ],
+                output=prepare,
+            )
+            self.assertEqual(rc, 0, prepare.getvalue())
+
+            blocked_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "engineering-decisions",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--control-mode",
+                    "hands-off",
+                    "--hard-boundary",
+                    "production_deploy",
+                    "--write",
+                ],
+                output=blocked_output,
+            )
+
+            blocked_text = blocked_output.getvalue()
+            self.assertEqual(rc, 0, blocked_text)
+            self.assertIn("decision_status: open", blocked_text)
+            self.assertIn("resume_allowed: false", blocked_text)
+            self.assertIn("stage_state: blocked", blocked_text)
+            weave_root = runtime_home / "weave-state"
+            runtime = weave_cli.weave_engineering_decisions.weave_runtime_slice
+            app = runtime.load_app(weave_root, "demo-app")
+            self.assertEqual(app["stage_state"], "blocked")
+            self.assertIn("owner decision: engineering-decision-001", app["blockers"])
+
+            queue_path = weave_root / "apps" / "demo-app" / "lifecycle" / "05-engineering" / "artifacts" / "owner-decision-queue.json"
+            queue = json.loads(queue_path.read_text(encoding="utf-8"))
+            self.assertFalse(queue["resume"]["allowed"])
+            self.assertEqual(queue["decisions"][0]["hard_boundary_flags"], ["production_deploy"])
+            self.assertEqual(queue["notifications"][0]["status"], "open")
+
+            bundle_path = weave_root / "apps" / "demo-app" / "lifecycle" / "05-engineering" / "artifacts" / "engineering-decision-bundle.json"
+            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+            weave_cli.weave_engineering_decisions.validate_lifecycle_artifacts.validate_bundle(bundle)
+            self.assertEqual(bundle["lifecycle_state"]["attention"]["state"], "owner_input_needed")
+
+            resolved_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "engineering-decisions",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--control-mode",
+                    "hands-off",
+                    "--hard-boundary",
+                    "production_deploy",
+                    "--owner-response",
+                    "Approved local-safe path only",
+                    "--write",
+                ],
+                output=resolved_output,
+            )
+
+            resolved_text = resolved_output.getvalue()
+            self.assertEqual(rc, 0, resolved_text)
+            self.assertIn("decision_status: answered", resolved_text)
+            self.assertIn("resume_allowed: true", resolved_text)
+            self.assertIn("stage_state: collecting", resolved_text)
+            app = runtime.load_app(weave_root, "demo-app")
+            self.assertEqual(app["stage_state"], "collecting")
+            self.assertNotIn("owner decision: engineering-decision-001", app["blockers"])
+            queue = json.loads(queue_path.read_text(encoding="utf-8"))
+            self.assertTrue(queue["resume"]["allowed"])
+            self.assertEqual(queue["notifications"][0]["status"], "resolved")
+            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+            weave_cli.weave_engineering_decisions.validate_lifecycle_artifacts.validate_bundle(bundle)
+            self.assertEqual(bundle["owner_decision_cards"][0]["status"], "answered")
+            self.assertEqual(bundle["lifecycle_state"]["attention"]["state"], "no_attention_needed")
+
+    def test_engineering_decisions_hands_off_safe_assumption_can_continue(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            prepare = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "early-lifecycle",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--intent",
+                    "Build a public-safe local product proof",
+                    "--create-app",
+                    "--write",
+                ],
+                output=prepare,
+            )
+            self.assertEqual(rc, 0, prepare.getvalue())
+
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "engineering-decisions",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--control-mode",
+                    "hands-off",
+                    "--write",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("decision_status: deferred", text)
+            self.assertIn("resume_allowed: true", text)
+            weave_root = runtime_home / "weave-state"
+            queue_path = weave_root / "apps" / "demo-app" / "lifecycle" / "05-engineering" / "artifacts" / "owner-decision-queue.json"
+            queue = json.loads(queue_path.read_text(encoding="utf-8"))
+            self.assertEqual(queue["assumptions"][0]["status"], "active")
+            app = weave_cli.weave_engineering_decisions.weave_runtime_slice.load_app(weave_root, "demo-app")
+            self.assertEqual(app["stage_state"], "collecting")
+
     def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

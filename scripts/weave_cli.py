@@ -27,6 +27,7 @@ import setup_gateway
 import setup_runtime
 import weave_dashboard
 import weave_early_lifecycle
+import weave_engineering_decisions
 import weave_eval
 import weave_first_run
 import weave_hermes_setup
@@ -394,6 +395,10 @@ def first_run(args: argparse.Namespace, output: TextIO) -> int:
 
 def early_lifecycle(args: argparse.Namespace, output: TextIO) -> int:
     return weave_early_lifecycle.run(args, output=output)
+
+
+def engineering_decisions(args: argparse.Namespace, output: TextIO) -> int:
+    return weave_engineering_decisions.run(args, output=output)
 
 
 def docker_status(container_name: str) -> str:
@@ -1277,6 +1282,38 @@ def build_parser() -> argparse.ArgumentParser:
     early_lifecycle_parser.add_argument("--write", action="store_true", help="write stage artifacts, reviews, approvals, and lifecycle bundle")
     early_lifecycle_parser.add_argument("--json", action="store_true", help="print early lifecycle snapshot as JSON")
 
+    engineering_decisions_parser = subparsers.add_parser(
+        "engineering-decisions",
+        help="record Engineering owner decisions, notifications, assumptions, and hard-stop state",
+    )
+    engineering_decisions_parser.add_argument("--runtime-home", type=Path, default=None)
+    engineering_decisions_parser.add_argument("--weave-root", type=Path, default=None)
+    engineering_decisions_parser.add_argument("--hermes-home", type=Path, default=None)
+    engineering_decisions_parser.add_argument("--profile-out", type=Path, default=None)
+    engineering_decisions_parser.add_argument("--app-id", default="new-app")
+    engineering_decisions_parser.add_argument("--decision-id", default=weave_engineering_decisions.DEFAULT_DECISION_ID)
+    engineering_decisions_parser.add_argument("--question", default=weave_engineering_decisions.DEFAULT_QUESTION)
+    engineering_decisions_parser.add_argument(
+        "--control-mode",
+        choices=("hands-on", "hands-off"),
+        default=weave_first_run.DEFAULT_CONTROL_MODE,
+    )
+    engineering_decisions_parser.add_argument(
+        "--decision-type",
+        choices=("architecture", "library", "scope", "cost", "security", "deployment", "product", "capability", "public_action", "other"),
+        default="architecture",
+    )
+    engineering_decisions_parser.add_argument(
+        "--hard-boundary",
+        action="append",
+        choices=weave_engineering_decisions.HARD_BOUNDARIES,
+        help="hard owner boundary touched by this decision; can be passed more than once",
+    )
+    engineering_decisions_parser.add_argument("--selected-option", default="local-safe-path")
+    engineering_decisions_parser.add_argument("--owner-response", default=weave_engineering_decisions.DEFAULT_OWNER_RESPONSE)
+    engineering_decisions_parser.add_argument("--write", action="store_true", help="write local engineering decision queue state")
+    engineering_decisions_parser.add_argument("--json", action="store_true", help="print engineering decision snapshot as JSON")
+
     command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
     command_parser.add_argument("--runtime-home", type=Path, default=None)
     command_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1374,6 +1411,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "  weave attach-hermes [onboard flags]  # alias for weave onboard --existing-hermes")
         print_line(output, "  weave first-run --app-id demo --app-name 'Demo App'")
         print_line(output, "  weave early-lifecycle --app-id demo --create-app --write")
+        print_line(output, "  weave engineering-decisions --app-id demo --hard-boundary production_deploy --write")
         print_line(output, "  weave runtime-qa --dry-run --out runs/runtime-qa/plan.json")
         print_line(output, "  weave eval --list")
         return 0
@@ -1426,6 +1464,8 @@ def main(
             return first_run(args, output)
         if args.command == "early-lifecycle":
             return early_lifecycle(args, output)
+        if args.command == "engineering-decisions":
+            return engineering_decisions(args, output)
         if args.command == "doctor":
             return doctor(args, output)
         if args.command == "command":
