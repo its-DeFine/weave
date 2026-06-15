@@ -50,8 +50,9 @@ navigation, review queue, artifact/file panes, stage feedback, and
 file-specific feedback. In a terminal it stays in a `weave>` command loop; use
 `--once` for a single frame or `--loop` to force the loop in tests. The main
 commands are `status`, `stages`, `artifacts`, `files`, `reviews`, `help`,
-`resume`, `f <feedback>`, `p <file> <feedback>`, and `g`/`run` to invoke the
-local lifecycle executor through QA. In `--scripted-demo --write` mode it still
+`resume`, `open <ref>`, `f <feedback>`, `p <file> <feedback>`, and `g`/`run`
+to invoke the local lifecycle executor through QA. In `--scripted-demo --write`
+mode it still
 writes the local first-run, Intent/Research/Selection/Plan, Engineering, real
 generated app source, real local QA, SEO for website surfaces, the lifecycle QA
 bundle, and gated deployment/KPI/marketing/iteration artifacts. Use

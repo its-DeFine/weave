@@ -69,6 +69,7 @@ DEFAULT_CODEX_COMMAND = "codex --help"
 DEFAULT_CODEX_TIMEOUT = 600
 COCKPIT_VIEWS = ("overview", "stages", "artifacts", "files", "reviews", "help", "resume")
 COCKPIT_RECENT_LIMIT = 8
+COCKPIT_PREVIEW_LIMIT = 1800
 SAFE_CODEX_PROBE_ARGS = {("--version",), ("-V",), ("--help",), ("help",)}
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTROL_MODE_ALIASES = {
@@ -626,6 +627,38 @@ def match_generated_file(snapshot: dict[str, Any], requested: str) -> tuple[str 
     return None, f"File reference is ambiguous: {requested}"
 
 
+def match_preview_ref(snapshot: dict[str, Any], requested: str) -> tuple[str | None, str, str]:
+    candidates = [("file", item) for item in snapshot.get("files") or []] + [
+        ("artifact", item) for item in snapshot.get("artifacts") or []
+    ]
+    for kind, ref in candidates:
+        if requested == ref:
+            return ref, kind, ""
+    matches = [(kind, ref) for kind, ref in candidates if ref.endswith("/" + requested) or Path(ref).name == requested]
+    if len(matches) == 1:
+        kind, ref = matches[0]
+        return ref, kind, ""
+    if not matches:
+        return None, "", f"Nothing matched: {requested}"
+    return None, "", f"Reference is ambiguous: {requested}"
+
+
+def read_cockpit_preview(root: Path, ref: str, kind: str) -> str:
+    root_resolved = root.resolve()
+    target = (root / ref).resolve()
+    try:
+        target.relative_to(root_resolved)
+    except ValueError as exc:
+        raise weave_runtime_slice.RuntimeSliceError("preview ref escapes runtime root") from exc
+    if not target.exists() or not target.is_file():
+        return f"Preview unavailable for {ref}: file is missing."
+    text = target.read_text(encoding="utf-8", errors="replace")
+    truncated = len(text) > COCKPIT_PREVIEW_LIMIT
+    excerpt = text[:COCKPIT_PREVIEW_LIMIT].rstrip()
+    suffix = "\n... preview truncated ..." if truncated else ""
+    return f"Preview {kind}: {ref}\n---\n{excerpt}{suffix}\n---"
+
+
 def create_local_cockpit_app(root: Path, args: Any, session: dict[str, Any]) -> CockpitCommandResult:
     app_id = weave_runtime_slice.slugify(args.app_id)
     if weave_runtime_slice.app_metadata_path(root, app_id).exists():
@@ -742,6 +775,21 @@ def handle_cockpit_command(root: Path, args: Any, session: dict[str, Any], snaps
         view = str(session.get("view") or "overview")
         update_session_view(session, view, action=f"resume:{view}")
         return CockpitCommandResult(False, f"Resumed {view}.", bool(snapshot["app_exists"]))
+
+    if lower == "x" and snapshot["script_key"] == "engineering":
+        raw = "open app-executor-manifest.json"
+        lower = raw
+
+    if lower.startswith("open ") or lower.startswith("o ") or lower.startswith("i "):
+        if not snapshot["app_exists"]:
+            return CockpitCommandResult(False, "Create or attach a local app before opening files or artifacts.")
+        requested = raw.split(maxsplit=1)[1].strip()
+        ref, kind, error = match_preview_ref(snapshot, requested)
+        if error:
+            return CockpitCommandResult(False, error)
+        assert ref is not None
+        update_session_view(session, "files" if kind == "file" else "artifacts", action=f"open-ref:{Path(ref).name}")
+        return CockpitCommandResult(False, read_cockpit_preview(root, ref, kind), True)
 
     if snapshot["script_key"] == "first-run" and lower in {"2", "create", "create-local", "create local"}:
         return create_local_cockpit_app(root, args, session)
@@ -885,6 +933,7 @@ def render_help() -> list[str]:
         "  stages      Inspect lifecycle stages and approval state.",
         "  artifacts   Inspect stage artifacts produced by agents.",
         "  files       Inspect generated app files and attach file-specific feedback.",
+        "  open <ref>  Preview a generated file or lifecycle artifact by name or ref.",
         "  reviews     Inspect pending owner choices, blockers, and revise/approve prompts.",
         "  resume      Reopen the last saved cockpit view for this app.",
         "  y / n       Approve/continue or revise the current stage prompt.",

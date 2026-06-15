@@ -133,10 +133,11 @@ Without `--write` it previews the cockpit and leaves the runtime home untouched.
 In an interactive terminal it enters a `weave>` command loop with stage action
 cards, visible choices, review queue, artifact and file panes, resume state,
 stage feedback, and file-specific feedback. Use `2` on the first-run card to
-create local app state, `f <feedback>` to record feedback on the current stage,
-`p <file> <feedback>` to attach feedback to a generated file, `reviews` to
-inspect pending review items, and `g`/`run` to execute the local lifecycle path
-through QA from inside the cockpit.
+create local app state, `open <ref>` to preview a generated file or artifact,
+`f <feedback>` to record feedback on the current stage, `p <file> <feedback>`
+to attach feedback to a generated file, `reviews` to inspect pending review
+items, and `g`/`run` to execute the local lifecycle path through QA from inside
+the cockpit.
 
 With `--scripted-demo --write`, it runs the same local flow non-interactively
 through first-run, Intent/Research/Selection/Plan, Engineering, generated

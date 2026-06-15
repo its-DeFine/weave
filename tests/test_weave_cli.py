@@ -524,6 +524,58 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(feedback[-1]["kind"], "file_feedback")
             self.assertEqual(feedback[-1]["file_ref"], "apps/file-feedback-app/repo/primary/index.html")
 
+    def test_tui_cockpit_loop_opens_files_and_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            scripted_output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "preview-app",
+                    "--app-name",
+                    "Preview App",
+                    "--app-surface",
+                    "website",
+                    "--control-mode",
+                    "handoff",
+                    "--executor",
+                    "fixture",
+                    "--skip-codex-proof",
+                    "--scripted-demo",
+                    "--write",
+                    "--no-color",
+                ],
+                output=scripted_output,
+            )
+            self.assertEqual(rc, 0, scripted_output.getvalue())
+
+            output = io.StringIO()
+            input_stream = io.StringIO("open index.html\nopen real-app-qa.json\nq\n")
+            rc = weave_cli.main(
+                [
+                    "tui",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "preview-app",
+                    "--loop",
+                    "--no-color",
+                ],
+                input_stream=input_stream,
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("Preview file: apps/preview-app/repo/primary/index.html", text)
+            self.assertIn("<!doctype html>", text)
+            self.assertIn("Preview artifact: apps/preview-app/lifecycle/06-qa/artifacts/real-app-qa.json", text)
+            self.assertIn('"id": "route-index"', text)
+
     def test_tui_cockpit_loop_runs_fixture_executor_through_qa(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             runtime_home = Path(tmpdir) / "runtime-home"
