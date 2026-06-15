@@ -45,8 +45,14 @@ python3 scripts/private_app_operating_profile_eval.py --list
 ```
 
 `bin/weave tui` is the operator-first product cockpit. In interactive mode it
-asks for app, owner profile, coworker style, handoff mode, intent, target user,
-deployment region, and marketing budget. In `--scripted-demo --write` mode it
+opens a resumable lifecycle cockpit with an action card, stage choices,
+navigation, review queue, artifact/file panes, stage feedback, and
+file-specific feedback. In a terminal it stays in a `weave>` command loop; use
+`--once` for a single frame or `--loop` to force the loop in tests. The main
+commands are `status`, `stages`, `artifacts`, `files`, `reviews`, `help`,
+`resume`, `open <ref>`, `f <feedback>`, `p <file> <feedback>`, and `g`/`run`
+to invoke the local lifecycle executor through QA. In `--scripted-demo --write`
+mode it still
 writes the local first-run, Intent/Research/Selection/Plan, Engineering, real
 generated app source, real local QA, SEO for website surfaces, the lifecycle QA
 bundle, and gated deployment/KPI/marketing/iteration artifacts. Use

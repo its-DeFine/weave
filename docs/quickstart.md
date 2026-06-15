@@ -130,18 +130,27 @@ bin/weave onboard --dry-run
 
 `bin/weave tui` is the fastest local product surface for the intended WEAVE UX.
 Without `--write` it previews the cockpit and leaves the runtime home untouched.
-With `--scripted-demo --write`, it runs the local flow through first-run,
-Intent/Research/Selection/Plan, Engineering, generated source, real local QA,
-the lifecycle QA bundle, and gated launch operations. Use `--executor codex`
-when you want the real agent path: WEAVE invokes `codex exec`, requires the
-generated files under `repo/primary`, runs static-server/source/SEO QA, and
-returns non-zero if Codex or QA fails. Use `--executor fixture` for the
-no-network deterministic quickstart path; fixture output is labeled as not live
-Codex model output. Use `--control-mode handoff` when the operator wants full
-handoff for local-safe work; WEAVE still stops before hard gates such as
-credentials, deployment, public sends, paid spend, destructive actions, and
-security-boundary changes. Website surfaces create SEO planning and real local
-SEO QA artifacts.
+In an interactive terminal it enters a `weave>` command loop with stage action
+cards, visible choices, review queue, artifact and file panes, resume state,
+stage feedback, and file-specific feedback. Use `2` on the first-run card to
+create local app state, `open <ref>` to preview a generated file or artifact,
+`f <feedback>` to record feedback on the current stage, `p <file> <feedback>`
+to attach feedback to a generated file, `reviews` to inspect pending review
+items, and `g`/`run` to execute the local lifecycle path through QA from inside
+the cockpit.
+
+With `--scripted-demo --write`, it runs the same local flow non-interactively
+through first-run, Intent/Research/Selection/Plan, Engineering, generated
+source, real local QA, the lifecycle QA bundle, and gated launch operations.
+Use `--executor codex` when you want the real agent path: WEAVE invokes
+`codex exec`, requires the generated files under `repo/primary`, runs local
+static-server/source/SEO QA, and returns non-zero if Codex or QA fails. Use
+`--executor fixture` for the no-network deterministic quickstart path; fixture
+output is labeled as not live Codex model output. Use `--control-mode handoff`
+when the operator wants full handoff for local-safe work; WEAVE still stops
+before hard gates such as credentials, deployment, public sends, paid spend,
+destructive actions, and security-boundary changes. Website surfaces create SEO
+planning and real local SEO QA artifacts.
 By default, formal Engineering approval records command hard gates as pending
 and QA runs as a local rehearsal; pass `--run-engineering-gates` when you want
 the Engineering eval command gates to run before stage approval.
