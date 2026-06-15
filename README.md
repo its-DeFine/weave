@@ -31,6 +31,7 @@ Useful first commands:
 bin/weave help
 bin/weave doctor
 bin/weave eval --list
+bin/weave tui --scripted-demo --write --no-color
 bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
@@ -41,6 +42,18 @@ bin/weave command /status
 python3 scripts/full_conversation_app_dogfood.py --help
 python3 scripts/private_app_operating_profile_eval.py --list
 ```
+
+`bin/weave tui` is the operator-first product cockpit. In interactive mode it
+asks for app, owner profile, coworker style, handoff mode, intent, target user,
+deployment region, and marketing budget. In `--scripted-demo --write` mode it
+writes the local first-run, Intent/Research/Selection/Plan, Engineering, QA, SEO
+for website surfaces, and gated deployment/KPI/marketing/iteration artifacts.
+It stops before credentials, deployment, public sends, paid spend, and raw
+secret handling. By default, Engineering records command hard gates as pending
+and lets QA run as a labeled local rehearsal; pass `--run-engineering-gates`
+when you want formal Engineering approval before QA. The Codex v1 proof is local
+CLI metadata only; it does not claim Codex auth, model invocation, or Hermes
+primitive integration.
 
 ## Version
 
