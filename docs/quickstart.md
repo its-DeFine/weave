@@ -117,6 +117,7 @@ bin/weave doctor
 bin/weave first-run --app-id demo-app --app-name "Demo App"
 bin/weave early-lifecycle --app-id demo-app --app-name "Demo App" --create-app --write
 bin/weave engineering-decisions --app-id demo-app --hard-boundary production_deploy --write
+bin/weave qa-proof --app-id demo-app --surface mixed --create-app --write
 bin/weave onboard --dry-run
 ```
 
@@ -139,6 +140,13 @@ validated lifecycle bundle. Hands-off mode can continue on safe local
 assumptions, but still stops at hard boundaries such as spend, public sends,
 production deploys, destructive actions, security-boundary changes, and
 credential-scope changes until an owner response is recorded.
+
+`bin/weave qa-proof` writes surface-specific local QA evidence. It chooses proof
+types for web frontend, backend/API, CLI/TUI, agent/runtime transcript, data
+pipeline, infrastructure, or mixed surfaces; records terminal/log/fixture
+evidence; classifies failures as product, code, environment, or QA-method; and
+routes failed QA back to Engineering or QA-plan revision. It does not prove
+deployed production behavior or live-user behavior.
 
 Pick one mode:
 
