@@ -31,6 +31,7 @@ import weave_engineering_decisions
 import weave_eval
 import weave_first_run
 import weave_hermes_setup
+import weave_qa_proof
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -399,6 +400,10 @@ def early_lifecycle(args: argparse.Namespace, output: TextIO) -> int:
 
 def engineering_decisions(args: argparse.Namespace, output: TextIO) -> int:
     return weave_engineering_decisions.run(args, output=output)
+
+
+def qa_proof(args: argparse.Namespace, output: TextIO) -> int:
+    return weave_qa_proof.run(args, output=output)
 
 
 def docker_status(container_name: str) -> str:
@@ -1314,6 +1319,23 @@ def build_parser() -> argparse.ArgumentParser:
     engineering_decisions_parser.add_argument("--write", action="store_true", help="write local engineering decision queue state")
     engineering_decisions_parser.add_argument("--json", action="store_true", help="print engineering decision snapshot as JSON")
 
+    qa_proof_parser = subparsers.add_parser(
+        "qa-proof",
+        help="run surface-specific local QA proof and failure routing",
+    )
+    qa_proof_parser.add_argument("--runtime-home", type=Path, default=None)
+    qa_proof_parser.add_argument("--weave-root", type=Path, default=None)
+    qa_proof_parser.add_argument("--hermes-home", type=Path, default=None)
+    qa_proof_parser.add_argument("--profile-out", type=Path, default=None)
+    qa_proof_parser.add_argument("--app-id", default="new-app")
+    qa_proof_parser.add_argument("--app-name", default="New App")
+    qa_proof_parser.add_argument("--surface", choices=weave_qa_proof.QA_SURFACES, default="mixed")
+    qa_proof_parser.add_argument("--command", dest="qa_command", default=weave_qa_proof.DEFAULT_COMMAND)
+    qa_proof_parser.add_argument("--target-label", default="local deterministic fixture")
+    qa_proof_parser.add_argument("--create-app", action="store_true", help="create the local app if it does not exist")
+    qa_proof_parser.add_argument("--write", action="store_true", help="write local QA proof evidence and lifecycle bundle")
+    qa_proof_parser.add_argument("--json", action="store_true", help="print QA proof snapshot as JSON")
+
     command_parser = subparsers.add_parser("command", help="run a deterministic WEAVE slash command locally")
     command_parser.add_argument("--runtime-home", type=Path, default=None)
     command_parser.add_argument("--weave-root", type=Path, default=None)
@@ -1412,6 +1434,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "  weave first-run --app-id demo --app-name 'Demo App'")
         print_line(output, "  weave early-lifecycle --app-id demo --create-app --write")
         print_line(output, "  weave engineering-decisions --app-id demo --hard-boundary production_deploy --write")
+        print_line(output, "  weave qa-proof --app-id demo --surface mixed --create-app --write")
         print_line(output, "  weave runtime-qa --dry-run --out runs/runtime-qa/plan.json")
         print_line(output, "  weave eval --list")
         return 0
@@ -1466,6 +1489,8 @@ def main(
             return early_lifecycle(args, output)
         if args.command == "engineering-decisions":
             return engineering_decisions(args, output)
+        if args.command == "qa-proof":
+            return qa_proof(args, output)
         if args.command == "doctor":
             return doctor(args, output)
         if args.command == "command":

@@ -640,6 +640,112 @@ class WeaveCliTests(unittest.TestCase):
             app = weave_cli.weave_engineering_decisions.weave_runtime_slice.load_app(weave_root, "demo-app")
             self.assertEqual(app["stage_state"], "collecting")
 
+    def test_qa_proof_preview_is_read_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "qa-proof",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--surface",
+                    "mixed",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE QA Proof Runner", text)
+            self.assertIn("surface: mixed", text)
+            self.assertIn("web_frontend", text)
+            self.assertFalse(runtime_home.exists())
+
+    def test_qa_proof_mixed_surface_writes_manifest_bundle_and_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "qa-proof",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--app-name",
+                    "Demo App",
+                    "--surface",
+                    "mixed",
+                    "--create-app",
+                    "--write",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("status: passed", text)
+            self.assertIn("route: owner_review", text)
+            self.assertIn("checks: 6", text)
+            weave_root = runtime_home / "weave-state"
+            qa_dir = weave_root / "apps" / "demo-app" / "lifecycle" / "06-qa" / "artifacts"
+            manifest = json.loads((qa_dir / "qa-proof-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["summary"]["route"], "owner_review")
+            self.assertEqual(
+                manifest["proof_types"],
+                ["web_frontend", "backend_api", "cli_tui", "agent_runtime_transcript", "data_pipeline", "infrastructure"],
+            )
+            self.assertTrue((qa_dir / "web-dom-snapshot.html").exists())
+            self.assertTrue((qa_dir / "cli-terminal-evidence.json").exists())
+            bundle = json.loads((qa_dir / "qa-proof-lifecycle-bundle.json").read_text(encoding="utf-8"))
+            weave_cli.weave_qa_proof.validate_lifecycle_artifacts.validate_bundle(bundle)
+            app = weave_cli.weave_qa_proof.weave_runtime_slice.load_app(weave_root, "demo-app")
+            self.assertEqual(app["current_stage"], "qa")
+            self.assertEqual(app["stage_state"], "ready_for_review")
+
+    def test_qa_proof_cli_failure_routes_to_engineering(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime_home = Path(tmpdir) / "runtime-home"
+            output = io.StringIO()
+
+            rc = weave_cli.main(
+                [
+                    "qa-proof",
+                    "--runtime-home",
+                    str(runtime_home),
+                    "--app-id",
+                    "demo-app",
+                    "--surface",
+                    "cli",
+                    "--command",
+                    "python3 -c 'raise SystemExit(2)'",
+                    "--create-app",
+                    "--write",
+                ],
+                output=output,
+            )
+
+            text = output.getvalue()
+            self.assertEqual(rc, 0, text)
+            self.assertIn("status: failed", text)
+            self.assertIn("route: engineering", text)
+            weave_root = runtime_home / "weave-state"
+            manifest = json.loads(
+                (weave_root / "apps" / "demo-app" / "lifecycle" / "06-qa" / "artifacts" / "qa-proof-manifest.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(manifest["summary"]["failure_classes"], ["code"])
+            app = weave_cli.weave_qa_proof.weave_runtime_slice.load_app(weave_root, "demo-app")
+            self.assertEqual(app["current_stage"], "engineering")
+            self.assertEqual(app["stage_state"], "blocked")
+            self.assertIn("qa failed: route to engineering", app["blockers"])
+
     def test_runtime_qa_dry_run_writes_manifest_without_docker_side_effects(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
