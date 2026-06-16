@@ -7,10 +7,10 @@
   ],
   "autonomy_mode": "yolo",
   "model": "unknown",
-  "profile_hash": "sha256:4956e5e225052cdbf9457e10ea2d32cb1dc25e7a7d7ea3fc7dbc4d47a09e1e06",
+  "profile_hash": "sha256:57768185c7c33cc86344b87e3b99f7432f7217c637444a8fb041f58569a5690c",
   "prompt_pack": "hermes-gestalt-runtime-pack",
   "provider_adapter": "unknown",
   "reasoning_effort": "unknown",
-  "recorded_at": "2026-06-15T23:18:08Z",
+  "recorded_at": "2026-06-16T00:38:01Z",
   "schema": "weave-agent-profile/v0.1"
 }

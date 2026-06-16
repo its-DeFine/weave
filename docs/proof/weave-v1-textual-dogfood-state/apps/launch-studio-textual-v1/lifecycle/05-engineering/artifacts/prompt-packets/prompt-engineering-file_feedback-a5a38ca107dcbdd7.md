@@ -1,10 +1,10 @@
 # WEAVE Prompt Packet
 
-Packet: prompt-research-start-4e4c04b0556feee1
+Packet: prompt-engineering-file_feedback-a5a38ca107dcbdd7
 App: launch-studio-textual-v1
-Stage: research
-Substage: start
-Worker role: Research planner and synthesizer
+Stage: engineering
+Substage: file_feedback
+Worker role: Codex engineer
 
 ## 1. Global WEAVE Prelude
 
@@ -29,12 +29,12 @@ assumptions, blockers, proof, non-claims, and the next review choice.
 
 ## 2. Current Worker Role
 
-You are the WEAVE Research planner and synthesizer. Your owner-visible goal is:
-Unpack the approved intent into researched facts before choosing a direction.
+You are the WEAVE Codex engineer. Your owner-visible goal is:
+Build the app from approved artifacts while respecting hard gates.
 
 ## 3. Stage/Substage Instruction
 
-Explain that research will discover what must be known to build the app. Show that the owner can approve or change the research plan.
+Apply owner feedback attached to a specific file or artifact. Preserve intent and explain changes.
 
 ## 4. Owner Profile
 
@@ -46,9 +46,14 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 6. Prior Artifacts To Read
 
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.json
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.md
+- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.json
+- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.md
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.json
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.md
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-06f6c74e38f0965e.json
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-06f6c74e38f0965e.md
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json
 
 ## 7. Selected Context References
 
@@ -57,21 +62,33 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 8. Latest Owner Input
 
-Research plan: identify founder launch-readiness workflows, QA evidence patterns, SEO launch basics, risk registers, and safe local proof boundaries. Findings: a founder needs compact lifecycle status, visible blockers, source-backed claims, surface-adapted QA, and explicit non-claims before launch. Public-web research is represented as local proof notes in this TUI dogfood; live browsing is not claimed by this artifact.
+Keep launch risks above secondary metrics in the review flow.
 
 ## 9. Structured Feedback
 
 ```json
-(none)
+{
+  "app_id": "launch-studio-textual-v1",
+  "created_at": "2026-06-16T00:41:58Z",
+  "feedback_class": "correction",
+  "feedback_id": "fb-af54695c039eeadd",
+  "owner_text": "Keep launch risks above secondary metrics in the review flow.",
+  "public_safe": true,
+  "schema": "weave/owner-feedback/v1",
+  "stage": "engineering",
+  "target_ref": "apps/launch-studio-textual-v1/repo/primary/src/app.js",
+  "target_type": "file"
+}
 ```
 
 ## 10. Required Outputs
 
-- research-plan
-- source-policy
-- research-synthesis
-- source-log
-- selection-handoff
+- executor-prompt-packet
+- executor-manifest
+- generated-source-files
+- source-manifest
+- engineering-summary
+- qa-handoff
 
 ## 11. Gate Criteria
 

@@ -92,12 +92,14 @@ def capture_frame(app: Any, output_dir: Path, index: int, slug: str, title: str,
 
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / f"{index:02d}-{slug}.svg"
-    path.write_text(app.export_screenshot(title=title), encoding="utf-8")
+    svg = app.export_screenshot(title=title)
+    path.write_text("\n".join(line.rstrip() for line in svg.splitlines()) + "\n", encoding="utf-8")
     frame = {
         "index": index,
         "slug": slug,
         "title": title,
         "path": repo_relative(path),
+        "view": getattr(app, "view", ""),
         "action_count": len(actions),
     }
     weave_prompt_library.ensure_public_safe("textual frame", frame)
@@ -234,6 +236,7 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
         intent=INTENT,
         target_user=TARGET_USER,
         codex_timeout=args.codex_timeout,
+        run_engineering_gates=True,
     )
     actions: list[dict[str, Any]] = []
     frames: list[dict[str, Any]] = []
@@ -301,18 +304,40 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
         await pilot.pause()
         record_action(actions, "session.resume", "reopened Textual cockpit from saved state")
         frames.append(capture_frame(resume_app, args.output_dir, 11, "resume-qa", "WEAVE Textual - Resume At QA", actions))
+        view_actions = [
+            ("overview", resume_app.action_view_overview),
+            ("stages", resume_app.action_view_stages),
+            ("artifacts", resume_app.action_view_artifacts),
+            ("files", resume_app.action_view_files),
+            ("reviews", resume_app.action_view_reviews),
+            ("help", resume_app.action_view_help),
+            ("resume", resume_app.action_view_resume),
+        ]
+        for offset, (view, action) in enumerate(view_actions, 12):
+            action()
+            record_action(actions, "view.switch", view)
+            await pilot.pause()
+            frames.append(capture_frame(resume_app, args.output_dir, offset, f"view-{view}", f"WEAVE Textual - {view.title()} View", actions))
 
     scrubbed_refs = [*pre_qa_scrubbed_refs, *scrub_non_reviewable_runtime_state(args.state_root)]
     app_state = runtime.load_app(args.state_root, APP_ID)
     counts = artifact_counts(args.state_root, APP_ID)
     manifest_refs = collect_manifest_refs(args.state_root, APP_ID)
     playback_ref = write_playback_svg(args.output_dir, frames)
+    required_views = list(weave_textual_app.TEXTUAL_VIEWS)
+    captured_views = sorted({str(frame.get("view") or "") for frame in frames if frame.get("view")})
+    qa_approved = "qa" in app_state.get("approved_stages", [])
+    all_views_captured = all(view in captured_views for view in required_views)
     report = {
         "schema": "weave-v1-textual-dogfood/v1",
         "created_at": utc_now(),
         "duration_seconds": round(time.time() - started, 3),
-        "passed": "qa" in app_state.get("approved_stages", []),
-        "reason": "completed_through_qa" if "qa" in app_state.get("approved_stages", []) else "qa_not_approved",
+        "passed": qa_approved and all_views_captured,
+        "reason": (
+            "completed_through_qa_and_all_views_captured"
+            if qa_approved and all_views_captured
+            else ("missing_required_tui_views" if qa_approved else "qa_not_approved")
+        ),
         "app": {
             "app_id": app_state["app_id"],
             "name": app_state["name"],
@@ -323,6 +348,9 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
             **counts,
             "frame_count": len(frames),
             "frames": frames,
+            "required_views": required_views,
+            "captured_views": captured_views,
+            "all_views_captured": all_views_captured,
             "screen_recording_ref": playback_ref,
             "state_root_ref": repo_relative(args.state_root),
             "executor_manifest_ref": manifest_refs.get("executor_manifest", ""),

@@ -41,7 +41,7 @@
   "contract_version": "0.1-template",
   "conversation_events_path": "ledger/conversation-events.jsonl",
   "conversation_turns_path": "ledger/conversation-turns.jsonl",
-  "created_at": "2026-06-15T23:18:08Z",
+  "created_at": "2026-06-16T00:38:01Z",
   "credential_requirements": [],
   "current_stage": "qa",
   "decision_log_path": "context/decisions.md",
@@ -53,7 +53,7 @@
       "result_path": "apps/launch-studio-textual-v1/evaluations/engineering/result.json",
       "review_path": "apps/launch-studio-textual-v1/evaluations/engineering/review.json",
       "status": "completed",
-      "updated_at": "2026-06-15T23:21:46Z"
+      "updated_at": "2026-06-16T00:42:16Z"
     },
     "intent": {
       "decision": "advance",
@@ -62,7 +62,7 @@
       "result_path": "apps/launch-studio-textual-v1/evaluations/intent/result.json",
       "review_path": "apps/launch-studio-textual-v1/evaluations/intent/review.json",
       "status": "completed",
-      "updated_at": "2026-06-15T23:18:08Z"
+      "updated_at": "2026-06-16T00:38:01Z"
     },
     "plan": {
       "decision": "advance",
@@ -71,7 +71,7 @@
       "result_path": "apps/launch-studio-textual-v1/evaluations/plan/result.json",
       "review_path": "apps/launch-studio-textual-v1/evaluations/plan/review.json",
       "status": "completed",
-      "updated_at": "2026-06-15T23:18:09Z"
+      "updated_at": "2026-06-16T00:38:02Z"
     },
     "qa": {
       "decision": "advance",
@@ -80,7 +80,7 @@
       "result_path": "apps/launch-studio-textual-v1/evaluations/qa/result.json",
       "review_path": "apps/launch-studio-textual-v1/evaluations/qa/review.json",
       "status": "completed",
-      "updated_at": "2026-06-15T23:21:48Z"
+      "updated_at": "2026-06-16T00:42:18Z"
     },
     "research": {
       "decision": "advance",
@@ -89,7 +89,7 @@
       "result_path": "apps/launch-studio-textual-v1/evaluations/research/result.json",
       "review_path": "apps/launch-studio-textual-v1/evaluations/research/review.json",
       "status": "completed",
-      "updated_at": "2026-06-15T23:18:08Z"
+      "updated_at": "2026-06-16T00:38:01Z"
     },
     "selection": {
       "decision": "advance",
@@ -98,7 +98,7 @@
       "result_path": "apps/launch-studio-textual-v1/evaluations/selection/result.json",
       "review_path": "apps/launch-studio-textual-v1/evaluations/selection/review.json",
       "status": "completed",
-      "updated_at": "2026-06-15T23:18:08Z"
+      "updated_at": "2026-06-16T00:38:01Z"
     }
   },
   "ledger_path": "ledger/events.jsonl",
@@ -110,9 +110,9 @@
   "schema": "weave-app/v0.1",
   "stage_approvals": {
     "engineering": {
-      "approved_at": "2026-06-15T23:21:46Z",
+      "approved_at": "2026-06-16T00:42:16Z",
       "approved_by": "owner",
-      "conversation_turn_id": "3a3d3cd678c184c4b572849d",
+      "conversation_turn_id": "140a6fb147435f4b18da859b",
       "gate": {
         "app_id": "launch-studio-textual-v1",
         "approved_previous_stages": [
@@ -123,13 +123,13 @@
         ],
         "artifact_refs": [
           {
-            "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+            "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
             "kind": "artifact",
             "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
             "stage": "engineering"
           },
           {
-            "checksum": "sha256:87582416d6572b60a3b34fe86649e98018756b5cce23e81c05e9c882b9f63bcc",
+            "checksum": "sha256:242d94c7cc621f8ed976cdb333fdbfa7c5c595cc8da8c22944ac714c098b9722",
             "kind": "artifact",
             "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
             "stage": "engineering"
@@ -167,13 +167,13 @@
         "passed": true,
         "proof_artifact_refs": [
           {
-            "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+            "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
             "kind": "artifact",
             "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
             "stage": "engineering"
           },
           {
-            "checksum": "sha256:87582416d6572b60a3b34fe86649e98018756b5cce23e81c05e9c882b9f63bcc",
+            "checksum": "sha256:242d94c7cc621f8ed976cdb333fdbfa7c5c595cc8da8c22944ac714c098b9722",
             "kind": "artifact",
             "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
             "stage": "engineering"
@@ -185,13 +185,13 @@
         "transcript_capture": {
           "app_id": "launch-studio-textual-v1",
           "latest_artifact_ref": {
-            "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+            "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
             "kind": "artifact",
             "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
             "stage": "engineering"
           },
-          "latest_turn_at": "2026-06-15T23:21:28Z",
-          "latest_turn_id": "3a3d3cd678c184c4b572849d",
+          "latest_turn_at": "2026-06-16T00:41:58Z",
+          "latest_turn_id": "140a6fb147435f4b18da859b",
           "linked_turn_count": 1,
           "missing": [],
           "passed": true,
@@ -206,9 +206,9 @@
       "note": "Approved in Textual cockpit."
     },
     "intent": {
-      "approved_at": "2026-06-15T23:18:08Z",
+      "approved_at": "2026-06-16T00:38:01Z",
       "approved_by": "owner",
-      "conversation_turn_id": "c4fbd1dd91142b5acb3cf4d0",
+      "conversation_turn_id": "1d944936607ae687cc7ebd9f",
       "gate": {
         "app_id": "launch-studio-textual-v1",
         "approved_previous_stages": [],
@@ -269,8 +269,8 @@
             "path": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md",
             "stage": "intent"
           },
-          "latest_turn_at": "2026-06-15T23:18:08Z",
-          "latest_turn_id": "c4fbd1dd91142b5acb3cf4d0",
+          "latest_turn_at": "2026-06-16T00:38:01Z",
+          "latest_turn_id": "1d944936607ae687cc7ebd9f",
           "linked_turn_count": 1,
           "missing": [],
           "passed": true,
@@ -285,9 +285,9 @@
       "note": "Approved in Textual cockpit."
     },
     "plan": {
-      "approved_at": "2026-06-15T23:18:09Z",
+      "approved_at": "2026-06-16T00:38:02Z",
       "approved_by": "owner",
-      "conversation_turn_id": "978afc53999fab8be1abd9f8",
+      "conversation_turn_id": "9af67051a2aaa070e723819c",
       "gate": {
         "app_id": "launch-studio-textual-v1",
         "approved_previous_stages": [
@@ -352,8 +352,8 @@
             "path": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
             "stage": "plan"
           },
-          "latest_turn_at": "2026-06-15T23:18:09Z",
-          "latest_turn_id": "978afc53999fab8be1abd9f8",
+          "latest_turn_at": "2026-06-16T00:38:02Z",
+          "latest_turn_id": "9af67051a2aaa070e723819c",
           "linked_turn_count": 1,
           "missing": [],
           "passed": true,
@@ -368,9 +368,9 @@
       "note": "Approved in Textual cockpit."
     },
     "qa": {
-      "approved_at": "2026-06-15T23:21:48Z",
+      "approved_at": "2026-06-16T00:42:18Z",
       "approved_by": "owner",
-      "conversation_turn_id": "6082c0dcde28796e050c767b",
+      "conversation_turn_id": "4aa4f0d880bbbbc9b6394035",
       "gate": {
         "app_id": "launch-studio-textual-v1",
         "approved_previous_stages": [
@@ -437,8 +437,8 @@
             "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
             "stage": "qa"
           },
-          "latest_turn_at": "2026-06-15T23:21:46Z",
-          "latest_turn_id": "6082c0dcde28796e050c767b",
+          "latest_turn_at": "2026-06-16T00:42:16Z",
+          "latest_turn_id": "4aa4f0d880bbbbc9b6394035",
           "linked_turn_count": 1,
           "missing": [],
           "passed": true,
@@ -453,9 +453,9 @@
       "note": "Approved in Textual cockpit."
     },
     "research": {
-      "approved_at": "2026-06-15T23:18:08Z",
+      "approved_at": "2026-06-16T00:38:01Z",
       "approved_by": "owner",
-      "conversation_turn_id": "21de69c4d604efe8c6973f0a",
+      "conversation_turn_id": "7014909afc26b01678ad119e",
       "gate": {
         "app_id": "launch-studio-textual-v1",
         "approved_previous_stages": [
@@ -518,8 +518,8 @@
             "path": "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md",
             "stage": "research"
           },
-          "latest_turn_at": "2026-06-15T23:18:08Z",
-          "latest_turn_id": "21de69c4d604efe8c6973f0a",
+          "latest_turn_at": "2026-06-16T00:38:01Z",
+          "latest_turn_id": "7014909afc26b01678ad119e",
           "linked_turn_count": 1,
           "missing": [],
           "passed": true,
@@ -534,9 +534,9 @@
       "note": "Approved in Textual cockpit."
     },
     "selection": {
-      "approved_at": "2026-06-15T23:18:08Z",
+      "approved_at": "2026-06-16T00:38:01Z",
       "approved_by": "owner",
-      "conversation_turn_id": "751f01273f62e16478661820",
+      "conversation_turn_id": "341ce3e2c766c058843cfe29",
       "gate": {
         "app_id": "launch-studio-textual-v1",
         "approved_previous_stages": [
@@ -600,8 +600,8 @@
             "path": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md",
             "stage": "selection"
           },
-          "latest_turn_at": "2026-06-15T23:18:08Z",
-          "latest_turn_id": "751f01273f62e16478661820",
+          "latest_turn_at": "2026-06-16T00:38:01Z",
+          "latest_turn_id": "341ce3e2c766c058843cfe29",
           "linked_turn_count": 1,
           "missing": [],
           "passed": true,

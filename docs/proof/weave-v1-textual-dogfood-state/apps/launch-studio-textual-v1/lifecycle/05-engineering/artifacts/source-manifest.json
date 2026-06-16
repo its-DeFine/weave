@@ -4,28 +4,28 @@
   "file_count": 5,
   "files": [
     {
-      "bytes": 1130,
-      "checksum": "sha256:d674e24da9370659baf24cb4e3e32384d53910682c44ee4d75f6e7a1629bd587",
+      "bytes": 1237,
+      "checksum": "sha256:2f1110770838fbc5fb4be67fd7eb1280404121c91f3916e4f33ee02564800399",
       "path": "apps/launch-studio-textual-v1/repo/primary/README.md"
     },
     {
-      "bytes": 7630,
-      "checksum": "sha256:4a798548f4e01bd19625fedcf0a990aa0cf1bb2b5d1b386a33d0382e56b490cd",
+      "bytes": 5643,
+      "checksum": "sha256:40b0366865776f7c5a97c8f744716c5280e96e8c59c6ec6fe61280878075f6c4",
       "path": "apps/launch-studio-textual-v1/repo/primary/index.html"
     },
     {
-      "bytes": 570,
-      "checksum": "sha256:359828fb6b874b47687ad1f8e8accbcc7b3c2d9d6836e1e9b7ca4fce8ccacbf3",
+      "bytes": 410,
+      "checksum": "sha256:d8275cf66eeb3ffcd81684da626533d954ed37a1aa68ce6c3f515b7ed8bb58f7",
       "path": "apps/launch-studio-textual-v1/repo/primary/public/config.json"
     },
     {
-      "bytes": 3628,
-      "checksum": "sha256:e075282eb8c52baa77e53a8f67846e77b1d5a06d8566098c5824e54f90dad776",
+      "bytes": 11893,
+      "checksum": "sha256:d24213a2250b8890cfc3c4a42e533786fc82b861173d8991dc7a910215952afa",
       "path": "apps/launch-studio-textual-v1/repo/primary/src/app.js"
     },
     {
-      "bytes": 4970,
-      "checksum": "sha256:21b0c8f85029e962e9fcc7979f2ae71d326594f1dd8839d116cc068a6a9aa18a",
+      "bytes": 6192,
+      "checksum": "sha256:264609ea8f72e5c8496dba3a76c6656078ddd1d5a41fb1abaae57b38e02bf81b",
       "path": "apps/launch-studio-textual-v1/repo/primary/src/styles.css"
     }
   ],
@@ -33,5 +33,5 @@
   "schema": "weave/source-manifest/v1",
   "secret_value_printed": false,
   "status": "passed",
-  "updated_at": "2026-06-15T23:21:28Z"
+  "updated_at": "2026-06-16T00:41:58Z"
 }

@@ -7,18 +7,22 @@ relevant later for a generated website app after a separate deployment approval.
 
 ## Completion Claim
 
-Current claim: the local WEAVE v1 Textual path is proven through QA.
+Current claim: the local WEAVE v1 Textual path is proven through QA with all
+operator views captured and real Codex CLI execution connected through the
+backend.
 
 Traceability:
 
-- Linear issue: `ATM-255`
-- Git branch: `codex/weave-v1-textual-delivery`
+- Linear issue: `ATM-256`
+- Git branch: `codex/atm-256-weave-v1-textual-completion`
 
 Evidence:
 
 - Textual dogfood report: `docs/proof/weave-v1-textual-dogfood.json`
 - Textual journey recording: `docs/ux/weave-v1-textual-dogfood/weave-v1-textual-dogfood-recording.svg`
 - Resume proof frame: `docs/ux/weave-v1-textual-dogfood/11-resume-qa.svg`
+- All-view proof frames: `docs/ux/weave-v1-textual-dogfood/12-view-overview.svg`
+  through `docs/ux/weave-v1-textual-dogfood/18-view-resume.svg`
 - Backend dogfood report: `docs/proof/weave-v1-backend-dogfood.json`
 - Completion matrix: `docs/WEAVE_V1_COMPLETION_MATRIX.md`
 - Operator runbook: `docs/WEAVE_V1_TEXTUAL_RUNBOOK.md`
@@ -46,20 +50,27 @@ human-style journey:
 11. Engineering evaluation and approval are completed.
 12. QA prompt packet, proof artifact, evaluation, and approval are completed.
 13. The TUI is reopened on the same state and resumes at QA.
+14. The operator switches through the `overview`, `stages`, `artifacts`,
+    `files`, `reviews`, `help`, and `resume` views.
 
 ## Current Proof Metrics
 
 From `docs/proof/weave-v1-textual-dogfood.json`:
 
 - `passed`: true
-- `reason`: `completed_through_qa`
+- `reason`: `completed_through_qa_and_all_views_captured`
 - approved stages: `intent`, `research`, `selection`, `plan`, `engineering`,
   `qa`
-- Textual frames: 11
-- human-style actions: 41
+- Textual frames: 18
+- required views captured: `overview`, `stages`, `artifacts`, `files`,
+  `reviews`, `help`, `resume`
+- human-style actions: 48
 - prompt packets: 8
 - generated app source files: 5
 - resume stage: `qa`
+- Codex executor manifest status: `passed`
+- Codex executor process completed: true
+- Codex executor required file check: passed
 - scrubbed non-reviewable runtime refs: `runtime/tokens/local-api-token`,
   `runtime/tokens/`, `runtime/source-map.json`
 - external effects executed: none
@@ -77,7 +88,7 @@ python3 scripts/public_safe_repo_scan.py
 python3 scripts/check_no_secrets.py
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
 git diff --check
-.venv/bin/python scripts/weave_v1_textual_dogfood.py --clean --codex-timeout 600
+.venv/bin/python scripts/weave_v1_textual_dogfood.py --clean --codex-timeout 240
 python3 scripts/weave_v1_backend_dogfood.py --report-out docs/proof/weave-v1-backend-dogfood.json --codex-timeout 600
 ```
 

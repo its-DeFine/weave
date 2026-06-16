@@ -227,6 +227,46 @@ class WeavePromptOrchestrationTests(unittest.TestCase):
             self.assertTrue(executor["live_agent_execution"])
             self.assertEqual(source["file_count"], 1)
 
+    def test_backend_executor_timeout_after_required_files_is_warning_success(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "weave-state"
+            weave_backend.dispatch(root, "workspace.create_app", app_id="exec-timeout-files", app_name="Exec Timeout Files")
+
+            def timeout_after_write(command, **_kwargs):
+                repo = Path(command[-2])
+                (repo / "src").mkdir(parents=True, exist_ok=True)
+                (repo / "public").mkdir(parents=True, exist_ok=True)
+                (repo / "index.html").write_text("<main><h1>Exec Timeout Files</h1></main>\n", encoding="utf-8")
+                (repo / "src" / "app.js").write_text("document.addEventListener('DOMContentLoaded', () => {});\n", encoding="utf-8")
+                (repo / "src" / "styles.css").write_text("main { color: #111; }\n", encoding="utf-8")
+                (repo / "public" / "config.json").write_text("{}\n", encoding="utf-8")
+                (repo / "README.md").write_text("# Exec Timeout Files\n", encoding="utf-8")
+                raise subprocess.TimeoutExpired(command, timeout=30, output="", stderr="")
+
+            with mock.patch.object(weave_backend.shutil, "which", return_value="codex"), mock.patch.object(
+                weave_backend.subprocess,
+                "run",
+                side_effect=timeout_after_write,
+            ):
+                result = weave_backend.dispatch(
+                    root,
+                    "executor.run",
+                    app_id="exec-timeout-files",
+                    app_name="Exec Timeout Files",
+                    payload={"owner_message": "Build the approved app."},
+                )
+
+            self.assertTrue(result["ok"], result)
+            executor_ref = next(ref for ref in result["artifacts_written"] if ref.endswith("executor-manifest.json"))
+            source_ref = next(ref for ref in result["artifacts_written"] if ref.endswith("source-manifest.json"))
+            executor = json.loads((root / executor_ref).read_text(encoding="utf-8"))
+            source = json.loads((root / source_ref).read_text(encoding="utf-8"))
+            self.assertEqual(executor["status"], "passed")
+            self.assertEqual(executor["failure_class"], "codex_process_timeout_after_files")
+            self.assertFalse(executor["process_completed"])
+            self.assertTrue(executor["live_agent_execution"])
+            self.assertEqual(source["file_count"], 5)
+
 
 if __name__ == "__main__":
     unittest.main()

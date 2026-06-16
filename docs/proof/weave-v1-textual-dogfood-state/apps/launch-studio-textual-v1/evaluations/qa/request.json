@@ -12,7 +12,7 @@
   ],
   "contract": "packages/weave-tool/evals/lifecycle/qa.yaml",
   "contract_schema": "weave.lifecycle-eval/v0.1",
-  "created_at": "2026-06-15T23:21:46Z",
+  "created_at": "2026-06-16T00:42:16Z",
   "hard_gates": [
     "runtime_smoke_pass",
     "package_validation_pass",
@@ -25,7 +25,7 @@
     "Do not include secrets, credentials, private locators, or hidden chain-of-thought."
   ],
   "public_safe": true,
-  "request_id": "0975bcbd20d117079491839c",
+  "request_id": "4077a2fd7e661e42d12d0d7e",
   "rubric_dimensions": [
     "happy_path_proof",
     "failure_path_proof",
@@ -87,8 +87,8 @@
         "path": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/qa-proof.md",
         "stage": "qa"
       },
-      "latest_turn_at": "2026-06-15T23:21:46Z",
-      "latest_turn_id": "6082c0dcde28796e050c767b",
+      "latest_turn_at": "2026-06-16T00:42:16Z",
+      "latest_turn_id": "4aa4f0d880bbbbc9b6394035",
       "linked_turn_count": 1,
       "missing": [],
       "passed": true,
@@ -100,5 +100,5 @@
     },
     "warnings": []
   },
-  "transcript_turn_id": "6082c0dcde28796e050c767b"
+  "transcript_turn_id": "4aa4f0d880bbbbc9b6394035"
 }

@@ -1,10 +1,10 @@
 # WEAVE Prompt Packet
 
-Packet: prompt-plan-start-c95ef53ce9f2ea15
+Packet: prompt-research-start-a6f9582180a7bdc0
 App: launch-studio-textual-v1
-Stage: plan
+Stage: research
 Substage: start
-Worker role: Business and technical planner
+Worker role: Research planner and synthesizer
 
 ## 1. Global WEAVE Prelude
 
@@ -29,12 +29,12 @@ assumptions, blockers, proof, non-claims, and the next review choice.
 
 ## 2. Current Worker Role
 
-You are the WEAVE Business and technical planner. Your owner-visible goal is:
-Turn the selected direction into business, engineering, QA, SEO, deployment, KPI, marketing, and iteration plans.
+You are the WEAVE Research planner and synthesizer. Your owner-visible goal is:
+Unpack the approved intent into researched facts before choosing a direction.
 
 ## 3. Stage/Substage Instruction
 
-Explain that planning creates the tracks needed before engineering starts.
+Explain that research will discover what must be known to build the app. Show that the owner can approve or change the research plan.
 
 ## 4. Owner Profile
 
@@ -46,14 +46,9 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 6. Prior Artifacts To Read
 
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.json
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.md
-- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.json
-- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.md
-- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md
-- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.json
-- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.md
-- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md
+- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md
+- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.json
+- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.md
 
 ## 7. Selected Context References
 
@@ -62,7 +57,7 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 8. Latest Owner Input
 
-Business plan: help a founder make a launch/no-launch decision with visible proof and risks. Engineering plan: create a local website workspace with semantic HTML, client-side state, no external calls, and source/executor manifests. QA plan: verify required files, semantic markup, SEO metadata, local state behavior, launch-boundary copy, source manifest, executor manifest, public-safe constraints, and owner-reviewable evidence.
+Research plan: identify founder launch-readiness workflows, QA evidence patterns, SEO launch basics, risk registers, and safe local proof boundaries. Findings: a founder needs compact lifecycle status, visible blockers, source-backed claims, surface-adapted QA, and explicit non-claims before launch. Public-web research is represented as local proof notes in this TUI dogfood; live browsing is not claimed by this artifact.
 
 ## 9. Structured Feedback
 
@@ -72,15 +67,11 @@ Business plan: help a founder make a launch/no-launch decision with visible proo
 
 ## 10. Required Outputs
 
-- business-plan
-- engineering-plan
-- qa-plan
-- seo-plan
-- deployment-plan
-- kpi-plan
-- marketing-plan
-- iteration-plan
-- engineering-handoff
+- research-plan
+- source-policy
+- research-synthesis
+- source-log
+- selection-handoff
 
 ## 11. Gate Criteria
 

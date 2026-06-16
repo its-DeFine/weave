@@ -1,10 +1,10 @@
 # WEAVE Prompt Packet
 
-Packet: prompt-engineering-build-9c93b9aeaf5d3958
+Packet: prompt-plan-start-90eedbc1cb3e0818
 App: launch-studio-textual-v1
-Stage: engineering
-Substage: build
-Worker role: Codex engineer
+Stage: plan
+Substage: start
+Worker role: Business and technical planner
 
 ## 1. Global WEAVE Prelude
 
@@ -29,12 +29,12 @@ assumptions, blockers, proof, non-claims, and the next review choice.
 
 ## 2. Current Worker Role
 
-You are the WEAVE Codex engineer. Your owner-visible goal is:
-Build the app from approved artifacts while respecting hard gates.
+You are the WEAVE Business and technical planner. Your owner-visible goal is:
+Turn the selected direction into business, engineering, QA, SEO, deployment, KPI, marketing, and iteration plans.
 
 ## 3. Stage/Substage Instruction
 
-Create or edit the app using approved artifacts. Produce required files, keep code local, include SEO for websites, and avoid live effects.
+Explain that planning creates the tracks needed before engineering starts.
 
 ## 4. Owner Profile
 
@@ -46,14 +46,14 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 6. Prior Artifacts To Read
 
-- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.json
-- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.md
+- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.json
+- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.md
+- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-a6f9582180a7bdc0.json
+- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-a6f9582180a7bdc0.md
+- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md
+- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.json
+- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.md
 - apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md
-- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md
-- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.json
-- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.md
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-e5e28fc8f02d0e45.json
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-e5e28fc8f02d0e45.md
 
 ## 7. Selected Context References
 
@@ -62,7 +62,7 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 8. Latest Owner Input
 
-Build a launch readiness cockpit for a founder to review lifecycle status, risks, QA, SEO, and launch boundaries before deciding whether to launch.
+Business plan: help a founder make a launch/no-launch decision with visible proof and risks. Engineering plan: create a local website workspace with semantic HTML, client-side state, no external calls, and source/executor manifests. QA plan: verify required files, semantic markup, SEO metadata, local state behavior, launch-boundary copy, source manifest, executor manifest, public-safe constraints, and owner-reviewable evidence.
 
 ## 9. Structured Feedback
 
@@ -72,12 +72,15 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 10. Required Outputs
 
-- executor-prompt-packet
-- executor-manifest
-- generated-source-files
-- source-manifest
-- engineering-summary
-- qa-handoff
+- business-plan
+- engineering-plan
+- qa-plan
+- seo-plan
+- deployment-plan
+- kpi-plan
+- marketing-plan
+- iteration-plan
+- engineering-handoff
 
 ## 11. Gate Criteria
 

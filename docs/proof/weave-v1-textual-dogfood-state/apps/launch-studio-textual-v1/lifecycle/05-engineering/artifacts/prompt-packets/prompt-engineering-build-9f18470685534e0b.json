@@ -8,7 +8,7 @@
   "claims": [
     "prompt packet assembled from versioned WEAVE prompt library"
   ],
-  "created_at": "2026-06-15T23:18:09Z",
+  "created_at": "2026-06-16T00:38:02Z",
   "executor": "codex",
   "feedback": {},
   "forbidden_actions": [
@@ -25,14 +25,14 @@
   ],
   "global_prelude_ref": "prompts/weave/global/prelude.v1.md",
   "input_refs": [
-    "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.json",
-    "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.md",
+    "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.json",
+    "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.md",
     "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md",
     "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
-    "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.json",
-    "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.md",
-    "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-e5e28fc8f02d0e45.json",
-    "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-e5e28fc8f02d0e45.md"
+    "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.json",
+    "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.md",
+    "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-06f6c74e38f0965e.json",
+    "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-06f6c74e38f0965e.md"
   ],
   "latest_owner_message": "Build a launch readiness cockpit for a founder to review lifecycle status, risks, QA, SEO, and launch boundaries before deciding whether to launch.",
   "non_claims": [
@@ -41,11 +41,11 @@
   ],
   "owner_profile_summary": "Use the owner profile artifact when present; otherwise ask concise clarifying questions.",
   "owner_visible_goal": "Build the app from approved artifacts while respecting hard gates.",
-  "packet_id": "prompt-engineering-build-9c93b9aeaf5d3958",
-  "packet_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9c93b9aeaf5d3958.json",
+  "packet_id": "prompt-engineering-build-9f18470685534e0b",
+  "packet_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.json",
   "public_safe": true,
   "reason": "Textual backend requested engineering/build prompt packet",
-  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9c93b9aeaf5d3958.md",
+  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.md",
   "required_context": [
     "engineering-handoff",
     "intent",

@@ -28,6 +28,7 @@ WORLD_MODEL_SCHEMA = "weave/world-model-local/v1"
 TEXTUAL_SESSION_SCHEMA = "weave/textual-session/v1"
 EXECUTOR_MANIFEST_SCHEMA = "weave/executor-manifest/v1"
 SOURCE_MANIFEST_SCHEMA = "weave/source-manifest/v1"
+REQUIRED_GENERATED_APP_FILES = ("index.html", "src/app.js", "src/styles.css", "public/config.json", "README.md")
 
 SETUP_STAGES = ["first_run", "owner_profile", "app"]
 PRODUCT_STAGES = [
@@ -533,6 +534,18 @@ def source_manifest(root: Path, app_id: str, *, executor: str, status: str) -> d
     return manifest
 
 
+def required_generated_app_file_status(root: Path, app_id: str) -> dict[str, Any]:
+    """Check whether the Codex-created app has the minimum v1 source set."""
+
+    repo = primary_repo_dir(root, app_id)
+    missing = [relative for relative in REQUIRED_GENERATED_APP_FILES if not (repo / relative).is_file()]
+    return {
+        "required_files": list(REQUIRED_GENERATED_APP_FILES),
+        "missing_files": missing,
+        "passed": not missing,
+    }
+
+
 def executor_manifest(root: Path, app_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     manifest = {
         "schema": EXECUTOR_MANIFEST_SCHEMA,
@@ -551,6 +564,15 @@ def executor_manifest(root: Path, app_id: str, payload: dict[str, Any]) -> dict[
 
 def codex_engineering_execution_prompt(app: dict[str, Any], packet: dict[str, Any], owner_message: str) -> str:
     prompt = f"""You are executing the WEAVE Engineering stage in the current working directory.
+
+Execution packet:
+- current_model: Codex CLI executor selected by the local WEAVE Textual backend.
+- expected_change: create or update only the local static app files listed below in the current working directory.
+- proof_path: the WEAVE backend will verify index.html, src/app.js, src/styles.css, public/config.json, README.md, source-manifest.json, and executor-manifest.json after this command returns.
+- exit_condition: the five requested app files exist, contain the required local-only launch cockpit behavior, and no hard boundary was crossed.
+- owner_decision_boundary: this prompt is pre-authorized only for local file writes inside the current generated app workspace.
+- deadline_window: complete during this non-interactive invocation; do not wait for additional human confirmation.
+- approval_state: approved for local-only generated app file creation; not approved for credentials, deployment, public sends, paid spend, destructive operations, or external account mutation.
 
 Build a local-only static app for:
 - App name: {app['name']}
@@ -651,6 +673,7 @@ def run_codex_engineering(root: Path, app_id: str, *, owner_message: str = "", t
         "-",
     ]
     timed_out = False
+    subprocess_error = False
     exit_code: int | None
     stdout_lines = 0
     stderr_lines = 0
@@ -668,22 +691,34 @@ def run_codex_engineering(root: Path, app_id: str, *, owner_message: str = "", t
         exit_code = completed.returncode
         stdout_lines = len((completed.stdout or "").splitlines())
         stderr_lines = len((completed.stderr or "").splitlines())
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
         timed_out = True
         exit_code = None
+        stdout_lines = len(((exc.stdout or "") if isinstance(exc.stdout, str) else "").splitlines())
+        stderr_lines = len(((exc.stderr or "") if isinstance(exc.stderr, str) else "").splitlines())
     except OSError:
+        subprocess_error = True
         exit_code = None
 
+    required_files = required_generated_app_file_status(root, app_id)
     status = "passed" if exit_code == 0 and not timed_out else "failed"
+    warnings: list[str] = []
+    if timed_out and required_files["passed"]:
+        status = "passed"
+        warnings.append("codex_process_timeout_after_required_files")
     source = source_manifest(root, app_id, executor="codex", status=status)
     if status == "passed" and source["file_count"] == 0:
         status = "failed"
         failure_class = "no_source_files_written"
         source = source_manifest(root, app_id, executor="codex", status=status)
+    elif warnings:
+        failure_class = "codex_process_timeout_after_files"
     elif timed_out:
         failure_class = "timeout"
     elif exit_code == 0:
         failure_class = ""
+    elif subprocess_error:
+        failure_class = "subprocess_error"
     else:
         failure_class = "agent_execution"
     manifest = executor_manifest(
@@ -694,6 +729,8 @@ def run_codex_engineering(root: Path, app_id: str, *, owner_message: str = "", t
             "status": status,
             "failure_class": failure_class,
             "live_agent_execution": status == "passed",
+            "process_completed": not timed_out and not subprocess_error,
+            "timed_out": timed_out,
             "binary_found": True,
             "command_label": command_label,
             "exit_code": exit_code,
@@ -705,8 +742,15 @@ def run_codex_engineering(root: Path, app_id: str, *, owner_message: str = "", t
                 "stderr_line_count": stderr_lines,
                 "raw_output_persisted": False,
             },
-            "claims": ["Codex CLI ran and wrote local app files"] if status == "passed" else [],
-            "non_claims": ["not deployed", "not live user proof", "no provider credentials were captured by WEAVE"],
+            "required_file_check": required_files,
+            "warnings": warnings,
+            "claims": ["Codex CLI wrote local app files"] if status == "passed" else [],
+            "non_claims": [
+                "not deployed",
+                "not live user proof",
+                "no provider credentials were captured by WEAVE",
+                *("Codex CLI process did not exit before timeout" for _ in warnings),
+            ],
         },
     )
     if status == "passed":

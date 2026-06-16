@@ -22,6 +22,10 @@ sys.path.insert(0, str(SCRIPT_DIR))
 import weave_textual_app  # noqa: E402
 
 
+def write_svg(path: Path, svg: str) -> None:
+    path.write_text("\n".join(line.rstrip() for line in svg.splitlines()) + "\n", encoding="utf-8")
+
+
 async def capture(output_dir: Path) -> list[Path]:
     if not weave_textual_app.textual_available():
         raise RuntimeError(weave_textual_app.missing_textual_message())
@@ -42,7 +46,7 @@ async def capture(output_dir: Path) -> list[Path]:
         async with app.run_test(size=(150, 42)) as pilot:
             await pilot.pause()
             first = output_dir / "01-first-run.svg"
-            first.write_text(app.export_screenshot(title="WEAVE v1 Textual Cockpit - First Run"), encoding="utf-8")
+            write_svg(first, app.export_screenshot(title="WEAVE v1 Textual Cockpit - First Run"))
             written.append(first)
 
             app.action_create_app()
@@ -50,7 +54,7 @@ async def capture(output_dir: Path) -> list[Path]:
             app.action_prepare_prompt()
             await pilot.pause()
             intent = output_dir / "02-intent-prompt-ready.svg"
-            intent.write_text(app.export_screenshot(title="WEAVE v1 Textual Cockpit - Intent Prompt Ready"), encoding="utf-8")
+            write_svg(intent, app.export_screenshot(title="WEAVE v1 Textual Cockpit - Intent Prompt Ready"))
             written.append(intent)
 
             app.query_one("#composer").value = (
@@ -64,7 +68,7 @@ async def capture(output_dir: Path) -> list[Path]:
             app.action_advance_stage()
             await pilot.pause()
             research = output_dir / "03-research-active.svg"
-            research.write_text(app.export_screenshot(title="WEAVE v1 Textual Cockpit - Research Active"), encoding="utf-8")
+            write_svg(research, app.export_screenshot(title="WEAVE v1 Textual Cockpit - Research Active"))
             written.append(research)
     return written
 

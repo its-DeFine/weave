@@ -37,7 +37,7 @@
     "advance to next lifecycle stage"
   ],
   "proof_scope": "local_deterministic_runtime",
-  "request_id": "3023629b6eccf79a7d420161",
+  "request_id": "ba28a6829f993a705747f65d",
   "rubric_score": {
     "dimensions": [
       {
@@ -93,5 +93,5 @@
   "slug": "intent",
   "stage": "Intent",
   "state": "verified",
-  "transcript_turn_id": "c4fbd1dd91142b5acb3cf4d0"
+  "transcript_turn_id": "1d944936607ae687cc7ebd9f"
 }
