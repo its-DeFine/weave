@@ -1,10 +1,10 @@
 # WEAVE Prompt Packet
 
-Packet: prompt-selection-start-ff036b7392713a8f
+Packet: prompt-engineering-build-9f18470685534e0b
 App: launch-studio-textual-v1
-Stage: selection
-Substage: start
-Worker role: Options strategist
+Stage: engineering
+Substage: build
+Worker role: Codex engineer
 
 ## 1. Global WEAVE Prelude
 
@@ -29,12 +29,12 @@ assumptions, blockers, proof, non-claims, and the next review choice.
 
 ## 2. Current Worker Role
 
-You are the WEAVE Options strategist. Your owner-visible goal is:
-Pick the best direction to build from research artifacts.
+You are the WEAVE Codex engineer. Your owner-visible goal is:
+Build the app from approved artifacts while respecting hard gates.
 
 ## 3. Stage/Substage Instruction
 
-Announce transition from research to choices and explain that no new user input is required to generate options.
+Create or edit the app using approved artifacts. Produce required files, keep code local, include SEO for websites, and avoid live effects.
 
 ## 4. Owner Profile
 
@@ -46,12 +46,14 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 6. Prior Artifacts To Read
 
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.json
-- apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.md
-- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.json
-- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.md
-- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md
+- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.json
+- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.md
+- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md
+- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md
+- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.json
+- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.md
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-06f6c74e38f0965e.json
+- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-06f6c74e38f0965e.md
 
 ## 7. Selected Context References
 
@@ -60,7 +62,7 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 8. Latest Owner Input
 
-Selected option: a local static launch readiness cockpit with lifecycle rail, risk board, QA/SEO evidence panels, and launch boundary checklist. Rejected options: live deployment, analytics, provider credentials, paid ads, and public publishing during this proof. Reason: the selected path maximizes owner-reviewable proof while preserving local-only safety.
+Build a launch readiness cockpit for a founder to review lifecycle status, risks, QA, SEO, and launch boundaries before deciding whether to launch.
 
 ## 9. Structured Feedback
 
@@ -70,10 +72,12 @@ Selected option: a local static launch readiness cockpit with lifecycle rail, ri
 
 ## 10. Required Outputs
 
-- selection-options
-- decision-matrix
-- selected-option
-- planning-handoff
+- executor-prompt-packet
+- executor-manifest
+- generated-source-files
+- source-manifest
+- engineering-summary
+- qa-handoff
 
 ## 11. Gate Criteria
 

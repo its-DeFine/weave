@@ -8,7 +8,7 @@
   "claims": [
     "prompt packet assembled from versioned WEAVE prompt library"
   ],
-  "created_at": "2026-06-15T23:18:08Z",
+  "created_at": "2026-06-16T00:38:01Z",
   "executor": "codex",
   "feedback": {},
   "forbidden_actions": [
@@ -32,11 +32,11 @@
   ],
   "owner_profile_summary": "Use the owner profile artifact when present; otherwise ask concise clarifying questions.",
   "owner_visible_goal": "Make the app intent buildable before research starts.",
-  "packet_id": "prompt-intent-start-d9d985a392a52168",
-  "packet_ref": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.json",
+  "packet_id": "prompt-intent-start-2da91742e6148ed9",
+  "packet_ref": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.json",
   "public_safe": true,
   "reason": "Textual backend requested intent/start prompt packet",
-  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.md",
+  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.md",
   "required_context": [
     "owner-profile",
     "app-manifest",

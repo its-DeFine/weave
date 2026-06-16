@@ -4,7 +4,7 @@
   "artifact": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
   "artifact_refs": [
     {
-      "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+      "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
       "kind": "artifact",
       "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
       "stage": "engineering"
@@ -12,7 +12,7 @@
   ],
   "contract": "packages/weave-tool/evals/lifecycle/engineering.yaml",
   "contract_schema": "weave.lifecycle-eval/v0.1",
-  "created_at": "2026-06-15T23:21:28Z",
+  "created_at": "2026-06-16T00:41:58Z",
   "hard_gates": [
     "unit_tests_pass",
     "diff_check_clean",
@@ -24,7 +24,7 @@
     "Do not include secrets, credentials, private locators, or hidden chain-of-thought."
   ],
   "public_safe": true,
-  "request_id": "7d62a4781604e00c8af6960b",
+  "request_id": "f382deedf31d84da490b016b",
   "rubric_dimensions": [
     "correctness",
     "maintainability",
@@ -46,13 +46,13 @@
     ],
     "artifact_refs": [
       {
-        "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+        "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
         "kind": "artifact",
         "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
         "stage": "engineering"
       },
       {
-        "checksum": "sha256:87582416d6572b60a3b34fe86649e98018756b5cce23e81c05e9c882b9f63bcc",
+        "checksum": "sha256:242d94c7cc621f8ed976cdb333fdbfa7c5c595cc8da8c22944ac714c098b9722",
         "kind": "artifact",
         "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
         "stage": "engineering"
@@ -74,13 +74,13 @@
     "passed": true,
     "proof_artifact_refs": [
       {
-        "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+        "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
         "kind": "artifact",
         "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
         "stage": "engineering"
       },
       {
-        "checksum": "sha256:87582416d6572b60a3b34fe86649e98018756b5cce23e81c05e9c882b9f63bcc",
+        "checksum": "sha256:242d94c7cc621f8ed976cdb333fdbfa7c5c595cc8da8c22944ac714c098b9722",
         "kind": "artifact",
         "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
         "stage": "engineering"
@@ -92,13 +92,13 @@
     "transcript_capture": {
       "app_id": "launch-studio-textual-v1",
       "latest_artifact_ref": {
-        "checksum": "sha256:e12171037b2e716b160e45b6b20fbeef565b2dcd7b3dbbf253b44973963fdf67",
+        "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
         "kind": "artifact",
         "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
         "stage": "engineering"
       },
-      "latest_turn_at": "2026-06-15T23:21:28Z",
-      "latest_turn_id": "3a3d3cd678c184c4b572849d",
+      "latest_turn_at": "2026-06-16T00:41:58Z",
+      "latest_turn_id": "140a6fb147435f4b18da859b",
       "linked_turn_count": 1,
       "missing": [],
       "passed": true,
@@ -110,5 +110,5 @@
     },
     "warnings": []
   },
-  "transcript_turn_id": "3a3d3cd678c184c4b572849d"
+  "transcript_turn_id": "140a6fb147435f4b18da859b"
 }

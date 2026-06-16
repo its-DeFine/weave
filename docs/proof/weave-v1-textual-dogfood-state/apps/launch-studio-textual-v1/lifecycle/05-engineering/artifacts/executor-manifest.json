@@ -2,7 +2,7 @@
   "app_id": "launch-studio-textual-v1",
   "binary_found": true,
   "claims": [
-    "Codex CLI ran and wrote local app files"
+    "Codex CLI wrote local app files"
   ],
   "command_label": "codex exec --sandbox workspace-write -C app repo -",
   "executor": "codex",
@@ -16,15 +16,29 @@
   ],
   "output_summary": {
     "raw_output_persisted": false,
-    "stderr_line_count": 6343,
-    "stdout_line_count": 3
+    "stderr_line_count": 5576,
+    "stdout_line_count": 9
   },
-  "prompt_packet_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9c93b9aeaf5d3958.json",
+  "process_completed": true,
+  "prompt_packet_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.json",
   "public_safe": true,
-  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9c93b9aeaf5d3958.md",
+  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.md",
+  "required_file_check": {
+    "missing_files": [],
+    "passed": true,
+    "required_files": [
+      "index.html",
+      "src/app.js",
+      "src/styles.css",
+      "public/config.json",
+      "README.md"
+    ]
+  },
   "schema": "weave/executor-manifest/v1",
   "secret_value_printed": false,
   "source_manifest_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
   "status": "passed",
-  "updated_at": "2026-06-15T23:21:28Z"
+  "timed_out": false,
+  "updated_at": "2026-06-16T00:41:58Z",
+  "warnings": []
 }

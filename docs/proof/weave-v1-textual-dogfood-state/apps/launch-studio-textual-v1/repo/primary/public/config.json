@@ -1,30 +1,17 @@
 {
-  "app_id": "launch-studio-textual-v1",
   "app_name": "Launch Studio Textual v1",
-  "mode": "local_only",
-  "analytics": {
-    "status": "disabled",
-    "disabled": true,
-    "enabled": false
+  "app_id": "launch-studio-textual-v1",
+  "mode": "local-only",
+  "features": {
+    "analytics": "disabled",
+    "deployment": "disabled",
+    "paid_spend": "disabled",
+    "public_send": "disabled",
+    "credentials": "disabled",
+    "external_api_calls": "disabled"
   },
-  "deployment": {
-    "status": "disabled",
-    "disabled": true,
-    "enabled": false
-  },
-  "paid_spend": {
-    "status": "disabled",
-    "disabled": true,
-    "enabled": false
-  },
-  "public_send": {
-    "status": "disabled",
-    "disabled": true,
-    "enabled": false
-  },
-  "credentials": {
-    "status": "disabled",
-    "disabled": true,
-    "enabled": false
+  "storage": {
+    "browser_localStorage": "enabled",
+    "remote_storage": "disabled"
   }
 }

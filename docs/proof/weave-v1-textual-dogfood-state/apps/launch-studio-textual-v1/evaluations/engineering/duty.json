@@ -3,15 +3,15 @@
   "app_id": "launch-studio-textual-v1",
   "blockers": [],
   "completed_by": "textual-local-evaluator",
-  "created_at": "2026-06-15T23:21:46Z",
+  "created_at": "2026-06-16T00:42:16Z",
   "decision": "advance",
   "next_actions": [
     "advance to next lifecycle stage"
   ],
   "public_safe": true,
-  "request_id": "7d62a4781604e00c8af6960b",
+  "request_id": "f382deedf31d84da490b016b",
   "request_path": "apps/launch-studio-textual-v1/evaluations/engineering/request.json",
-  "result_checksum": "sha256:2b92f608531ce22a1bd1d22e33eb1f6a9e5d60ea5e70fb204bebca8289e234fe",
+  "result_checksum": "sha256:5c60bdcbfaf9c797c88519266f7ccfe8fe93b4705c9523c915a1012fbac9ff2a",
   "result_path": "apps/launch-studio-textual-v1/evaluations/engineering/result.json",
   "review_checksum": "sha256:987f2c615b85996a92cae0eb0496a4bd94d084ec0435370f45f31f3185bcfe6f",
   "review_path": "apps/launch-studio-textual-v1/evaluations/engineering/review.json",
@@ -21,5 +21,5 @@
   "stage": "engineering",
   "state": "verified",
   "status": "completed",
-  "updated_at": "2026-06-15T23:21:46Z"
+  "updated_at": "2026-06-16T00:42:16Z"
 }

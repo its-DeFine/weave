@@ -8,7 +8,7 @@
   "claims": [
     "prompt packet assembled from versioned WEAVE prompt library"
   ],
-  "created_at": "2026-06-15T23:18:08Z",
+  "created_at": "2026-06-16T00:38:01Z",
   "executor": "codex",
   "feedback": {},
   "forbidden_actions": [
@@ -26,10 +26,10 @@
   "global_prelude_ref": "prompts/weave/global/prelude.v1.md",
   "input_refs": [
     "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/intent-proof.md",
-    "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.json",
-    "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-d9d985a392a52168.md",
-    "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.json",
-    "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.md",
+    "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.json",
+    "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.md",
+    "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-a6f9582180a7bdc0.json",
+    "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-a6f9582180a7bdc0.md",
     "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md"
   ],
   "latest_owner_message": "Selected option: a local static launch readiness cockpit with lifecycle rail, risk board, QA/SEO evidence panels, and launch boundary checklist. Rejected options: live deployment, analytics, provider credentials, paid ads, and public publishing during this proof. Reason: the selected path maximizes owner-reviewable proof while preserving local-only safety.",
@@ -39,11 +39,11 @@
   ],
   "owner_profile_summary": "Use the owner profile artifact when present; otherwise ask concise clarifying questions.",
   "owner_visible_goal": "Pick the best direction to build from research artifacts.",
-  "packet_id": "prompt-selection-start-ff036b7392713a8f",
-  "packet_ref": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.json",
+  "packet_id": "prompt-selection-start-7edfff2ba588b822",
+  "packet_ref": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.json",
   "public_safe": true,
   "reason": "Textual backend requested selection/start prompt packet",
-  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.md",
+  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.md",
   "required_context": [
     "approved-intent",
     "research-synthesis",

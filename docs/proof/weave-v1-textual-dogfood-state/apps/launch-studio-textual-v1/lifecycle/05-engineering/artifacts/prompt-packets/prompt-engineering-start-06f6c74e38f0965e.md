@@ -1,6 +1,6 @@
 # WEAVE Prompt Packet
 
-Packet: prompt-engineering-start-e5e28fc8f02d0e45
+Packet: prompt-engineering-start-06f6c74e38f0965e
 App: launch-studio-textual-v1
 Stage: engineering
 Substage: start
@@ -46,14 +46,14 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 6. Prior Artifacts To Read
 
-- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-4e4c04b0556feee1.md
+- apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-a6f9582180a7bdc0.md
 - apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/research-proof.md
-- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.json
-- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-ff036b7392713a8f.md
+- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.json
+- apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.md
 - apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md
 - apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md
-- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.json
-- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-c95ef53ce9f2ea15.md
+- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.json
+- apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.md
 
 ## 7. Selected Context References
 

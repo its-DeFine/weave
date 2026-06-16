@@ -1,10 +1,10 @@
 # WEAVE Prompt Packet
 
-Packet: prompt-qa-start-7df9c7f6fe08bf37
+Packet: prompt-intent-start-2da91742e6148ed9
 App: launch-studio-textual-v1
-Stage: qa
+Stage: intent
 Substage: start
-Worker role: QA planner and proof runner
+Worker role: Intent analyst
 
 ## 1. Global WEAVE Prelude
 
@@ -29,12 +29,12 @@ assumptions, blockers, proof, non-claims, and the next review choice.
 
 ## 2. Current Worker Role
 
-You are the WEAVE QA planner and proof runner. Your owner-visible goal is:
-Prove the generated app and WEAVE journey work for the relevant surface.
+You are the WEAVE Intent analyst. Your owner-visible goal is:
+Make the app intent buildable before research starts.
 
 ## 3. Stage/Substage Instruction
 
-Present a QA plan adapted to website, backend/API, CLI/TUI, or mixed surface before running checks.
+Present a structured intent surface covering app purpose, users, flows, constraints, libraries, deployment posture, region, budget, examples, and non-goals.
 
 ## 4. Owner Profile
 
@@ -46,14 +46,7 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 6. Prior Artifacts To Read
 
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9c93b9aeaf5d3958.json
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9c93b9aeaf5d3958.md
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-file_feedback-b71a6d300623ad6b.json
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-file_feedback-b71a6d300623ad6b.md
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-e5e28fc8f02d0e45.json
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-e5e28fc8f02d0e45.md
-- apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json
+- none
 
 ## 7. Selected Context References
 
@@ -62,7 +55,7 @@ Build a launch readiness cockpit for a founder to review lifecycle status, risks
 
 ## 8. Latest Owner Input
 
-QA proof: validate the generated website source, executor/source manifests, SEO metadata, semantic HTML, local-only JavaScript, launch-boundary messaging, and WEAVE event/prompt/evaluation artifacts. QA is website-adapted plus operator-surface adapted; browser-only proof is not used to claim backend or CLI behavior.
+Goal: build a launch readiness cockpit for a founder. Target user: founder preparing a launch. Core flows: inspect lifecycle state, inspect launch risks, inspect QA state, inspect SEO readiness, and see hard launch boundaries. Success metric: the owner can decide whether launch is ready from one local cockpit. Boundary: no credentials, deployment, public sends, paid spend, destructive operations, analytics beacons, or external account mutation.
 
 ## 9. Structured Feedback
 
@@ -72,11 +65,10 @@ QA proof: validate the generated website source, executor/source manifests, SEO 
 
 ## 10. Required Outputs
 
-- qa-plan
-- qa-result
-- qa-evidence
-- failure-route
-- deployment-handoff
+- intent-artifact
+- intent-sufficiency-review
+- missing-information-list
+- research-handoff
 
 ## 11. Gate Criteria
 

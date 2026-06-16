@@ -40,8 +40,9 @@ falling back silently to the old plain renderer.
    or fails.
 5. Submit stage: writes the owner-reviewable stage proof artifact and a linked
    transcript turn.
-6. Evaluate: completes the local stage evaluation. Engineering and QA run command
-   gates; other stages use deterministic review over the stage proof artifact.
+6. Evaluate: completes the local stage evaluation. Engineering and QA command
+   gates run when `--run-engineering-gates` is provided; otherwise the runtime
+   records that hard gates are still pending and blocks final approval.
 7. Approve: calls the existing runtime approval gate.
 8. Advance: moves to the next lifecycle stage only after approval.
 
@@ -61,7 +62,7 @@ With Textual installed:
 ```sh
 .venv/bin/python -m unittest tests.test_weave_textual_app
 .venv/bin/python scripts/capture_weave_textual_screens.py
-.venv/bin/python scripts/weave_v1_textual_dogfood.py --clean --codex-timeout 600
+.venv/bin/python scripts/weave_v1_textual_dogfood.py --clean --codex-timeout 240
 ```
 
 SVG proof screens are written to:
@@ -75,6 +76,12 @@ The full Textual dogfood report is written to:
 
 ```text
 docs/proof/weave-v1-textual-dogfood.json
+```
+
+The dogfood recording must include all operator views:
+
+```text
+overview, stages, artifacts, files, reviews, help, resume
 ```
 
 ## Non-Claims

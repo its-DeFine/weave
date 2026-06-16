@@ -1,0 +1,11 @@
+{
+  "active_view": "resume",
+  "app_id": "launch-studio-textual-v1",
+  "app_name": "Launch Studio Textual v1",
+  "current_stage": "qa",
+  "public_safe": true,
+  "reason": "render:resume",
+  "schema": "weave/textual-session/v1",
+  "secret_value_printed": false,
+  "stage_state": "approved"
+}

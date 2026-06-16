@@ -30,6 +30,21 @@ def load_module(name: str):
 weave_textual_app = load_module("weave_textual_app")
 
 
+class WeaveTextualUtilityTests(unittest.TestCase):
+    def test_safe_preview_blocks_outside_refs_and_truncates_inside_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "state"
+            root.mkdir()
+            inside = root / "artifact.md"
+            inside.write_text("a" * 2000, encoding="utf-8")
+
+            preview = weave_textual_app.safe_preview(root, "artifact.md", limit=30)
+
+            self.assertIn("preview truncated", preview)
+            self.assertIn("outside the WEAVE root", weave_textual_app.safe_preview(root, "../outside.md"))
+            self.assertIn("file is missing", weave_textual_app.safe_preview(root, "missing.md"))
+
+
 @unittest.skipUnless(weave_textual_app.textual_available(), "Textual dependency is not installed")
 class WeaveTextualAppTests(unittest.IsolatedAsyncioTestCase):
     async def test_textual_app_creates_app_and_prompt_packet(self) -> None:
@@ -64,6 +79,52 @@ class WeaveTextualAppTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(args.weave_root.exists())
             self.assertEqual(len(list(packet_dir.glob("*.json"))), 1)
             self.assertEqual(len(list(packet_dir.glob("*.md"))), 1)
+
+    async def test_textual_app_exposes_named_views_and_persists_resume(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            args = Namespace(
+                weave_root=Path(tmpdir) / "weave-state",
+                app_id="textual-views",
+                app_name="Textual Views",
+                owner_experience="operator",
+                coworker_style="direct, proof-backed",
+                intent="Build a launch cockpit with inspectable artifacts and files.",
+                target_user="founder",
+            )
+            app = weave_textual_app.build_app(args)
+
+            async with app.run_test(size=(120, 36)) as pilot:
+                await pilot.pause()
+                app.action_create_app()
+                app.query_one("#composer").value = args.intent
+                app.action_save_setup()
+                app.action_submit_stage()
+                repo = args.weave_root / "apps" / "textual-views" / "repo" / "primary"
+                repo.mkdir(parents=True, exist_ok=True)
+                (repo / "index.html").write_text("<main><h1>Launch</h1></main>\n", encoding="utf-8")
+
+                for view, action_name in (
+                    ("overview", "action_view_overview"),
+                    ("stages", "action_view_stages"),
+                    ("artifacts", "action_view_artifacts"),
+                    ("files", "action_view_files"),
+                    ("reviews", "action_view_reviews"),
+                    ("help", "action_view_help"),
+                    ("resume", "action_view_resume"),
+                ):
+                    getattr(app, action_name)()
+                    await pilot.pause()
+                    self.assertEqual(app.view, view)
+                    session_path = args.weave_root / "apps" / "textual-views" / "ui" / "textual-session.json"
+                    session = json.loads(session_path.read_text(encoding="utf-8"))
+                    self.assertEqual(session["active_view"], view)
+
+                session_path = args.weave_root / "apps" / "textual-views" / "ui" / "textual-session.json"
+                session = json.loads(session_path.read_text(encoding="utf-8"))
+                self.assertEqual(session["active_view"], "resume")
+
+            reopened = weave_textual_app.build_app(args)
+            self.assertEqual(reopened.view, "resume")
 
     async def test_textual_app_can_drive_first_stage_lifecycle(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -104,6 +165,7 @@ class WeaveTextualAppTests(unittest.IsolatedAsyncioTestCase):
                 intent="Build a launch cockpit for founders with QA and SEO evidence.",
                 target_user="founder",
                 codex_timeout=30,
+                run_engineering_gates=True,
             )
             app = weave_textual_app.build_app(args)
 
@@ -120,6 +182,21 @@ class WeaveTextualAppTests(unittest.IsolatedAsyncioTestCase):
                 (repo / "public" / "config.json").write_text(json.dumps({"analytics": False}) + "\n", encoding="utf-8")
                 (repo / "README.md").write_text("# Launch Cockpit\n\nLocal-only proof.\n", encoding="utf-8")
                 return subprocess.CompletedProcess(command, 0, stdout="done\n", stderr="")
+
+            def passing_gates(contract, **_kwargs):
+                weave_eval = weave_textual_app.weave_backend.weave_runtime_slice.weave_eval
+                return [
+                    weave_eval.GateResult(
+                        gate_id=str(gate.get("id", "unnamed_gate")),
+                        status="passed",
+                        passed=True,
+                        required=bool(gate.get("required", True)),
+                        detail="unit test gate patched as passed",
+                        command=str(gate.get("command", "")) or None,
+                        exit_code=0,
+                    )
+                    for gate in contract.get("hard_gates", [])
+                ]
 
             async with app.run_test() as pilot:
                 await pilot.pause()
@@ -139,25 +216,29 @@ class WeaveTextualAppTests(unittest.IsolatedAsyncioTestCase):
                     weave_textual_app.weave_backend.subprocess,
                     "run",
                     side_effect=fake_run,
+                ), mock.patch.object(
+                    weave_textual_app.weave_backend.weave_runtime_slice.weave_eval,
+                    "evaluate_gates",
+                    side_effect=passing_gates,
                 ):
                     app.query_one("#composer").value = args.intent
                     app.action_prepare_prompt()
                     app.action_run_executor()
 
-                feedback = weave_textual_app.parse_feedback_target(
-                    "file:apps/textual-qa-flow/repo/primary/src/app.js: move launch risks above metrics.",
-                    default_stage="engineering",
-                )
-                app.run_backend_command("feedback.record", feedback)
-                app.action_evaluate_stage()
-                app.action_approve_stage()
-                app.action_advance_stage()
+                    feedback = weave_textual_app.parse_feedback_target(
+                        "file:apps/textual-qa-flow/repo/primary/src/app.js: move launch risks above metrics.",
+                        default_stage="engineering",
+                    )
+                    app.run_backend_command("feedback.record", feedback)
+                    app.action_evaluate_stage()
+                    app.action_approve_stage()
+                    app.action_advance_stage()
 
-                app.query_one("#composer").value = "QA proof: validate website source, manifests, SEO, and local-only boundaries."
-                app.action_prepare_prompt()
-                app.action_submit_stage()
-                app.action_evaluate_stage()
-                app.action_approve_stage()
+                    app.query_one("#composer").value = "QA proof: validate website source, manifests, SEO, and local-only boundaries."
+                    app.action_prepare_prompt()
+                    app.action_submit_stage()
+                    app.action_evaluate_stage()
+                    app.action_approve_stage()
                 await pilot.pause()
 
             metadata = json.loads((args.weave_root / "apps" / "textual-qa-flow" / "app.weave.json").read_text(encoding="utf-8"))

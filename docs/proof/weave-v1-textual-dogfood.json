@@ -12,8 +12,8 @@
     "current_stage": "qa",
     "name": "Launch Studio Textual v1"
   },
-  "created_at": "2026-06-15T23:21:49Z",
-  "duration_seconds": 221.021,
+  "created_at": "2026-06-16T00:42:19Z",
+  "duration_seconds": 258.3,
   "non_claims": [
     "WEAVE itself was not deployed and does not need a URL",
     "no live Telegram/Hermes gateway proof",
@@ -24,297 +24,418 @@
   ],
   "passed": true,
   "proof": {
+    "all_views_captured": true,
     "artifacts": 7,
+    "captured_views": [
+      "artifacts",
+      "files",
+      "help",
+      "overview",
+      "resume",
+      "reviews",
+      "stages"
+    ],
     "executor_manifest_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
     "external_effects_executed": [],
-    "frame_count": 11,
+    "frame_count": 18,
     "frames": [
       {
         "action_count": 0,
         "index": 1,
         "path": "docs/ux/weave-v1-textual-dogfood/01-first-run.svg",
         "slug": "first-run",
-        "title": "WEAVE Textual - First Run"
+        "title": "WEAVE Textual - First Run",
+        "view": "overview"
       },
       {
         "action_count": 3,
         "index": 2,
         "path": "docs/ux/weave-v1-textual-dogfood/02-foundation-saved.svg",
         "slug": "foundation-saved",
-        "title": "WEAVE Textual - Foundation Saved"
+        "title": "WEAVE Textual - Foundation Saved",
+        "view": "overview"
       },
       {
         "action_count": 8,
         "index": 3,
         "path": "docs/ux/weave-v1-textual-dogfood/03-intent-approved.svg",
         "slug": "intent-approved",
-        "title": "WEAVE Textual - Intent Approved"
+        "title": "WEAVE Textual - Intent Approved",
+        "view": "overview"
       },
       {
         "action_count": 14,
         "index": 4,
         "path": "docs/ux/weave-v1-textual-dogfood/04-research-approved.svg",
         "slug": "research-approved",
-        "title": "WEAVE Textual - Research Approved"
+        "title": "WEAVE Textual - Research Approved",
+        "view": "overview"
       },
       {
         "action_count": 20,
         "index": 5,
         "path": "docs/ux/weave-v1-textual-dogfood/05-selection-approved.svg",
         "slug": "selection-approved",
-        "title": "WEAVE Textual - Selection Approved"
+        "title": "WEAVE Textual - Selection Approved",
+        "view": "overview"
       },
       {
         "action_count": 26,
         "index": 6,
         "path": "docs/ux/weave-v1-textual-dogfood/06-plan-approved.svg",
         "slug": "plan-approved",
-        "title": "WEAVE Textual - Plan Approved"
+        "title": "WEAVE Textual - Plan Approved",
+        "view": "overview"
       },
       {
         "action_count": 27,
         "index": 7,
         "path": "docs/ux/weave-v1-textual-dogfood/07-engineering-ready.svg",
         "slug": "engineering-ready",
-        "title": "WEAVE Textual - Engineering Ready"
+        "title": "WEAVE Textual - Engineering Ready",
+        "view": "overview"
       },
       {
         "action_count": 30,
         "index": 8,
         "path": "docs/ux/weave-v1-textual-dogfood/08-engineering-codex-result.svg",
         "slug": "engineering-codex-result",
-        "title": "WEAVE Textual - Engineering Codex Result"
+        "title": "WEAVE Textual - Engineering Codex Result",
+        "view": "overview"
       },
       {
         "action_count": 34,
         "index": 9,
         "path": "docs/ux/weave-v1-textual-dogfood/09-engineering-approved.svg",
         "slug": "engineering-approved",
-        "title": "WEAVE Textual - Engineering Approved"
+        "title": "WEAVE Textual - Engineering Approved",
+        "view": "overview"
       },
       {
         "action_count": 40,
         "index": 10,
         "path": "docs/ux/weave-v1-textual-dogfood/10-qa-approved.svg",
         "slug": "qa-approved",
-        "title": "WEAVE Textual - QA Approved"
+        "title": "WEAVE Textual - QA Approved",
+        "view": "overview"
       },
       {
         "action_count": 41,
         "index": 11,
         "path": "docs/ux/weave-v1-textual-dogfood/11-resume-qa.svg",
         "slug": "resume-qa",
-        "title": "WEAVE Textual - Resume At QA"
+        "title": "WEAVE Textual - Resume At QA",
+        "view": "overview"
+      },
+      {
+        "action_count": 42,
+        "index": 12,
+        "path": "docs/ux/weave-v1-textual-dogfood/12-view-overview.svg",
+        "slug": "view-overview",
+        "title": "WEAVE Textual - Overview View",
+        "view": "overview"
+      },
+      {
+        "action_count": 43,
+        "index": 13,
+        "path": "docs/ux/weave-v1-textual-dogfood/13-view-stages.svg",
+        "slug": "view-stages",
+        "title": "WEAVE Textual - Stages View",
+        "view": "stages"
+      },
+      {
+        "action_count": 44,
+        "index": 14,
+        "path": "docs/ux/weave-v1-textual-dogfood/14-view-artifacts.svg",
+        "slug": "view-artifacts",
+        "title": "WEAVE Textual - Artifacts View",
+        "view": "artifacts"
+      },
+      {
+        "action_count": 45,
+        "index": 15,
+        "path": "docs/ux/weave-v1-textual-dogfood/15-view-files.svg",
+        "slug": "view-files",
+        "title": "WEAVE Textual - Files View",
+        "view": "files"
+      },
+      {
+        "action_count": 46,
+        "index": 16,
+        "path": "docs/ux/weave-v1-textual-dogfood/16-view-reviews.svg",
+        "slug": "view-reviews",
+        "title": "WEAVE Textual - Reviews View",
+        "view": "reviews"
+      },
+      {
+        "action_count": 47,
+        "index": 17,
+        "path": "docs/ux/weave-v1-textual-dogfood/17-view-help.svg",
+        "slug": "view-help",
+        "title": "WEAVE Textual - Help View",
+        "view": "help"
+      },
+      {
+        "action_count": 48,
+        "index": 18,
+        "path": "docs/ux/weave-v1-textual-dogfood/18-view-resume.svg",
+        "slug": "view-resume",
+        "title": "WEAVE Textual - Resume View",
+        "view": "resume"
       }
     ],
     "human_journey_actions": [
       {
         "action": "button.create_app",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "launch-studio-textual-v1"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "foundation intent"
       },
       {
         "action": "button.save_setup",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "owner profile and foundation context"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "intent owner input"
       },
       {
         "action": "button.prepare_prompt",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "intent"
       },
       {
         "action": "button.submit_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "intent"
       },
       {
         "action": "button.evaluate_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "intent"
       },
       {
         "action": "button.approve_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "intent"
       },
       {
         "action": "button.advance_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "intent"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "research owner input"
       },
       {
         "action": "button.prepare_prompt",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "research"
       },
       {
         "action": "button.submit_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "research"
       },
       {
         "action": "button.evaluate_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "research"
       },
       {
         "action": "button.approve_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "research"
       },
       {
         "action": "button.advance_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "research"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "selection owner input"
       },
       {
         "action": "button.prepare_prompt",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "selection"
       },
       {
         "action": "button.submit_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "selection"
       },
       {
         "action": "button.evaluate_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "selection"
       },
       {
         "action": "button.approve_stage",
-        "at": "2026-06-15T23:18:08Z",
+        "at": "2026-06-16T00:38:01Z",
         "detail": "selection"
       },
       {
         "action": "button.advance_stage",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "selection"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "plan owner input"
       },
       {
         "action": "button.prepare_prompt",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "plan"
       },
       {
         "action": "button.submit_stage",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "plan"
       },
       {
         "action": "button.evaluate_stage",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "plan"
       },
       {
         "action": "button.approve_stage",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "plan"
       },
       {
         "action": "button.advance_stage",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "plan"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "engineering owner build request"
       },
       {
         "action": "button.prepare_prompt",
-        "at": "2026-06-15T23:18:09Z",
+        "at": "2026-06-16T00:38:02Z",
         "detail": "engineering"
       },
       {
         "action": "button.run_codex",
-        "at": "2026-06-15T23:21:28Z",
+        "at": "2026-06-16T00:41:58Z",
         "detail": "engineering"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:21:29Z",
+        "at": "2026-06-16T00:41:58Z",
         "detail": "file-specific feedback"
       },
       {
         "action": "button.record_feedback",
-        "at": "2026-06-15T23:21:29Z",
+        "at": "2026-06-16T00:41:58Z",
         "detail": "engineering file feedback"
       },
       {
         "action": "button.evaluate_stage",
-        "at": "2026-06-15T23:21:46Z",
+        "at": "2026-06-16T00:42:16Z",
         "detail": "engineering"
       },
       {
         "action": "button.approve_stage",
-        "at": "2026-06-15T23:21:46Z",
+        "at": "2026-06-16T00:42:16Z",
         "detail": "engineering"
       },
       {
         "action": "button.advance_stage",
-        "at": "2026-06-15T23:21:46Z",
+        "at": "2026-06-16T00:42:16Z",
         "detail": "engineering"
       },
       {
         "action": "composer.write",
-        "at": "2026-06-15T23:21:46Z",
+        "at": "2026-06-16T00:42:16Z",
         "detail": "qa owner input"
       },
       {
         "action": "button.prepare_prompt",
-        "at": "2026-06-15T23:21:46Z",
+        "at": "2026-06-16T00:42:16Z",
         "detail": "qa"
       },
       {
         "action": "button.submit_stage",
-        "at": "2026-06-15T23:21:47Z",
+        "at": "2026-06-16T00:42:16Z",
         "detail": "qa"
       },
       {
         "action": "button.evaluate_stage",
-        "at": "2026-06-15T23:21:48Z",
+        "at": "2026-06-16T00:42:18Z",
         "detail": "qa"
       },
       {
         "action": "button.approve_stage",
-        "at": "2026-06-15T23:21:48Z",
+        "at": "2026-06-16T00:42:18Z",
         "detail": "qa"
       },
       {
         "action": "session.resume",
-        "at": "2026-06-15T23:21:49Z",
+        "at": "2026-06-16T00:42:18Z",
         "detail": "reopened Textual cockpit from saved state"
+      },
+      {
+        "action": "view.switch",
+        "at": "2026-06-16T00:42:18Z",
+        "detail": "overview"
+      },
+      {
+        "action": "view.switch",
+        "at": "2026-06-16T00:42:18Z",
+        "detail": "stages"
+      },
+      {
+        "action": "view.switch",
+        "at": "2026-06-16T00:42:18Z",
+        "detail": "artifacts"
+      },
+      {
+        "action": "view.switch",
+        "at": "2026-06-16T00:42:19Z",
+        "detail": "files"
+      },
+      {
+        "action": "view.switch",
+        "at": "2026-06-16T00:42:19Z",
+        "detail": "reviews"
+      },
+      {
+        "action": "view.switch",
+        "at": "2026-06-16T00:42:19Z",
+        "detail": "help"
+      },
+      {
+        "action": "view.switch",
+        "at": "2026-06-16T00:42:19Z",
+        "detail": "resume"
       }
     ],
     "prompt_packets": 8,
+    "required_views": [
+      "overview",
+      "stages",
+      "artifacts",
+      "files",
+      "reviews",
+      "help",
+      "resume"
+    ],
     "resume_stage": "qa",
     "screen_recording_ref": "docs/ux/weave-v1-textual-dogfood/weave-v1-textual-dogfood-recording.svg",
     "scrubbed_non_reviewable_refs": [
@@ -330,6 +451,6 @@
     "used_codex_executor": true,
     "used_textual_app": true
   },
-  "reason": "completed_through_qa",
+  "reason": "completed_through_qa_and_all_views_captured",
   "schema": "weave-v1-textual-dogfood/v1"
 }
