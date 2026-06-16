@@ -16,13 +16,13 @@
   ],
   "output_summary": {
     "raw_output_persisted": false,
-    "stderr_line_count": 5576,
-    "stdout_line_count": 9
+    "stderr_line_count": 4771,
+    "stdout_line_count": 3
   },
   "process_completed": true,
-  "prompt_packet_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.json",
+  "prompt_packet_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-93fc8d36cd2b4af3.json",
   "public_safe": true,
-  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.md",
+  "rendered_prompt_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-93fc8d36cd2b4af3.md",
   "required_file_check": {
     "missing_files": [],
     "passed": true,
@@ -39,6 +39,6 @@
   "source_manifest_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/source-manifest.json",
   "status": "passed",
   "timed_out": false,
-  "updated_at": "2026-06-16T00:41:58Z",
+  "updated_at": "2026-06-16T10:42:22Z",
   "warnings": []
 }

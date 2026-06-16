@@ -37,7 +37,7 @@
     "advance to next lifecycle stage"
   ],
   "proof_scope": "local_deterministic_runtime",
-  "request_id": "0ce493f7cf1de2ddf8f1bdf7",
+  "request_id": "aadc321d2f526ebc5951afa5",
   "rubric_score": {
     "dimensions": [
       {
@@ -93,5 +93,5 @@
   "slug": "selection",
   "stage": "Selection",
   "state": "verified",
-  "transcript_turn_id": "341ce3e2c766c058843cfe29"
+  "transcript_turn_id": "eccfe5c3ac0bb35acf04b24f"
 }

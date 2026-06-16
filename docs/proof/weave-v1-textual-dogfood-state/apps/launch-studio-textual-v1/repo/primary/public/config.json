@@ -1,17 +1,19 @@
 {
-  "app_name": "Launch Studio Textual v1",
   "app_id": "launch-studio-textual-v1",
+  "app_name": "Launch Studio Textual v1",
   "mode": "local-only",
-  "features": {
+  "capabilities": {
     "analytics": "disabled",
     "deployment": "disabled",
     "paid_spend": "disabled",
     "public_send": "disabled",
-    "credentials": "disabled",
-    "external_api_calls": "disabled"
+    "credentials": "disabled"
+  },
+  "network": {
+    "external_api_calls": "disabled",
+    "redirects": "disabled"
   },
   "storage": {
-    "browser_localStorage": "enabled",
-    "remote_storage": "disabled"
+    "browser_local_storage": "enabled"
   }
 }

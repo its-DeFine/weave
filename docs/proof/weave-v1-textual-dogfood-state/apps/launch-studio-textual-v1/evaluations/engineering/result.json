@@ -2,7 +2,7 @@
   "artifact": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
   "artifact_refs": [
     {
-      "checksum": "sha256:90bb56e86a135a1d6328f6c0d6635fae224d24f0a4923116a7dc81a41d0eb676",
+      "checksum": "sha256:d856635ef3ee53154ff023d9bb8a71b6243ea08a6ee286c61e7fc7151702be98",
       "kind": "artifact",
       "path": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/executor-manifest.json",
       "stage": "engineering"
@@ -47,7 +47,7 @@
     "advance to next lifecycle stage"
   ],
   "proof_scope": "local_deterministic_runtime",
-  "request_id": "f382deedf31d84da490b016b",
+  "request_id": "c5a694a6604d28783a2ba7e2",
   "rubric_score": {
     "dimensions": [
       {
@@ -123,5 +123,5 @@
   "slug": "engineering",
   "stage": "Engineering",
   "state": "verified",
-  "transcript_turn_id": "140a6fb147435f4b18da859b"
+  "transcript_turn_id": "a0e7d7bd922b1d88fd29c40b"
 }

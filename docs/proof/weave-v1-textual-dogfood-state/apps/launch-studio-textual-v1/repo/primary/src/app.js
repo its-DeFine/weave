@@ -1,416 +1,311 @@
-const storageKey = "launch-studio-textual-v1-state";
+const STORAGE_KEY = "launch-studio-textual-v1-state";
 
-const lifecycleItems = [
-  {
-    id: "positioning",
-    label: "Positioning and launch promise reviewed",
-    detail: "The founder can state what is launching, for whom, and what is intentionally out of scope."
-  },
-  {
-    id: "offer",
-    label: "Offer and pricing boundaries checked",
-    detail: "Pricing, free access, paid spend, and promise limits are clear before any public motion."
-  },
-  {
-    id: "ops",
-    label: "Operational owner and response path assigned",
-    detail: "A responsible owner exists for launch day support, issue triage, and rollback decisions."
-  },
-  {
-    id: "proof",
-    label: "Proof artifacts and acceptance checks collected",
-    detail: "The review packet has enough evidence to support a launch, caveated launch, or hold."
-  }
-];
+const reviewGroups = {
+  lifecycle: [
+    {
+      id: "positioning",
+      title: "Positioning and offer",
+      detail: "Audience, promise, pricing, and launch claim are reviewable."
+    },
+    {
+      id: "onboarding",
+      title: "First-run path",
+      detail: "A new visitor can reach the core value without founder intervention."
+    },
+    {
+      id: "operations",
+      title: "Support and rollback",
+      detail: "Support owner, escalation path, and rollback condition are named."
+    },
+    {
+      id: "measurement",
+      title: "Manual measurement",
+      detail: "Launch outcomes can be reviewed without analytics beacons."
+    }
+  ],
+  risk: [
+    {
+      id: "scope-creep",
+      title: "Scope creep",
+      detail: "Launch promise exceeds the product state or support capacity."
+    },
+    {
+      id: "broken-core-path",
+      title: "Broken core path",
+      detail: "Primary path is untested on a fresh browser session."
+    },
+    {
+      id: "unclear-boundary",
+      title: "Unclear boundary",
+      detail: "Users could infer deployment, spending, or public-send behavior."
+    }
+  ],
+  qa: [
+    {
+      id: "responsive-layout",
+      title: "Responsive layout",
+      detail: "Cockpit remains legible on narrow and wide screens."
+    },
+    {
+      id: "state-persistence",
+      title: "State persistence",
+      detail: "Founder notes and review states persist locally."
+    },
+    {
+      id: "keyboard-flow",
+      title: "Keyboard flow",
+      detail: "Buttons, text fields, and sections remain reachable."
+    }
+  ],
+  seo: [
+    {
+      id: "title-meta",
+      title: "Title and description",
+      detail: "Page title, meta description, and Open Graph copy are present."
+    },
+    {
+      id: "semantic-structure",
+      title: "Semantic structure",
+      detail: "Main landmark, headings, labels, and readable copy are in place."
+    },
+    {
+      id: "share-copy",
+      title: "Share copy",
+      detail: "External-facing launch summary is concise and bounded."
+    }
+  ]
+};
 
-const riskItems = [
-  {
-    id: "scope-drift",
-    severity: "High",
-    label: "Scope drift",
-    detail: "Launch story claims more than the current product can prove."
-  },
-  {
-    id: "support-load",
-    severity: "Medium",
-    label: "Support load",
-    detail: "Founder has not allocated time for first-response support and issue review."
-  },
-  {
-    id: "qa-gap",
-    severity: "High",
-    label: "QA gap",
-    detail: "Critical flows are not fully walked through on the launch surface."
-  },
-  {
-    id: "seo-thin",
-    severity: "Medium",
-    label: "SEO thinness",
-    detail: "Metadata or page copy does not clearly describe the product and launch intent."
-  }
-];
-
-const qaItems = [
-  {
-    id: "happy-path",
-    label: "Primary founder review path works",
-    detail: "The main readiness flow can be completed without backend dependencies."
-  },
-  {
-    id: "empty-state",
-    label: "Empty and reset states are understandable",
-    detail: "The cockpit remains useful before any saved review exists."
-  },
-  {
-    id: "responsive",
-    label: "Mobile and desktop layouts remain readable",
-    detail: "Panels, controls, and notes fit without overlapping."
-  },
-  {
-    id: "local-save",
-    label: "Local save and clear behavior verified",
-    detail: "Review notes persist only in browser storage and can be cleared."
-  }
-];
-
-const seoItems = [
-  {
-    id: "title",
-    label: "Page title names the launch cockpit",
-    detail: "The browser title and page heading match the product surface."
-  },
-  {
-    id: "description",
-    label: "Meta description explains founder value",
-    detail: "Search preview text describes launch readiness review clearly."
-  },
-  {
-    id: "og",
-    label: "Open Graph title and description present",
-    detail: "Shared previews have local static metadata without external media calls."
-  },
-  {
-    id: "semantic",
-    label: "Semantic page structure present",
-    detail: "The app uses a main landmark and a single top-level h1."
-  }
-];
-
-const boundaryItems = [
+const boundaries = [
+  "Local-only static cockpit",
   "Analytics disabled",
   "Deployment disabled",
   "Paid spend disabled",
   "Public sends disabled",
   "Credentials disabled",
-  "External API calls disabled"
+  "No external API calls"
 ];
 
-const defaultState = {
-  lifecycle: {},
-  risks: {},
-  qa: {},
-  seo: {
-    title: true,
-    description: true,
-    og: true,
-    semantic: true
-  },
-  decision: "Reviewing",
-  notes: "",
-  savedAt: ""
+const statusOrder = ["block", "watch", "ready"];
+
+const statusLabels = {
+  block: "Blocked",
+  watch: "Watch",
+  ready: "Ready"
 };
 
-const state = loadState();
+const defaultState = {
+  decision: "hold",
+  notes: "",
+  updatedAt: "",
+  items: {
+    positioning: "watch",
+    onboarding: "watch",
+    operations: "block",
+    measurement: "watch",
+    "scope-creep": "watch",
+    "broken-core-path": "block",
+    "unclear-boundary": "watch",
+    "responsive-layout": "watch",
+    "state-persistence": "ready",
+    "keyboard-flow": "watch",
+    "title-meta": "ready",
+    "semantic-structure": "ready",
+    "share-copy": "watch"
+  }
+};
+
+const appState = loadState();
 
 function loadState() {
-  const saved = localStorage.getItem(storageKey);
+  const saved = localStorage.getItem(STORAGE_KEY);
+
   if (!saved) {
-    return cloneDefaultState();
+    return structuredClone(defaultState);
   }
 
   try {
     const parsed = JSON.parse(saved);
     return {
-      lifecycle: parsed.lifecycle || {},
-      risks: parsed.risks || {},
-      qa: parsed.qa || {},
-      seo: parsed.seo || defaultState.seo,
-      decision: parsed.decision || defaultState.decision,
-      notes: parsed.notes || "",
-      savedAt: parsed.savedAt || ""
+      ...structuredClone(defaultState),
+      ...parsed,
+      items: {
+        ...defaultState.items,
+        ...(parsed.items || {})
+      }
     };
   } catch (error) {
-    return cloneDefaultState();
+    return structuredClone(defaultState);
   }
 }
 
-function cloneDefaultState() {
+function saveState(message) {
+  appState.updatedAt = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  setText("save-state", message);
+}
+
+function setText(id, value) {
+  const node = document.getElementById(id);
+  if (node) {
+    node.textContent = value;
+  }
+}
+
+function createNode(tagName, className, text) {
+  const node = document.createElement(tagName);
+
+  if (className) {
+    node.className = className;
+  }
+
+  if (text !== undefined) {
+    node.textContent = text;
+  }
+
+  return node;
+}
+
+function nextStatus(current) {
+  const currentIndex = statusOrder.indexOf(current);
+  return statusOrder[(currentIndex + 1) % statusOrder.length];
+}
+
+function renderReviewGroup(groupName, targetId) {
+  const target = document.getElementById(targetId);
+  target.textContent = "";
+
+  reviewGroups[groupName].forEach((item) => {
+    const status = appState.items[item.id] || "watch";
+    const row = createNode("div", `review-item ${status}`);
+    const copy = createNode("div", "review-copy");
+    const title = createNode("h3", "", item.title);
+    const detail = createNode("p", "", item.detail);
+    const button = createNode("button", `status-button ${status}`, statusLabels[status]);
+
+    button.type = "button";
+    button.setAttribute("aria-label", `${item.title}: ${statusLabels[status]}`);
+    button.addEventListener("click", () => {
+      appState.items[item.id] = nextStatus(status);
+      saveState("Review saved locally");
+      renderApp();
+    });
+
+    copy.append(title, detail);
+    row.append(copy, button);
+    target.appendChild(row);
+  });
+}
+
+function countGroup(groupName, wantedStatus) {
+  return reviewGroups[groupName].filter((item) => appState.items[item.id] === wantedStatus).length;
+}
+
+function allItems() {
+  return Object.values(reviewGroups).flat();
+}
+
+function readiness() {
+  const items = allItems();
+  const readyCount = items.filter((item) => appState.items[item.id] === "ready").length;
+  const blockedCount = items.filter((item) => appState.items[item.id] === "block").length;
+  const baseScore = Math.round((readyCount / items.length) * 100);
+  const adjustedScore = Math.max(0, baseScore - blockedCount * 8);
+
   return {
-    lifecycle: { ...defaultState.lifecycle },
-    risks: { ...defaultState.risks },
-    qa: { ...defaultState.qa },
-    seo: { ...defaultState.seo },
-    decision: defaultState.decision,
-    notes: defaultState.notes,
-    savedAt: defaultState.savedAt
+    score: adjustedScore,
+    readyCount,
+    blockedCount,
+    total: items.length
   };
 }
 
-function saveState(markSaved) {
-  if (markSaved) {
-    state.savedAt = new Date().toLocaleString();
-  }
-
-  localStorage.setItem(storageKey, JSON.stringify(state));
-  renderSummary();
-  renderSavedState();
-}
-
-function createCheckItem(group, item) {
-  const label = document.createElement("label");
-  label.className = "check-row";
-
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.checked = Boolean(state[group][item.id]);
-  checkbox.addEventListener("change", () => {
-    state[group][item.id] = checkbox.checked;
-    saveState(false);
-    renderCounts();
-  });
-
-  const content = document.createElement("span");
-  content.className = "check-copy";
-
-  const title = document.createElement("strong");
-  title.textContent = item.label;
-
-  const detail = document.createElement("span");
-  detail.textContent = item.detail;
-
-  content.appendChild(title);
-  content.appendChild(detail);
-  label.appendChild(checkbox);
-  label.appendChild(content);
-
-  return label;
-}
-
-function createRiskItem(item) {
-  const card = document.createElement("article");
-  card.className = "risk-card";
-
-  const top = document.createElement("div");
-  top.className = "risk-top";
-
-  const title = document.createElement("h3");
-  title.textContent = item.label;
-
-  const severity = document.createElement("span");
-  severity.className = "severity";
-  severity.textContent = item.severity;
-
-  top.appendChild(title);
-  top.appendChild(severity);
-
-  const detail = document.createElement("p");
-  detail.textContent = item.detail;
-
-  const label = document.createElement("label");
-  label.className = "risk-toggle";
-
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.checked = Boolean(state.risks[item.id]);
-  checkbox.addEventListener("change", () => {
-    state.risks[item.id] = checkbox.checked;
-    saveState(false);
-    renderCounts();
-  });
-
-  const copy = document.createElement("span");
-  copy.textContent = "Resolved";
-
-  label.appendChild(checkbox);
-  label.appendChild(copy);
-  card.appendChild(top);
-  card.appendChild(detail);
-  card.appendChild(label);
-
-  return card;
-}
-
-function createBoundaryItem(text) {
-  const item = document.createElement("li");
-  const marker = document.createElement("span");
-  marker.className = "boundary-marker";
-  marker.setAttribute("aria-hidden", "true");
-
-  const copy = document.createElement("span");
-  copy.textContent = text;
-
-  item.appendChild(marker);
-  item.appendChild(copy);
-  return item;
-}
-
-function checkedCount(group, items) {
-  return items.filter((item) => Boolean(state[group][item.id])).length;
-}
-
-function readinessPercent() {
-  const total =
-    lifecycleItems.length + riskItems.length + qaItems.length + seoItems.length;
-  const complete =
-    checkedCount("lifecycle", lifecycleItems) +
-    checkedCount("risks", riskItems) +
-    checkedCount("qa", qaItems) +
-    checkedCount("seo", seoItems);
-
-  return Math.round((complete / total) * 100);
-}
-
-function renderSummary() {
-  const percent = readinessPercent();
-  const readinessScore = document.querySelector("#readinessScore");
-  const readinessMeter = document.querySelector("#readinessMeter");
-  const readinessNarrative = document.querySelector("#readinessNarrative");
-  const lifecycleStatus = document.querySelector("#lifecycleStatus");
-  const lifecycleNarrative = document.querySelector("#lifecycleNarrative");
-  const decisionState = document.querySelector("#decisionState");
-
-  readinessScore.textContent = `${percent}%`;
-  readinessMeter.style.width = `${percent}%`;
-  decisionState.textContent = state.decision;
-
-  if (percent >= 90) {
-    readinessNarrative.textContent = "Most launch checks are complete. Review any caveats before approving public motion.";
-  } else if (percent >= 65) {
-    readinessNarrative.textContent = "Launch is partially ready. Remaining risks and QA gaps should be owned explicitly.";
-  } else {
-    readinessNarrative.textContent = "Launch should stay in review until the founder resolves more readiness checks.";
-  }
-
-  const lifecycleDone = checkedCount("lifecycle", lifecycleItems);
-  if (lifecycleDone === lifecycleItems.length) {
-    lifecycleStatus.textContent = "Launch decision ready";
-    lifecycleNarrative.textContent = "All lifecycle gates are checked in this local review.";
-  } else if (lifecycleDone > 0) {
-    lifecycleStatus.textContent = "Pre-launch in progress";
-    lifecycleNarrative.textContent = `${lifecycleDone} of ${lifecycleItems.length} lifecycle gates are complete.`;
-  } else {
-    lifecycleStatus.textContent = "Pre-launch review";
-    lifecycleNarrative.textContent = "Start with lifecycle gates before deciding whether to launch.";
-  }
-}
-
 function renderCounts() {
-  const riskOpen = riskItems.length - checkedCount("risks", riskItems);
-  const qaDone = checkedCount("qa", qaItems);
-  const seoDone = checkedCount("seo", seoItems);
+  const current = readiness();
+  let label = "Needs review";
 
-  document.querySelector("#riskCount").textContent = `${riskOpen} open`;
-  document.querySelector("#qaCount").textContent = `${qaDone} passed`;
-  document.querySelector("#seoCount").textContent = `${seoDone} ready`;
-  renderSummary();
-}
-
-function renderSavedState() {
-  const savedState = document.querySelector("#savedState");
-  if (state.savedAt) {
-    savedState.textContent = `Saved ${state.savedAt}`;
-  } else {
-    savedState.textContent = "Not saved";
+  if (current.blockedCount > 0) {
+    label = "Blocked";
+  } else if (current.score >= 85 && appState.decision === "go") {
+    label = "Launchable";
+  } else if (current.score >= 70) {
+    label = "Limited launch";
   }
-}
 
-function renderList(targetSelector, group, items) {
-  const target = document.querySelector(targetSelector);
-  target.replaceChildren();
-  items.forEach((item) => {
-    target.appendChild(createCheckItem(group, item));
-  });
-}
-
-function renderRisks() {
-  const target = document.querySelector("#riskList");
-  target.replaceChildren();
-  riskItems.forEach((item) => {
-    target.appendChild(createRiskItem(item));
-  });
+  setText("readiness-score", `${current.score}%`);
+  setText("readiness-label", label);
+  setText("lifecycle-count", `${countGroup("lifecycle", "ready")} ready`);
+  setText("risk-count", `${reviewGroups.risk.length - countGroup("risk", "ready")} open`);
+  setText("qa-count", `${countGroup("qa", "ready")} pass`);
+  setText("seo-count", `${countGroup("seo", "ready")} complete`);
 }
 
 function renderBoundaries() {
-  const target = document.querySelector("#boundaryList");
-  target.replaceChildren();
-  boundaryItems.forEach((item) => {
-    target.appendChild(createBoundaryItem(item));
+  const target = document.getElementById("boundary-list");
+  target.textContent = "";
+
+  boundaries.forEach((boundary) => {
+    const item = createNode("li", "", boundary);
+    target.appendChild(item);
   });
 }
 
-function renderControls() {
-  const decision = document.querySelector("#launchDecision");
-  const notes = document.querySelector("#founderNotes");
-  const saveButton = document.querySelector("#saveNotes");
-  const clearButton = document.querySelector("#clearReview");
-  const resetLifecycle = document.querySelector("#resetLifecycle");
-
-  decision.value = state.decision;
-  notes.value = state.notes;
-
-  decision.addEventListener("change", () => {
-    state.decision = decision.value;
-    saveState(false);
+function renderDecisionButtons() {
+  document.querySelectorAll("[data-decision]").forEach((button) => {
+    const isActive = button.dataset.decision === appState.decision;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
   });
+}
 
-  notes.addEventListener("input", () => {
-    state.notes = notes.value;
-    saveState(false);
-  });
+function renderNotes() {
+  const notes = document.getElementById("decision-notes");
 
-  saveButton.addEventListener("click", () => {
-    state.decision = decision.value;
-    state.notes = notes.value;
-    saveState(true);
-  });
+  if (notes.value !== appState.notes) {
+    notes.value = appState.notes;
+  }
 
-  clearButton.addEventListener("click", () => {
-    localStorage.removeItem(storageKey);
-    const fresh = cloneDefaultState();
-    state.lifecycle = fresh.lifecycle;
-    state.risks = fresh.risks;
-    state.qa = fresh.qa;
-    state.seo = fresh.seo;
-    state.decision = fresh.decision;
-    state.notes = fresh.notes;
-    state.savedAt = fresh.savedAt;
-    renderApp();
-  });
-
-  resetLifecycle.addEventListener("click", () => {
-    state.lifecycle = {};
-    saveState(false);
-    renderList("#lifecycleList", "lifecycle", lifecycleItems);
-    renderCounts();
-  });
+  if (appState.updatedAt) {
+    setText("save-state", `Saved locally at ${new Date(appState.updatedAt).toLocaleString()}`);
+  }
 }
 
 function renderApp() {
-  renderList("#lifecycleList", "lifecycle", lifecycleItems);
-  renderRisks();
-  renderList("#qaList", "qa", qaItems);
-  renderList("#seoList", "seo", seoItems);
+  renderReviewGroup("lifecycle", "lifecycle-list");
+  renderReviewGroup("risk", "risk-list");
+  renderReviewGroup("qa", "qa-list");
+  renderReviewGroup("seo", "seo-list");
   renderBoundaries();
+  renderDecisionButtons();
   renderCounts();
-  renderSavedState();
-
-  const decision = document.querySelector("#launchDecision");
-  const notes = document.querySelector("#founderNotes");
-  decision.value = state.decision;
-  notes.value = state.notes;
+  renderNotes();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderControls();
+  document.querySelectorAll("[data-decision]").forEach((button) => {
+    button.addEventListener("click", () => {
+      appState.decision = button.dataset.decision;
+      saveState("Decision saved locally");
+      renderApp();
+    });
+  });
+
+  document.getElementById("decision-notes").addEventListener("input", (event) => {
+    appState.notes = event.target.value;
+    saveState("Notes saved locally");
+  });
+
+  document.getElementById("save-button").addEventListener("click", () => {
+    saveState("Review saved locally");
+    renderApp();
+  });
+
+  document.getElementById("reset-button").addEventListener("click", () => {
+    const freshState = structuredClone(defaultState);
+    Object.assign(appState, freshState);
+    saveState("Review reset locally");
+    renderApp();
+  });
+
   renderApp();
 });
