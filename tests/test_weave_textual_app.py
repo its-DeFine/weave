@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from argparse import Namespace
 from pathlib import Path
@@ -28,6 +29,14 @@ def load_module(name: str):
 
 
 weave_textual_app = load_module("weave_textual_app")
+
+
+async def wait_for_idle(app, pilot, timeout: float = 5.0) -> None:
+    deadline = time.time() + timeout
+    while app.activity.get("state") == "running" and time.time() < deadline:
+        await pilot.pause(0.05)
+    if app.activity.get("state") == "running":
+        raise AssertionError("Textual app action did not leave running state")
 
 
 class WeaveTextualUtilityTests(unittest.TestCase):
@@ -125,6 +134,94 @@ class WeaveTextualAppTests(unittest.IsolatedAsyncioTestCase):
 
             reopened = weave_textual_app.build_app(args)
             self.assertEqual(reopened.view, "resume")
+
+    async def test_lifecycle_rail_enter_and_click_open_stage_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            args = Namespace(
+                weave_root=Path(tmpdir) / "weave-state",
+                app_id="textual-nav",
+                app_name="Textual Nav",
+                owner_experience="operator",
+                coworker_style="direct, proof-backed",
+                intent="Build a lifecycle cockpit.",
+                target_user="founder",
+            )
+            app = weave_textual_app.build_app(args)
+
+            async with app.run_test(size=(120, 36)) as pilot:
+                await pilot.pause()
+                self.assertEqual(app.route, "first_run")
+                await pilot.press("down")
+                await pilot.press("enter")
+                await pilot.pause()
+                self.assertEqual(app.route, "owner_profile")
+                self.assertEqual(app.view, "overview")
+
+                clicked = await pilot.click("#stage-list", offset=(3, 6))
+                await pilot.pause()
+                self.assertEqual(app.route, "app")
+                self.assertIn(clicked, {True, False})
+
+    async def test_active_route_persists_for_resume(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            args = Namespace(
+                weave_root=Path(tmpdir) / "weave-state",
+                app_id="textual-route-resume",
+                app_name="Textual Route Resume",
+                owner_experience="operator",
+                coworker_style="direct, proof-backed",
+                intent="Build a lifecycle cockpit.",
+                target_user="founder",
+            )
+            app = weave_textual_app.build_app(args)
+
+            async with app.run_test(size=(120, 36)) as pilot:
+                await pilot.pause()
+                app.activate_route("research")
+                await pilot.pause()
+
+            reopened = weave_textual_app.build_app(args)
+            self.assertEqual(reopened.route, "research")
+
+    async def test_executor_action_exposes_running_and_completion_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            args = Namespace(
+                weave_root=Path(tmpdir) / "weave-state",
+                app_id="textual-progress",
+                app_name="Textual Progress",
+                owner_experience="operator",
+                coworker_style="direct, proof-backed",
+                intent="Build a lifecycle cockpit.",
+                target_user="founder",
+                codex_timeout=30,
+            )
+            app = weave_textual_app.build_app(args)
+            original_dispatch = weave_textual_app.weave_backend.dispatch
+
+            def slow_dispatch(root, command, **kwargs):
+                if command == "executor.run":
+                    time.sleep(0.12)
+                    return {
+                        "ok": False,
+                        "message": "simulated executor blocker",
+                        "projection": weave_textual_app.weave_backend.dashboard_projection(
+                            root,
+                            app_id=kwargs.get("app_id", ""),
+                            app_name=kwargs.get("app_name", "New App"),
+                        ),
+                    }
+                return original_dispatch(root, command, **kwargs)
+
+            async with app.run_test(size=(120, 36)) as pilot:
+                await pilot.pause()
+                app.action_create_app()
+                app.activate_route("engineering")
+                with mock.patch.object(weave_textual_app.weave_backend, "dispatch", side_effect=slow_dispatch):
+                    app.action_run_executor()
+                    self.assertEqual(app.activity["state"], "running")
+                    await wait_for_idle(app, pilot)
+                self.assertEqual(app.activity["state"], "failed")
+                self.assertIn("simulated executor blocker", app.activity["message"])
 
     async def test_textual_app_can_drive_first_stage_lifecycle(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -224,6 +321,7 @@ class WeaveTextualAppTests(unittest.IsolatedAsyncioTestCase):
                     app.query_one("#composer").value = args.intent
                     app.action_prepare_prompt()
                     app.action_run_executor()
+                    await wait_for_idle(app, pilot)
 
                     feedback = weave_textual_app.parse_feedback_target(
                         "file:apps/textual-qa-flow/repo/primary/src/app.js: move launch risks above metrics.",

@@ -4,132 +4,116 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Launch Studio Textual v1</title>
-    <meta name="description" content="A local-only launch readiness cockpit for reviewing lifecycle status, risks, QA, SEO, and launch boundaries before a founder decides whether to launch.">
+    <meta
+      name="description"
+      content="A local-only launch readiness cockpit for reviewing lifecycle status, risks, QA, SEO, and launch boundaries before launch."
+    >
     <meta property="og:title" content="Launch Studio Textual v1">
-    <meta property="og:description" content="Review lifecycle status, risks, QA, SEO readiness, and launch boundaries in a local-only cockpit.">
+    <meta
+      property="og:description"
+      content="A founder cockpit for local launch readiness review across lifecycle, risk, QA, SEO, and boundary checks."
+    >
     <link rel="stylesheet" href="src/styles.css">
     <script src="src/app.js" defer></script>
   </head>
   <body>
-    <header class="topbar" aria-label="Application header">
+    <header class="app-header">
       <div>
         <p class="eyebrow">Local launch cockpit</p>
         <h1>Launch Studio Textual v1</h1>
       </div>
-      <div class="decision-strip" aria-label="Current decision state">
-        <span class="decision-label">Founder decision</span>
-        <strong id="decisionState">Reviewing</strong>
+      <div class="header-actions" aria-label="Launch decision controls">
+        <button class="ghost-button" id="reset-button" type="button">Reset</button>
+        <button class="primary-button" id="save-button" type="button">Save review</button>
       </div>
     </header>
 
     <main>
-      <section class="summary-grid" aria-label="Launch readiness summary">
-        <article class="summary-panel summary-primary">
-          <div>
-            <p class="panel-kicker">Readiness</p>
-            <h2 id="readinessScore">0%</h2>
+      <section class="status-band" aria-labelledby="readiness-heading">
+        <div>
+          <p class="section-kicker">Decision state</p>
+          <h2 id="readiness-heading">Launch readiness</h2>
+        </div>
+        <div class="readiness-score" aria-live="polite">
+          <span id="readiness-score">0%</span>
+          <span id="readiness-label">Needs review</span>
+        </div>
+        <div class="decision-toggle" role="group" aria-label="Founder launch decision">
+          <button type="button" data-decision="hold">Hold</button>
+          <button type="button" data-decision="limited">Limited launch</button>
+          <button type="button" data-decision="go">Go</button>
+        </div>
+      </section>
+
+      <section class="dashboard-grid" aria-label="Launch review areas">
+        <article class="panel span-two">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Lifecycle</p>
+              <h2>Status map</h2>
+            </div>
+            <p id="lifecycle-count" class="metric-pill">0 ready</p>
           </div>
-          <p id="readinessNarrative">Complete the readiness checks to calculate launch confidence.</p>
-          <div class="meter" aria-hidden="true">
-            <span id="readinessMeter"></span>
-          </div>
+          <div id="lifecycle-list" class="review-list"></div>
         </article>
 
-        <article class="summary-panel">
-          <p class="panel-kicker">Lifecycle</p>
-          <h2 id="lifecycleStatus">Pre-launch review</h2>
-          <p id="lifecycleNarrative">Lifecycle status is based on stage gates completed in this browser.</p>
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Risk</p>
+              <h2>Launch risks</h2>
+            </div>
+            <p id="risk-count" class="metric-pill">0 open</p>
+          </div>
+          <div id="risk-list" class="review-list compact"></div>
         </article>
 
-        <article class="summary-panel">
-          <p class="panel-kicker">Boundary state</p>
-          <h2 id="boundaryStatus">Local only</h2>
-          <p>No deployment, analytics, credentials, paid spend, public sends, or external API calls are enabled.</p>
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">QA</p>
+              <h2>Quality checks</h2>
+            </div>
+            <p id="qa-count" class="metric-pill">0 pass</p>
+          </div>
+          <div id="qa-list" class="review-list compact"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">SEO</p>
+              <h2>Readiness</h2>
+            </div>
+            <p id="seo-count" class="metric-pill">0 complete</p>
+          </div>
+          <div id="seo-list" class="review-list compact"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Boundaries</p>
+              <h2>Launch limits</h2>
+            </div>
+            <p class="metric-pill locked">Locked</p>
+          </div>
+          <ul id="boundary-list" class="boundary-list"></ul>
         </article>
       </section>
 
-      <section class="workspace-grid" aria-label="Launch cockpit workspace">
-        <section class="panel" aria-labelledby="lifecycleHeading">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Stage gates</p>
-              <h2 id="lifecycleHeading">Lifecycle status</h2>
-            </div>
-            <button class="text-button" type="button" id="resetLifecycle">Reset</button>
-          </div>
-          <div id="lifecycleList" class="checklist"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="riskHeading">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Blockers and watch items</p>
-              <h2 id="riskHeading">Launch risks</h2>
-            </div>
-            <span class="count-pill" id="riskCount">0 open</span>
-          </div>
-          <div id="riskList" class="risk-list"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="qaHeading">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Validation</p>
-              <h2 id="qaHeading">QA state</h2>
-            </div>
-            <span class="count-pill" id="qaCount">0 passed</span>
-          </div>
-          <div id="qaList" class="checklist compact"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="seoHeading">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Discovery</p>
-              <h2 id="seoHeading">SEO readiness</h2>
-            </div>
-            <span class="count-pill" id="seoCount">0 ready</span>
-          </div>
-          <div id="seoList" class="checklist compact"></div>
-        </section>
-
-        <section class="panel boundaries-panel" aria-labelledby="boundaryHeading">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Allowed behavior</p>
-              <h2 id="boundaryHeading">Launch boundaries</h2>
-            </div>
-            <span class="count-pill safe">All disabled</span>
-          </div>
-          <ul class="boundary-list" id="boundaryList"></ul>
-        </section>
-
-        <section class="panel notes-panel" aria-labelledby="notesHeading">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Owner review</p>
-              <h2 id="notesHeading">Decision notes</h2>
-            </div>
-            <span class="saved-state" id="savedState" aria-live="polite">Not saved</span>
-          </div>
-          <label class="field">
-            <span>Launch call</span>
-            <select id="launchDecision">
-              <option value="Reviewing">Reviewing</option>
-              <option value="Hold">Hold</option>
-              <option value="Launch with caveats">Launch with caveats</option>
-              <option value="Ready to launch">Ready to launch</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Founder notes</span>
-            <textarea id="founderNotes" rows="7" placeholder="Record the launch decision, unresolved risks, and owner boundary notes."></textarea>
-          </label>
-          <div class="actions">
-            <button type="button" id="saveNotes">Save review</button>
-            <button class="secondary" type="button" id="clearReview">Clear local review</button>
-          </div>
-        </section>
+      <section class="notes-panel" aria-labelledby="notes-heading">
+        <div>
+          <p class="section-kicker">Founder notes</p>
+          <h2 id="notes-heading">Decision memo</h2>
+        </div>
+        <label class="notes-label" for="decision-notes">Current launch rationale</label>
+        <textarea
+          id="decision-notes"
+          rows="5"
+          placeholder="Record the narrow reason to hold, limit, or launch."
+        ></textarea>
+        <p id="save-state" class="save-state" aria-live="polite">Not saved yet</p>
       </section>
     </main>
   </body>

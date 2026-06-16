@@ -50,10 +50,21 @@ async def capture(output_dir: Path) -> list[Path]:
             written.append(first)
 
             app.action_create_app()
+            await pilot.pause()
+            owner = output_dir / "02-owner-profile.svg"
+            write_svg(owner, app.export_screenshot(title="WEAVE v1 Textual Cockpit - Owner Profile"))
+            written.append(owner)
+
             app.action_save_setup()
+            await pilot.pause()
+            workspace = output_dir / "03-app-workspace.svg"
+            write_svg(workspace, app.export_screenshot(title="WEAVE v1 Textual Cockpit - App Workspace"))
+            written.append(workspace)
+
+            app.activate_route("intent")
             app.action_prepare_prompt()
             await pilot.pause()
-            intent = output_dir / "02-intent-prompt-ready.svg"
+            intent = output_dir / "04-intent-prompt-ready.svg"
             write_svg(intent, app.export_screenshot(title="WEAVE v1 Textual Cockpit - Intent Prompt Ready"))
             written.append(intent)
 
@@ -67,9 +78,16 @@ async def capture(output_dir: Path) -> list[Path]:
             app.action_approve_stage()
             app.action_advance_stage()
             await pilot.pause()
-            research = output_dir / "03-research-active.svg"
+            research = output_dir / "05-research-active.svg"
             write_svg(research, app.export_screenshot(title="WEAVE v1 Textual Cockpit - Research Active"))
             written.append(research)
+
+            for index, stage in enumerate(("selection", "plan", "engineering", "qa", "deployment", "kpi", "marketing", "iteration", "analysis"), 6):
+                app.activate_route(stage)
+                await pilot.pause()
+                path = output_dir / f"{index:02d}-{stage}.svg"
+                write_svg(path, app.export_screenshot(title=f"WEAVE v1 Textual Cockpit - {stage.title()}"))
+                written.append(path)
     return written
 
 

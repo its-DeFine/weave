@@ -100,6 +100,8 @@ def capture_frame(app: Any, output_dir: Path, index: int, slug: str, title: str,
         "title": title,
         "path": repo_relative(path),
         "view": getattr(app, "view", ""),
+        "route": getattr(app, "route", ""),
+        "activity_state": getattr(app, "activity", {}).get("state", ""),
         "action_count": len(actions),
     }
     weave_prompt_library.ensure_public_safe("textual frame", frame)
@@ -115,18 +117,62 @@ def set_composer(app: Any, text: str, actions: list[dict[str, Any]], detail: str
     record_action(actions, "composer.write", detail)
 
 
-def stage_roundtrip(app: Any, stage: str, body: str, actions: list[dict[str, Any]]) -> None:
-    """Use the same buttons/actions an operator sees for one lifecycle stage."""
+async def wait_for_idle(app: Any, pilot: Any, actions: list[dict[str, Any]], *, timeout: float = 900.0) -> None:
+    started = time.time()
+    while getattr(app, "activity", {}).get("state") == "running":
+        if time.time() - started > timeout:
+            raise TimeoutError(f"Timed out waiting for {getattr(app, 'route', 'unknown')} action to finish")
+        await pilot.pause(0.25)
+    record_action(actions, "wait.idle", f"{getattr(app, 'route', '')}:{getattr(app, 'activity', {}).get('state', '')}")
 
+
+async def open_stage_route(app: Any, pilot: Any, stage: str, actions: list[dict[str, Any]]) -> None:
+    """Navigate the lifecycle rail with keyboard focus and Enter like a user."""
+
+    stage_list = app.query_one("#stage-list")
+    stage_list.focus()
+    target = app.stage_order.index(stage)
+    current = stage_list.index or 0
+    key = "down" if target >= current else "up"
+    for _ in range(abs(target - current)):
+        await pilot.press(key)
+    await pilot.press("enter")
+    await pilot.pause()
+    record_action(actions, "rail.enter", stage)
+
+
+BUTTON_KEYS = {
+    "#create-app": "c",
+    "#save-setup": "s",
+    "#prepare-prompt": "p",
+    "#run-executor": "x",
+    "#submit-stage": "u",
+    "#evaluate-stage": "e",
+    "#approve-stage": "a",
+    "#advance-stage": "n",
+    "#record-feedback": "g",
+}
+
+
+async def click_button(app: Any, pilot: Any, selector: str, actions: list[dict[str, Any]], detail: str) -> None:
+    key = BUTTON_KEYS.get(selector)
+    if key:
+        await pilot.press(key)
+    else:
+        await pilot.click(selector)
+    await pilot.pause()
+    record_action(actions, "button.key", f"{detail}:{key or selector}")
+
+
+async def stage_roundtrip(app: Any, pilot: Any, stage: str, body: str, actions: list[dict[str, Any]]) -> None:
+    """Use visible route navigation and buttons for one lifecycle stage."""
+
+    await open_stage_route(app, pilot, stage, actions)
     set_composer(app, body, actions, f"{stage} owner input")
-    app.action_prepare_prompt()
-    record_action(actions, "button.prepare_prompt", stage)
-    app.action_submit_stage()
-    record_action(actions, "button.submit_stage", stage)
-    app.action_evaluate_stage()
-    record_action(actions, "button.evaluate_stage", stage)
-    app.action_approve_stage()
-    record_action(actions, "button.approve_stage", stage)
+    await click_button(app, pilot, "#prepare-prompt", actions, f"{stage}:prepare_prompt")
+    await click_button(app, pilot, "#submit-stage", actions, f"{stage}:submit_stage")
+    await click_button(app, pilot, "#evaluate-stage", actions, f"{stage}:evaluate_stage")
+    await click_button(app, pilot, "#approve-stage", actions, f"{stage}:approve_stage")
 
 
 def artifact_counts(root: Path, app_id: str) -> dict[str, int]:
@@ -247,55 +293,49 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
         await pilot.pause()
         frames.append(capture_frame(app, args.output_dir, 1, "first-run", "WEAVE Textual - First Run", actions))
 
-        app.action_create_app()
-        record_action(actions, "button.create_app", APP_ID)
+        await open_stage_route(app, pilot, "first_run", actions)
+        frames.append(capture_frame(app, args.output_dir, 2, "first-run-entered", "WEAVE Textual - First Run Entered", actions))
+
+        await click_button(app, pilot, "#create-app", actions, f"create app {APP_ID}")
+        frames.append(capture_frame(app, args.output_dir, 3, "owner-profile", "WEAVE Textual - Owner Profile", actions))
+
         set_composer(app, INTENT, actions, "foundation intent")
-        app.action_save_setup()
-        record_action(actions, "button.save_setup", "owner profile and foundation context")
-        await pilot.pause()
-        frames.append(capture_frame(app, args.output_dir, 2, "foundation-saved", "WEAVE Textual - Foundation Saved", actions))
+        await click_button(app, pilot, "#save-setup", actions, "owner profile and foundation context")
+        frames.append(capture_frame(app, args.output_dir, 4, "app-workspace", "WEAVE Textual - App Workspace", actions))
 
-        for frame_index, stage in enumerate(("intent", "research", "selection", "plan"), 3):
-            stage_roundtrip(app, stage, STAGE_BODIES[stage], actions)
-            await pilot.pause()
+        for frame_index, stage in enumerate(("intent", "research", "selection", "plan"), 5):
+            await stage_roundtrip(app, pilot, stage, STAGE_BODIES[stage], actions)
             frames.append(capture_frame(app, args.output_dir, frame_index, f"{stage}-approved", f"WEAVE Textual - {stage.title()} Approved", actions))
-            app.action_advance_stage()
-            record_action(actions, "button.advance_stage", stage)
+            await click_button(app, pilot, "#advance-stage", actions, f"{stage}:advance_stage")
 
         await pilot.pause()
-        frames.append(capture_frame(app, args.output_dir, 7, "engineering-ready", "WEAVE Textual - Engineering Ready", actions))
+        frames.append(capture_frame(app, args.output_dir, 9, "engineering-ready", "WEAVE Textual - Engineering Ready", actions))
 
+        await open_stage_route(app, pilot, "engineering", actions)
         set_composer(app, INTENT, actions, "engineering owner build request")
-        app.action_prepare_prompt()
-        record_action(actions, "button.prepare_prompt", "engineering")
-        app.action_run_executor()
-        record_action(actions, "button.run_codex", "engineering")
-        await pilot.pause()
-        frames.append(capture_frame(app, args.output_dir, 8, "engineering-codex-result", "WEAVE Textual - Engineering Codex Result", actions))
+        await click_button(app, pilot, "#prepare-prompt", actions, "engineering:prepare_prompt")
+        await click_button(app, pilot, "#run-executor", actions, "engineering:run_codex")
+        frames.append(capture_frame(app, args.output_dir, 10, "engineering-codex-running", "WEAVE Textual - Engineering Codex Running", actions))
+        await wait_for_idle(app, pilot, actions, timeout=max(30, args.codex_timeout + 30))
+        frames.append(capture_frame(app, args.output_dir, 11, "engineering-codex-result", "WEAVE Textual - Engineering Codex Result", actions))
 
         # Exercise file-specific feedback before approving Engineering.
         file_ref = f"apps/{APP_ID}/repo/primary/src/app.js"
         feedback_text = f"file:{file_ref}: Keep launch risks above secondary metrics in the review flow."
         set_composer(app, feedback_text, actions, "file-specific feedback")
-        feedback_result = app.run_backend_command(
-            "feedback.record",
-            weave_textual_app.parse_feedback_target(feedback_text, default_stage="engineering"),
-        )
-        app.render_projection(feedback_result.get("message", "Feedback recorded."))
-        record_action(actions, "button.record_feedback", "engineering file feedback")
-        app.action_evaluate_stage()
-        record_action(actions, "button.evaluate_stage", "engineering")
-        app.action_approve_stage()
-        record_action(actions, "button.approve_stage", "engineering")
-        await pilot.pause()
-        frames.append(capture_frame(app, args.output_dir, 9, "engineering-approved", "WEAVE Textual - Engineering Approved", actions))
+        await click_button(app, pilot, "#record-feedback", actions, "engineering:file_feedback")
+        await click_button(app, pilot, "#evaluate-stage", actions, "engineering:evaluate_stage")
+        await click_button(app, pilot, "#approve-stage", actions, "engineering:approve_stage")
+        frames.append(capture_frame(app, args.output_dir, 12, "engineering-approved", "WEAVE Textual - Engineering Approved", actions))
 
-        app.action_advance_stage()
-        record_action(actions, "button.advance_stage", "engineering")
+        await click_button(app, pilot, "#advance-stage", actions, "engineering:advance_stage")
         pre_qa_scrubbed_refs = scrub_non_reviewable_runtime_state(args.state_root)
-        stage_roundtrip(app, "qa", STAGE_BODIES["qa"], actions)
-        await pilot.pause()
-        frames.append(capture_frame(app, args.output_dir, 10, "qa-approved", "WEAVE Textual - QA Approved", actions))
+        await stage_roundtrip(app, pilot, "qa", STAGE_BODIES["qa"], actions)
+        frames.append(capture_frame(app, args.output_dir, 13, "qa-approved", "WEAVE Textual - QA Approved", actions))
+
+        for offset, stage in enumerate(("deployment", "kpi", "marketing", "iteration", "analysis"), 14):
+            await open_stage_route(app, pilot, stage, actions)
+            frames.append(capture_frame(app, args.output_dir, offset, f"gated-{stage}", f"WEAVE Textual - {stage.title()} Gated Screen", actions))
 
     # Reopen the Textual app against the same state root to prove the operator
     # can resume at the QA state instead of only seeing a one-shot script run.
@@ -303,7 +343,7 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
     async with resume_app.run_test(size=(160, 44)) as pilot:
         await pilot.pause()
         record_action(actions, "session.resume", "reopened Textual cockpit from saved state")
-        frames.append(capture_frame(resume_app, args.output_dir, 11, "resume-qa", "WEAVE Textual - Resume At QA", actions))
+        frames.append(capture_frame(resume_app, args.output_dir, 19, "resume-qa", "WEAVE Textual - Resume At QA", actions))
         view_actions = [
             ("overview", resume_app.action_view_overview),
             ("stages", resume_app.action_view_stages),
@@ -313,7 +353,7 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
             ("help", resume_app.action_view_help),
             ("resume", resume_app.action_view_resume),
         ]
-        for offset, (view, action) in enumerate(view_actions, 12):
+        for offset, (view, action) in enumerate(view_actions, 20):
             action()
             record_action(actions, "view.switch", view)
             await pilot.pause()
@@ -326,17 +366,39 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
     playback_ref = write_playback_svg(args.output_dir, frames)
     required_views = list(weave_textual_app.TEXTUAL_VIEWS)
     captured_views = sorted({str(frame.get("view") or "") for frame in frames if frame.get("view")})
+    required_routes = [
+        "first_run",
+        "owner_profile",
+        "app",
+        "intent",
+        "research",
+        "selection",
+        "plan",
+        "engineering",
+        "qa",
+        "deployment",
+        "kpi",
+        "marketing",
+        "iteration",
+        "analysis",
+    ]
+    captured_routes = sorted({str(frame.get("route") or "") for frame in frames if frame.get("route")})
     qa_approved = "qa" in app_state.get("approved_stages", [])
     all_views_captured = all(view in captured_views for view in required_views)
+    all_routes_captured = all(route in captured_routes for route in required_routes)
     report = {
         "schema": "weave-v1-textual-dogfood/v1",
         "created_at": utc_now(),
         "duration_seconds": round(time.time() - started, 3),
-        "passed": qa_approved and all_views_captured,
+        "passed": qa_approved and all_views_captured and all_routes_captured,
         "reason": (
-            "completed_through_qa_and_all_views_captured"
-            if qa_approved and all_views_captured
-            else ("missing_required_tui_views" if qa_approved else "qa_not_approved")
+            "completed_through_qa_all_views_and_routes_captured"
+            if qa_approved and all_views_captured and all_routes_captured
+            else (
+                "missing_required_tui_routes"
+                if qa_approved and all_views_captured
+                else ("missing_required_tui_views" if qa_approved else "qa_not_approved")
+            )
         ),
         "app": {
             "app_id": app_state["app_id"],
@@ -351,6 +413,9 @@ async def run_textual_dogfood(args: argparse.Namespace) -> dict[str, Any]:
             "required_views": required_views,
             "captured_views": captured_views,
             "all_views_captured": all_views_captured,
+            "required_routes": required_routes,
+            "captured_routes": captured_routes,
+            "all_routes_captured": all_routes_captured,
             "screen_recording_ref": playback_ref,
             "state_root_ref": repo_relative(args.state_root),
             "executor_manifest_ref": manifest_refs.get("executor_manifest", ""),

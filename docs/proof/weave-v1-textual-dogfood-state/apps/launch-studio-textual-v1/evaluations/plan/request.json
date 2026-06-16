@@ -12,7 +12,7 @@
   ],
   "contract": "packages/weave-tool/evals/lifecycle/plan.yaml",
   "contract_schema": "weave.lifecycle-eval/v0.1",
-  "created_at": "2026-06-16T00:38:02Z",
+  "created_at": "2026-06-16T10:38:26Z",
   "hard_gates": [
     "acceptance_criteria_present",
     "verification_surface_present",
@@ -24,7 +24,7 @@
     "Do not include secrets, credentials, private locators, or hidden chain-of-thought."
   ],
   "public_safe": true,
-  "request_id": "f1da7b0de2d8ab47e9a4ecd8",
+  "request_id": "d4d247cd50531dcd33174708",
   "rubric_dimensions": [
     "task_granularity",
     "path_specificity",
@@ -83,8 +83,8 @@
         "path": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/plan-proof.md",
         "stage": "plan"
       },
-      "latest_turn_at": "2026-06-16T00:38:02Z",
-      "latest_turn_id": "9af67051a2aaa070e723819c",
+      "latest_turn_at": "2026-06-16T10:38:26Z",
+      "latest_turn_id": "d930a4ac389bf475fd7177b1",
       "linked_turn_count": 1,
       "missing": [],
       "passed": true,
@@ -96,5 +96,5 @@
     },
     "warnings": []
   },
-  "transcript_turn_id": "9af67051a2aaa070e723819c"
+  "transcript_turn_id": "d930a4ac389bf475fd7177b1"
 }

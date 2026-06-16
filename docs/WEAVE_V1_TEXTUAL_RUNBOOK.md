@@ -29,22 +29,33 @@ bin/weave tui --textual \
 If Textual is not installed, the command prints the install path instead of
 falling back silently to the old plain renderer.
 
+Textual is the visual product surface. Unless `--no-color` is explicitly
+provided, WEAVE forces a color-capable terminal environment for Textual runs and
+proof captures so automation shells with `NO_COLOR=1` or `TERM=dumb` do not
+turn the cockpit into a gray diagnostic panel.
+
 ## Operator Flow
 
-1. Create app: creates or loads the local WEAVE app workspace.
-2. Save setup: writes owner/app foundation context required by the runtime gate.
-3. Prepare prompt: assembles a prompt packet from global prelude, owner profile,
+1. Open `First Run`: use mouse click or focus the lifecycle rail with arrows and
+   press Enter.
+2. Create app: creates or loads the local WEAVE app workspace.
+3. Save setup: writes owner/app foundation context required by the runtime gate.
+4. Move through lifecycle screens: `First Run`, `Owner Profile`, `App
+   Workspace`, `Intent`, `Research`, `Selection`, `Plan`, `Engineering`, and
+   `QA` are separate guided screens. `Deployment`, `KPI`, `Marketing`,
+   `Iteration`, and `Analysis` are gated planning screens.
+5. Prepare prompt: assembles a prompt packet from global prelude, owner profile,
    world model, stage prompt, artifacts, feedback, outputs, and stop boundaries.
-4. Run Codex: invokes the local Codex CLI for Engineering, writes executor and
+6. Run Codex: invokes the local Codex CLI for Engineering, writes executor and
    source manifests, and records an honest failure manifest if Codex is missing
-   or fails.
-5. Submit stage: writes the owner-reviewable stage proof artifact and a linked
+   or fails. The TUI shows a running state and elapsed time while this happens.
+7. Submit stage: writes the owner-reviewable stage proof artifact and a linked
    transcript turn.
-6. Evaluate: completes the local stage evaluation. Engineering and QA command
+8. Evaluate: completes the local stage evaluation. Engineering and QA command
    gates run when `--run-engineering-gates` is provided; otherwise the runtime
    records that hard gates are still pending and blocks final approval.
-7. Approve: calls the existing runtime approval gate.
-8. Advance: moves to the next lifecycle stage only after approval.
+9. Approve: calls the existing runtime approval gate.
+10. Advance: moves to the next lifecycle stage only after approval.
 
 ## Proof Commands
 
@@ -82,6 +93,13 @@ The dogfood recording must include all operator views:
 
 ```text
 overview, stages, artifacts, files, reviews, help, resume
+```
+
+It must also include all service-blueprint routes:
+
+```text
+first_run, owner_profile, app, intent, research, selection, plan, engineering,
+qa, deployment, kpi, marketing, iteration, analysis
 ```
 
 ## Non-Claims

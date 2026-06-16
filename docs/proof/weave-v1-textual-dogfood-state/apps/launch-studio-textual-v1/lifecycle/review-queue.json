@@ -2,7 +2,7 @@
   "app_id": "launch-studio-textual-v1",
   "items": [
     {
-      "created_at": "2026-06-16T00:38:01Z",
+      "created_at": "2026-06-16T10:38:22Z",
       "id": "review-0001",
       "kind": "stage_input_needed",
       "severity": "action_required",
@@ -12,17 +12,17 @@
       "text": "Capture and validate the app intent before research."
     },
     {
-      "created_at": "2026-06-16T00:38:01Z",
+      "created_at": "2026-06-16T10:38:22Z",
       "id": "review-0002",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "intent",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-2da91742e6148ed9.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/01-intent/artifacts/prompt-packets/prompt-intent-start-c941c26c62837c5f.json",
       "text": "Prompt packet ready for intent/start."
     },
     {
-      "created_at": "2026-06-16T00:38:01Z",
+      "created_at": "2026-06-16T10:38:23Z",
       "id": "review-0003",
       "kind": "stage_ready_for_review",
       "severity": "action_required",
@@ -32,17 +32,17 @@
       "text": "Intent proof is ready for evaluation and owner approval."
     },
     {
-      "created_at": "2026-06-16T00:38:01Z",
+      "created_at": "2026-06-16T10:38:24Z",
       "id": "review-0004",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "research",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-a6f9582180a7bdc0.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/02-research/artifacts/prompt-packets/prompt-research-start-229256dde3cbd65f.json",
       "text": "Prompt packet ready for research/start."
     },
     {
-      "created_at": "2026-06-16T00:38:01Z",
+      "created_at": "2026-06-16T10:38:24Z",
       "id": "review-0005",
       "kind": "stage_ready_for_review",
       "severity": "action_required",
@@ -52,17 +52,17 @@
       "text": "Research proof is ready for evaluation and owner approval."
     },
     {
-      "created_at": "2026-06-16T00:38:01Z",
+      "created_at": "2026-06-16T10:38:25Z",
       "id": "review-0006",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "selection",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-7edfff2ba588b822.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/prompt-packets/prompt-selection-start-9ca66624472b2019.json",
       "text": "Prompt packet ready for selection/start."
     },
     {
-      "created_at": "2026-06-16T00:38:01Z",
+      "created_at": "2026-06-16T10:38:25Z",
       "id": "review-0007",
       "kind": "stage_ready_for_review",
       "severity": "action_required",
@@ -72,17 +72,17 @@
       "text": "Selection proof is ready for evaluation and owner approval."
     },
     {
-      "created_at": "2026-06-16T00:38:02Z",
+      "created_at": "2026-06-16T10:38:26Z",
       "id": "review-0008",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "plan",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-90eedbc1cb3e0818.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/04-plan/artifacts/prompt-packets/prompt-plan-start-15967e6b0d7e532b.json",
       "text": "Prompt packet ready for plan/start."
     },
     {
-      "created_at": "2026-06-16T00:38:02Z",
+      "created_at": "2026-06-16T10:38:26Z",
       "id": "review-0009",
       "kind": "stage_ready_for_review",
       "severity": "action_required",
@@ -92,27 +92,27 @@
       "text": "Plan proof is ready for evaluation and owner approval."
     },
     {
-      "created_at": "2026-06-16T00:38:02Z",
+      "created_at": "2026-06-16T10:38:27Z",
       "id": "review-0010",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "engineering",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-06f6c74e38f0965e.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-start-c698d8e0f905f98b.json",
       "text": "Prompt packet ready for engineering/start."
     },
     {
-      "created_at": "2026-06-16T00:38:02Z",
+      "created_at": "2026-06-16T10:38:27Z",
       "id": "review-0011",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "engineering",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-9f18470685534e0b.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-build-93fc8d36cd2b4af3.json",
       "text": "Prompt packet ready for engineering/build."
     },
     {
-      "created_at": "2026-06-16T00:41:58Z",
+      "created_at": "2026-06-16T10:42:22Z",
       "id": "review-0012",
       "kind": "owner_feedback",
       "severity": "action_required",
@@ -122,27 +122,27 @@
       "text": "Keep launch risks above secondary metrics in the review flow."
     },
     {
-      "created_at": "2026-06-16T00:41:58Z",
+      "created_at": "2026-06-16T10:42:22Z",
       "id": "review-0013",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "engineering",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-file_feedback-a5a38ca107dcbdd7.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/05-engineering/artifacts/prompt-packets/prompt-engineering-file_feedback-b461ae6640e529d7.json",
       "text": "Prompt packet ready for engineering/file_feedback."
     },
     {
-      "created_at": "2026-06-16T00:42:16Z",
+      "created_at": "2026-06-16T10:42:42Z",
       "id": "review-0014",
       "kind": "prompt_packet_ready",
       "severity": "info",
       "stage": "qa",
       "status": "open",
-      "target_ref": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/prompt-packets/prompt-qa-start-4296f092a6d9e214.json",
+      "target_ref": "apps/launch-studio-textual-v1/lifecycle/06-qa/artifacts/prompt-packets/prompt-qa-start-40ab4f0a8dd53108.json",
       "text": "Prompt packet ready for qa/start."
     },
     {
-      "created_at": "2026-06-16T00:42:16Z",
+      "created_at": "2026-06-16T10:42:42Z",
       "id": "review-0015",
       "kind": "stage_ready_for_review",
       "severity": "action_required",
@@ -154,5 +154,5 @@
   ],
   "public_safe": true,
   "schema": "weave/review-queue/v1",
-  "updated_at": "2026-06-16T00:42:16Z"
+  "updated_at": "2026-06-16T10:42:42Z"
 }

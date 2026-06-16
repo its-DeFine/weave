@@ -12,7 +12,7 @@
   ],
   "contract": "packages/weave-tool/evals/lifecycle/selection.yaml",
   "contract_schema": "weave.lifecycle-eval/v0.1",
-  "created_at": "2026-06-16T00:38:01Z",
+  "created_at": "2026-06-16T10:38:25Z",
   "hard_gates": [
     "alternatives_compared",
     "reversibility_labeled"
@@ -23,7 +23,7 @@
     "Do not include secrets, credentials, private locators, or hidden chain-of-thought."
   ],
   "public_safe": true,
-  "request_id": "0ce493f7cf1de2ddf8f1bdf7",
+  "request_id": "aadc321d2f526ebc5951afa5",
   "rubric_dimensions": [
     "option_fairness",
     "tradeoff_clarity",
@@ -80,8 +80,8 @@
         "path": "apps/launch-studio-textual-v1/lifecycle/03-selection/artifacts/selection-proof.md",
         "stage": "selection"
       },
-      "latest_turn_at": "2026-06-16T00:38:01Z",
-      "latest_turn_id": "341ce3e2c766c058843cfe29",
+      "latest_turn_at": "2026-06-16T10:38:25Z",
+      "latest_turn_id": "eccfe5c3ac0bb35acf04b24f",
       "linked_turn_count": 1,
       "missing": [],
       "passed": true,
@@ -93,5 +93,5 @@
     },
     "warnings": []
   },
-  "transcript_turn_id": "341ce3e2c766c058843cfe29"
+  "transcript_turn_id": "eccfe5c3ac0bb35acf04b24f"
 }
