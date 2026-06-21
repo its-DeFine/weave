@@ -43,6 +43,10 @@ ALLOWLIST = {
     ("tests/test_live_hermes_lifecycle_qa.py", "loopback-host"),
 }
 
+SKIP_PREFIXES = {
+    ("vendor", "symphony"),
+}
+
 ALLOWLIST_LINE_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     # These scanner/test fixtures intentionally contain private-looking strings.
     # Keep allowlists scoped to specific labels and source lines so adjacent real
@@ -132,6 +136,8 @@ def tracked_files() -> list[Path]:
 
 def should_scan(path: Path) -> bool:
     if path.as_posix() == "scripts/public_safe_repo_scan.py":
+        return False
+    if any(path.parts[: len(prefix)] == prefix for prefix in SKIP_PREFIXES):
         return False
     return path.suffix in SCAN_EXTENSIONS
 

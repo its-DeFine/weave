@@ -3,6 +3,21 @@
 This repository is public. Treat every commit, branch, pull request, log, and
 artifact as publishable by default.
 
+## Source-Of-Truth Map
+
+Keep this file short. It is a public-safe map, not the full operating manual.
+For durable WEAVE/COS decisions, read the focused source document:
+
+- `docs/WEAVE_VNEXT_GROUND_ZERO_CONTRACT.md` for product, lifecycle, proof, and
+  done-state rules.
+- `docs/WEAVE_HARNESS_ENGINEERING_ADOPTION.md` for harness-engineering rules:
+  repo-local knowledge, progressive disclosure, agent-legible validation
+  surfaces, feedback loops, mechanical checks, and garbage collection.
+- `docs/WEAVE_OBSERVABILITY_EVAL_GOVERNANCE.md` for eval, governance, and
+  scorecard rules.
+- `docs/WEAVE_REVIEW_LOOP_PROCESS.md` for create/observe/validate/govern/
+  review/sync.
+
 ## Confidential Topology Boundary
 
 Do not commit or mention private operating details, including:
@@ -36,3 +51,31 @@ git diff --check
 
 If any check fails, fix the source artifact and amend the relevant commit. Do
 not add a follow-up cleanup commit for confidential-info removal on an open PR.
+
+## COS Anti-Repeat Guardrail
+
+WEAVE/COS agents must treat owner prompts as normal-user intent, not as test
+scripts. If a claim is about Codex, Hermes, worker spawning, pinned threads,
+onboarding, lifecycle routing, or owner-facing behavior, local CLI artifacts are
+supporting evidence only. The claim cannot be accepted until the target surface
+is exercised or the missing target-surface proof is recorded as a non-claim.
+
+Before claiming `READY_FOR_REVIEW` or `DONE`, check:
+
+- prior context and memory-derived failure patterns were considered without raw
+  transcripts, raw logs, secrets, or private topology;
+- the tested user flow did not depend on the owner using WEAVE vocabulary or an
+  explicit test checklist;
+- proof is bound to the actual claim and acceptance check;
+- assumptions, missing surfaces, and non-claims are visible;
+- completion state, proof state, and owner mental model have been synced.
+
+For WEAVE/COS changes, run the `cos-runtime-truth` eval or explain why it is not
+applicable. Explicit prompt compliance is not enough to prove WEAVE works.
+
+## Visible Worker Rule
+
+For COS-managed durable work, "create an agent" means create a visible pinned
+Codex instance/thread with a task packet and proof path. Hidden helper workers
+may be used only as disposable support, must be labeled as such, and must not be
+presented as the owner-visible COS agent.
