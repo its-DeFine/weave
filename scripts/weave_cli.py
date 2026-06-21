@@ -26,6 +26,7 @@ if str(SCRIPT_ROOT) not in sys.path:
 import setup_gateway
 import setup_runtime
 import weave_dashboard
+import weave_chief_of_staff
 import weave_early_lifecycle
 import weave_engineering_decisions
 import weave_eval
@@ -1179,6 +1180,16 @@ def hermes_command(args: argparse.Namespace, output: TextIO) -> int:
     raise CliError(f"unknown Hermes command: {args.hermes_command_name}")
 
 
+def chief_of_staff_command(args: argparse.Namespace, output: TextIO) -> int:
+    if args.chief_command_name == "init":
+        return weave_chief_of_staff.init_home(args, output)
+    if args.chief_command_name == "state-line":
+        return weave_chief_of_staff.state_line(args, output)
+    if args.chief_command_name == "snapshot":
+        return weave_chief_of_staff.snapshot(args, output)
+    raise CliError(f"unknown Chief of Staff command: {args.chief_command_name}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="weave", description="WEAVE command line")
     subparsers = parser.add_subparsers(dest="command")
@@ -1487,6 +1498,35 @@ def build_parser() -> argparse.ArgumentParser:
     hermes_subparsers.add_parser("status", help="show non-secret Hermes setup readiness")
     hermes_subparsers.add_parser("confirm-ready", help="record that normal Hermes setup already works")
     hermes_subparsers.add_parser("mark-slash-only", help="record slash-only mode")
+
+    chief_parser = subparsers.add_parser(
+        "chief-of-staff",
+        help="create and inspect the portable WEAVE Chief of Staff home",
+    )
+    chief_subparsers = chief_parser.add_subparsers(dest="chief_command_name", required=True)
+    chief_init = chief_subparsers.add_parser("init", help="preview or write a local public-safe Chief of Staff home")
+    chief_init.add_argument("--home", type=Path, required=True)
+    chief_init.add_argument("--app-id", default="new-app")
+    chief_init.add_argument("--app-name", default="New App")
+    chief_init.add_argument("--owner-name", default="owner")
+    chief_init.add_argument("--communication-style", default=weave_chief_of_staff.DEFAULT_OWNER_STYLE)
+    chief_init.add_argument("--surface", choices=("codex", "hermes", "both", "unknown"), default="codex")
+    chief_init.add_argument("--tracker", choices=("local", "linear", "github", "both"), default="local")
+    chief_init.add_argument("--update-mode", choices=("pinned", "notify", "auto-safe"), default="notify")
+    chief_init.add_argument("--source-url", default=weave_chief_of_staff.DEFAULT_SOURCE_URL)
+    chief_init.add_argument("--weave-version", default="0.1.0")
+    chief_init.add_argument("--write", action="store_true")
+    chief_init.add_argument("--force", action="store_true")
+    chief_init.add_argument("--json", action="store_true")
+
+    chief_state_line = chief_subparsers.add_parser("state-line", help="print the compact WEAVE state line")
+    chief_state_line.add_argument("--home", type=Path, required=True)
+    chief_state_line.add_argument("--app-id")
+
+    chief_snapshot = chief_subparsers.add_parser("snapshot", help="render an HTML snapshot from local Chief of Staff state")
+    chief_snapshot.add_argument("--home", type=Path, required=True)
+    chief_snapshot.add_argument("--out", type=Path, required=True)
+    chief_snapshot.add_argument("--json", action="store_true")
     return parser
 
 
@@ -1511,6 +1551,7 @@ def print_help_alias(parser: argparse.ArgumentParser, argv: list[str], output: T
         print_line(output, "  weave qa-proof --app-id demo --surface mixed --create-app --write")
         print_line(output, "  weave launch-ops --app-id demo --create-app --write")
         print_line(output, "  weave runtime-qa --dry-run --out runs/runtime-qa/plan.json")
+        print_line(output, "  weave chief-of-staff init --home runs/chief-of-staff-demo --write")
         print_line(output, "  weave eval --list")
         return 0
     topic = argv[1]
@@ -1586,9 +1627,11 @@ def main(
             return runtime_qa(args, output)
         if args.command == "hermes":
             return hermes_command(args, output)
+        if args.command == "chief-of-staff":
+            return chief_of_staff_command(args, output)
         parser.print_help(output)
         return 0
-    except (CliError, setup_gateway.GatewaySetupError, setup_runtime.RuntimeSetupError) as exc:
+    except (CliError, setup_gateway.GatewaySetupError, setup_runtime.RuntimeSetupError, weave_chief_of_staff.ChiefOfStaffError) as exc:
         print_line(output)
         warn(output, str(exc))
         print_line(output, "  No raw token was printed.")

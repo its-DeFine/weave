@@ -1806,6 +1806,92 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("deterministic", text.lower())
             self.assertTrue((runtime_home / "weave-state" / "apps" / "registry.json").exists())
 
+    def test_chief_of_staff_init_writes_home_state_and_state_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "chief-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "chief-of-staff",
+                    "init",
+                    "--home",
+                    str(home),
+                    "--app-id",
+                    "Punch Compute",
+                    "--app-name",
+                    "Punch Compute",
+                    "--surface",
+                    "both",
+                    "--tracker",
+                    "local",
+                    "--write",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Chief of Staff", text)
+            self.assertIn("State=NEW", text)
+            self.assertTrue((home / "state.json").exists())
+            self.assertTrue((home / "apps" / "punch-compute" / "lifecycle.json").exists())
+            self.assertTrue((home / "tasks" / "WEAVE-0001" / "packet.md").exists())
+            self.assertTrue((home / "tasks" / "WEAVE-0001" / "proof.json").exists())
+            self.assertTrue((home / "tasks" / "WEAVE-0001" / "review.md").exists())
+            payload = json.loads((home / "state.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["schema"], "weave-chief-of-staff/v0.1")
+            self.assertFalse(payload["live_effects"])
+            self.assertFalse(payload["secret_value_printed"])
+            self.assertEqual(payload["tasks"][0]["state"], "NEW")
+            self.assertEqual(payload["tasks"][0]["source_of_truth"], "local_weave")
+            self.assertIn("production_deploy", payload["hard_gates"])
+            self.assertEqual(payload["adapters"]["hermes"]["state"], "requires_runtime_verification")
+
+            line_output = io.StringIO()
+            rc = weave_cli.main(
+                ["chief-of-staff", "state-line", "--home", str(home), "--app-id", "punch-compute"],
+                output=line_output,
+            )
+            self.assertEqual(rc, 0, line_output.getvalue())
+            self.assertIn("WEAVE | Home=Chief of Staff | App=Punch Compute", line_output.getvalue())
+
+    def test_chief_of_staff_snapshot_escapes_and_avoids_live_claims(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "chief-home"
+            snapshot = Path(tmpdir) / "snapshot.html"
+            init_output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "chief-of-staff",
+                    "init",
+                    "--home",
+                    str(home),
+                    "--app-id",
+                    "owner-app",
+                    "--app-name",
+                    "<Owner App>",
+                    "--write",
+                ],
+                output=init_output,
+            )
+            self.assertEqual(rc, 0, init_output.getvalue())
+
+            output = io.StringIO()
+            rc = weave_cli.main(
+                ["chief-of-staff", "snapshot", "--home", str(home), "--out", str(snapshot)],
+                output=output,
+            )
+            text = output.getvalue()
+            html_text = snapshot.read_text(encoding="utf-8")
+
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE Chief of Staff Snapshot", text)
+            self.assertIn("&lt;Owner App&gt;", html_text)
+            self.assertIn("No live effects", html_text)
+            self.assertIn("does not prove live Hermes chat", html_text)
+            self.assertIn("acceptance check", html_text.lower())
+            self.assertNotIn("<Owner App>", html_text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WEAVE Chief of Staff Cockpit</title>
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar" aria-label="WEAVE state header">
+      <div>
+        <p class="eyebrow">WEAVE v0.1</p>
+        <h1>Chief of Staff Cockpit</h1>
+      </div>
+      <div class="state-line" id="stateLine" aria-live="polite"></div>
+    </header>
+
+    <nav class="tabs" aria-label="Cockpit views">
+      <button class="tab is-active" data-tab="overview" type="button">Overview</button>
+      <button class="tab" data-tab="lifecycle" type="button">Lifecycle</button>
+      <button class="tab" data-tab="workers" type="button">Workers</button>
+      <button class="tab" data-tab="proof" type="button">Proof</button>
+      <button class="tab" data-tab="updates" type="button">Updates</button>
+    </nav>
+
+    <section class="layout">
+      <aside class="panel app-panel" aria-label="Applications">
+        <div class="panel-heading">
+          <h2>Apps</h2>
+          <span id="appCount"></span>
+        </div>
+        <div class="app-list" id="appList"></div>
+      </aside>
+
+      <section class="panel main-panel" aria-label="Current WEAVE view">
+        <div class="panel-heading">
+          <h2 id="viewTitle">Overview</h2>
+          <span id="viewSubtitle"></span>
+        </div>
+        <div id="viewRoot"></div>
+      </section>
+
+      <aside class="panel side-panel" aria-label="Next action and gates">
+        <div class="panel-heading">
+          <h2>Next</h2>
+          <span id="currentStagePill"></span>
+        </div>
+        <p class="next-action" id="nextAction"></p>
+        <div class="action-row">
+          <button class="command" id="advancePreview" type="button">Advance Preview</button>
+          <button class="command secondary" id="packetPreview" type="button">Worker Packet</button>
+        </div>
+        <div class="divider"></div>
+        <h3>Hard Gates</h3>
+        <ul class="gate-list" id="gateList"></ul>
+      </aside>
+    </section>
+  </main>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
