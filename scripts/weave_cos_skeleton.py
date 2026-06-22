@@ -200,6 +200,49 @@ def missing_gates_for(requested_stage: str) -> list[str]:
     return gates
 
 
+def intent_truth_record(app_id: str, app_name: str, intent: str, requested_stage: str, missing_gates: list[str]) -> dict[str, Any]:
+    not_required = []
+    for stage_id, label in LIFECYCLE_STAGES:
+        if stage_id == "intent":
+            continue
+        not_required.append(
+            {
+                "stage": stage_id,
+                "label": label,
+                "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+            }
+        )
+    return {
+        "schema": "weave-intent-truth/v0.1",
+        "app_id": app_id,
+        "app_name": app_name,
+        "state": "partial",
+        "intent_frame": {
+            "user_goal": intent,
+            "best_current_case": "multi_app_intake" if len(infer_apps(intent)) > 1 else "intent_discovery",
+            "case_confidence": "medium_for_app_names_low_for_product_details",
+            "target_outcome": "create local WEAVE app state and identify missing owner context before worker dispatch",
+        },
+        "scope_lattice": {
+            "active_slice": "local_file_skeleton_intake",
+            "required_stages": ["intent"],
+            "not_required_stages": not_required,
+            "full_lifecycle_claim": False,
+        },
+        "completion_contract": {
+            "allowed_done_state": "ACCEPT_FOR_SCOPE",
+            "controller_review_required": True,
+            "missing_gates": missing_gates,
+            "proof_required": "local skeleton files and proof envelope only",
+        },
+        "owner_boundary": {
+            "mode": "local_files_only",
+            "forbidden_without_separate_approval": HARD_GATES,
+        },
+        "non_claims": NON_CLAIMS,
+    }
+
+
 def lifecycle_rows(current_stage: str, requested_stage: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     current_index = stage_index(current_stage)
@@ -276,11 +319,16 @@ def worker_packet_text(app: dict[str, Any], packet_id: str) -> str:
     loop = " -> ".join(REVIEW_LOOP)
     missing = "\n".join(f"- {item}" for item in app["missing_gates"])
     non_claims = "\n".join(f"- {item}" for item in NON_CLAIMS)
+    intent_truth = app["intent_truth"]
     return (
         f"# Worker Packet {packet_id}\n\n"
         f"App: {app['name']} (`{app['app_id']}`)\n"
         f"Current lifecycle stage: `{app['current_stage']}`\n"
         f"Requested stage from owner words: `{app['requested_stage']}`\n\n"
+        "## Intent Truth Boundary\n\n"
+        f"Active slice: `{intent_truth['scope_lattice']['active_slice']}`\n"
+        f"Allowed done state: `{intent_truth['completion_contract']['allowed_done_state']}`\n"
+        f"Full lifecycle claim: `{intent_truth['scope_lattice']['full_lifecycle_claim']}`\n\n"
         "## Objective\n\n"
         "Prepare the next bounded lifecycle artifact or identify the exact owner input needed. "
         "Launch/pin visible Codex workers when the host supports thread creation. "
@@ -307,6 +355,7 @@ def app_record(app_id: str, app_name: str, intent: str) -> dict[str, Any]:
     requested_stage = infer_requested_stage(intent)
     current_stage = "intent"
     missing_gates = missing_gates_for(requested_stage)
+    intent_truth = intent_truth_record(app_id, app_name, intent, requested_stage, missing_gates)
     return {
         "schema": "weave-cos-app/v0.1",
         "app_id": app_id,
@@ -327,6 +376,7 @@ def app_record(app_id: str, app_name: str, intent: str) -> dict[str, Any]:
             "not_claimed": NON_CLAIMS,
             "missing_gates": missing_gates,
         },
+        "intent_truth": intent_truth,
         "missing_gates": missing_gates,
         "tracker": {
             "mode": "local",
@@ -385,6 +435,7 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "proof_surface": "TOOL_VERIFIED_LOCAL",
         "artifact_refs": [
             f"apps/{app['app_id']}/app.json",
+            f"apps/{app['app_id']}/intent-truth.json",
             f"apps/{app['app_id']}/lifecycle/lifecycle-state.json",
             f"apps/{app['app_id']}/tasks/worker-packets/{packet_id}.md",
         ],
@@ -451,12 +502,14 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
             "schema": "weave-cos-intent/v0.1",
             "app_id": app["app_id"],
             "owner_words": app["owner_intent"],
+            "intent_truth": app["intent_truth"],
             "current_stage": app["current_stage"],
             "requested_stage": app["requested_stage"],
             "missing_gates": app["scope_truth"]["missing_gates"],
             "non_claims": NON_CLAIMS,
         },
     )
+    write_json(app_root / "intent-truth.json", app["intent_truth"])
     write_json(app_root / "lifecycle.json", lifecycle)
     write_json(app_root / "lifecycle" / "lifecycle-state.json", lifecycle)
     for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES, start=1):

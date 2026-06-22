@@ -1997,6 +1997,7 @@ class WeaveCliTests(unittest.TestCase):
             for app_id in app_ids:
                 app_root = home / "apps" / app_id
                 self.assertTrue((app_root / "intent.md").exists())
+                self.assertTrue((app_root / "intent-truth.json").exists())
                 self.assertTrue((app_root / "lifecycle.json").exists())
                 self.assertTrue((app_root / "todos.md").exists())
                 self.assertTrue((app_root / "worker-packets" / "WP-0001.md").exists())
@@ -2004,6 +2005,12 @@ class WeaveCliTests(unittest.TestCase):
                 self.assertTrue((app_root / "review" / "review-queue.json").exists())
                 self.assertTrue((app_root / "blockers" / "blocker-tray.json").exists())
                 self.assertTrue((app_root / "updates" / "readback.json").exists())
+                intent_truth = json.loads((app_root / "intent-truth.json").read_text(encoding="utf-8"))
+                self.assertEqual(intent_truth["schema"], "weave-intent-truth/v0.1")
+                self.assertFalse(intent_truth["scope_lattice"]["full_lifecycle_claim"])
+                self.assertEqual(intent_truth["completion_contract"]["allowed_done_state"], "ACCEPT_FOR_SCOPE")
+                worker_packet = (app_root / "worker-packets" / "WP-0001.md").read_text(encoding="utf-8")
+                self.assertIn("Intent Truth Boundary", worker_packet)
             readback = json.loads((home / "updates" / "readback.json").read_text(encoding="utf-8"))
             self.assertEqual(len(readback["apps"]), 2)
             self.assertEqual(readback["state"], "local_skeleton_ready")
