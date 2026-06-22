@@ -161,7 +161,10 @@ clear connection contract between WEAVE and Symphony, plus a PR proof ledger
 that records what has and has not been proven.
 
 The next compound engineering slice should create the smallest runnable
-integration proof:
+integration proof. The detailed standing plan for that work is
+`docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md`.
+
+That slice should create:
 
 - local WEAVE queue with one `WorkItem`;
 - generated Symphony-compatible workflow prompt;
@@ -344,6 +347,7 @@ This plan is accepted when a controller can answer:
 - which claims are still non-claims;
 - how WEAVE remains the user-facing agent while Symphony runs orchestration;
 - what the smallest runnable integration proof must demonstrate.
+- where the standing compound-engineering adapter plan lives.
 
 ## Current Non-Claims
 

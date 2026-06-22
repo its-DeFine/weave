@@ -13,6 +13,12 @@ For durable WEAVE/COS decisions, read the focused source document:
 - `docs/WEAVE_HARNESS_ENGINEERING_ADOPTION.md` for harness-engineering rules:
   repo-local knowledge, progressive disclosure, agent-legible validation
   surfaces, feedback loops, mechanical checks, and garbage collection.
+- `docs/COMPOUND_ENGINEERING.md` for the agentic engineering loop: plans for
+  agents, capability printers, CLI plus skill, adversarial review, PR testing
+  governance, and launch-readiness separation.
+- `docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md` for the methodical WEAVE-to-Symphony
+  adapter plan, data contracts, test ladder, proof boundaries, and continuous
+  compound-engineering use.
 - `docs/WEAVE_OBSERVABILITY_EVAL_GOVERNANCE.md` for eval, governance, and
   scorecard rules.
 - `docs/WEAVE_REVIEW_LOOP_PROCESS.md` for create/observe/validate/govern/

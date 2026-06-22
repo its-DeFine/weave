@@ -39,7 +39,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(summary.version, "2026.05.13-console")
         self.assertEqual(summary.agent_count, 7)
         self.assertEqual(summary.task_count, 10)
-        self.assertEqual(summary.skill_count, 13)
+        self.assertEqual(summary.skill_count, 14)
         self.assertEqual(summary.primitive_count, 9)
         self.assertEqual(summary.prompt_pack_count, 1)
         self.assertEqual(summary.eval_contract_count, 12)
