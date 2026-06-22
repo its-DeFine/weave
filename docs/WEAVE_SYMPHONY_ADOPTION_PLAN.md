@@ -86,6 +86,91 @@ Reasons:
 | Status dashboard/API | WEAVE status/proof surface | Extend with app, stage, proof, blockers, stale workers, non-claims, and next action. |
 | Terminal issue cleanup | Stale worker cleanup | Map to `resume`, `replace`, `supersede`, or `block` decisions. |
 
+## Full Integration Shape
+
+The simplest integration keeps the two responsibilities separate:
+
+- **WEAVE is the user-facing agent and product policy.** It talks to the user,
+  infers intent, applies lifecycle gates, writes app records, creates worker
+  packets, evaluates proof, and reports state in owner-readable language.
+- **Symphony is the orchestra.** It watches an eligible work queue, creates an
+  isolated workspace, runs Codex app-server with the configured workflow, keeps
+  long-running state visible, retries or stops work, and exposes operational
+  status.
+
+This means WEAVE should not fork Symphony first. The first useful path is a thin
+adapter:
+
+1. A WEAVE Chief of Staff session receives user intent.
+2. WEAVE writes a `WorkItem` with `app_id`, lifecycle stage, intent truth,
+   owner boundary, required proof, and non-claims.
+3. A queue adapter presents that `WorkItem` to Symphony as an issue-like unit.
+   The first implementation may use a local JSON queue before Linear.
+4. Symphony creates the isolated workspace and launches Codex app-server.
+5. The Codex prompt is a WEAVE workflow prompt, not Symphony's default PR-first
+   workflow. It must include the lifecycle procedure, proof-envelope closeout,
+   and allowed/forbidden actions.
+6. The worker writes a `LifecycleCard` and `ProofEnvelope` back to the WEAVE
+   state directory.
+7. Symphony reports running, blocked, retrying, and completed execution state.
+8. WEAVE reads Symphony state plus proof envelopes and tells the user what is
+   done, blocked, unproven, or ready for owner approval.
+
+In this shape, a user can keep talking to one WEAVE Chief of Staff while
+Symphony handles the mechanical orchestration behind it.
+
+### Boundary Between WEAVE And Symphony
+
+| Responsibility | WEAVE owns | Symphony owns |
+| --- | --- | --- |
+| User interaction | Chief of Staff chat, owner profile, intent truth, lifecycle questions | None, except surfacing operational state |
+| Work definition | App/company lifecycle cards, worker packets, proof requirements | Issue/work item dispatch eligibility |
+| Execution | Prompt policy, app primitives, proof envelope requirements | Workspace creation, Codex app-server launch, retries, max turns |
+| State | Durable WEAVE app state and proof envelopes | Orchestrator runtime state and logs |
+| Review | Evaluations, governance, non-claim enforcement | Blocked/running/terminal operational status |
+| Public actions | Owner approval gates and readback | No public action policy beyond what workflow enforces |
+
+### Phoenix Dashboard Role
+
+Symphony's Phoenix dashboard is an operational dashboard, not the WEAVE product
+UX. In vanilla Symphony it can show active, blocked, retrying, and completed
+agent runs through a LiveView page and JSON API. In WEAVE it should become a
+controller/admin observability surface that mirrors:
+
+- app ID and lifecycle stage;
+- current worker packet;
+- running or blocked Symphony session;
+- latest proof envelope;
+- stale worker cleanup decision;
+- next owner action, if any.
+
+The owner does not need to live in this dashboard. The WEAVE Chief of Staff
+should summarize the same state when the user returns to the chat.
+
+## Compound Engineering Pass
+
+This PR uses a compound engineering pass only for the adoption baseline:
+
+```text
+intent -> integration model -> missing capability check -> adoption patch ->
+targeted validation -> PR proof ledger -> non-claim readback
+```
+
+The missing capability is not a new runtime yet. The missing capability is a
+clear connection contract between WEAVE and Symphony, plus a PR proof ledger
+that records what has and has not been proven.
+
+The next compound engineering slice should create the smallest runnable
+integration proof:
+
+- local WEAVE queue with one `WorkItem`;
+- generated Symphony-compatible workflow prompt;
+- isolated workspace creation;
+- Codex app-server invocation or local stub when live Codex is unavailable;
+- proof envelope written by the worker;
+- WEAVE readback of Symphony state plus proof envelope;
+- no public sends, deploys, secrets, or billing.
+
 ## Required WEAVE Extensions
 
 ### 1. Workflow Contract
@@ -256,13 +341,18 @@ This plan is accepted when a controller can answer:
 - which WEAVE documents remain authoritative;
 - how each major Symphony concept maps to WEAVE;
 - which phases produce the first useful proof;
-- which claims are still non-claims.
+- which claims are still non-claims;
+- how WEAVE remains the user-facing agent while Symphony runs orchestration;
+- what the smallest runnable integration proof must demonstrate.
 
 ## Current Non-Claims
 
 - The imported Symphony code has not been adapted to WEAVE.
 - The imported Symphony code has not been run in this branch.
 - This plan does not prove Codex app-server behavior in WEAVE.
+- This plan does not prove the WEAVE-to-Symphony queue adapter.
+- This plan does not prove the Phoenix dashboard has been extended with WEAVE
+  lifecycle state.
 - This plan does not prove app creation, browser validation, payment, launch, or
   revenue behavior.
 - This plan does not authorize deployment, public sends, destructive cleanup, or
