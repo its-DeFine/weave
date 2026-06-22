@@ -1978,7 +1978,7 @@ class WeaveCliTests(unittest.TestCase):
                     "--surface",
                     "codex",
                     "--intent",
-                    "I have two app ideas: a tiny calculator app and a local recipe tracker.",
+                    "I have two app ideas: a recipe planner and an invoice tracker. Work locally only; no deploys, no public sends, no secrets.",
                     "--json",
                 ],
                 output=output,
@@ -1992,8 +1992,8 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(payload["app_count"], 2)
             self.assertEqual(len(registry["apps"]), 2)
             app_ids = {item["app_id"] for item in registry["apps"]}
-            self.assertIn("tiny-calculator-app", app_ids)
-            self.assertIn("local-recipe-tracker", app_ids)
+            self.assertIn("recipe-planner", app_ids)
+            self.assertIn("invoice-tracker", app_ids)
             for app_id in app_ids:
                 app_root = home / "apps" / app_id
                 self.assertTrue((app_root / "intent.md").exists())

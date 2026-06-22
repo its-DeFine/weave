@@ -93,6 +93,19 @@ def titleize(value: str) -> str:
     return " ".join(part.capitalize() for part in re.split(r"[-_\s]+", value) if part) or "New App"
 
 
+def clean_app_candidate(value: str) -> str:
+    candidate = value.strip()
+    candidate = re.split(r"[.;\n]", candidate, maxsplit=1)[0].strip()
+    candidate = re.sub(
+        r"\b(work locally only|local only|no deploys?|no public sends?|no secrets?)\b.*$",
+        "",
+        candidate,
+        flags=re.IGNORECASE,
+    ).strip()
+    candidate = re.sub(r"\b(for|with|that|to)\b.*$", "", candidate, flags=re.IGNORECASE).strip()
+    return candidate
+
+
 def stage_index(stage_id: str) -> int:
     for index, (candidate, _label) in enumerate(LIFECYCLE_STAGES):
         if candidate == stage_id:
@@ -137,7 +150,7 @@ def infer_app_name(intent: str, app_id: str | None = None, app_name: str | None 
         flags=re.IGNORECASE,
     )
     candidate = match.group(1).strip() if match else ""
-    candidate = re.sub(r"\b(for|with|that|to)\b.*$", "", candidate, flags=re.IGNORECASE).strip()
+    candidate = clean_app_candidate(candidate)
     if not candidate or candidate.lower() in {"something", "app", "application", "a simple local app", "simple local app"}:
         candidate = "simple local app" if "simple local app" in text.lower() else "new app"
     return slugify(candidate), titleize(candidate)
@@ -154,7 +167,7 @@ def infer_apps(intent: str, app_id: str | None = None, app_name: str | None = No
         apps: list[tuple[str, str]] = []
         for piece in pieces:
             cleaned = re.sub(r"^(?:and\s+)?(?:a|an|the|one is|second is|another)\s+", "", piece.strip(), flags=re.IGNORECASE)
-            cleaned = re.sub(r"\b(for|with|that|to)\b.*$", "", cleaned, flags=re.IGNORECASE).strip()
+            cleaned = clean_app_candidate(cleaned)
             if not cleaned or cleaned.lower() in {"i have two app ideas", "two app ideas"}:
                 continue
             if re.search(r"\b(app|tool|calculator|tracker|planner|site|dashboard)\b", cleaned, re.IGNORECASE):
