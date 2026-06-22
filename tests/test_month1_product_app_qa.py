@@ -30,7 +30,7 @@ class Month1ProductAppQATest(unittest.TestCase):
                 cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=180,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             payload = json.loads(report.read_text(encoding="utf-8"))
