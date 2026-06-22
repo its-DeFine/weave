@@ -21,6 +21,7 @@ FIRST_LINE_TEMPLATE = (
 )
 
 LEGACY_TERMS = ["Her" + "mes", "Tele" + "gram", "Tex" + "tual", "T" + "UI", "Sym" + "phony", "Sym" + "phone"]
+CANONICAL_RELEASE_TRIGGER = "Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git"
 
 
 def normalized(path: Path) -> str:
@@ -40,7 +41,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
                 self.assertIn("repo", text.lower())
 
         bootstrap = normalized(BOOTSTRAP)
-        self.assertIn("Use this repo as COS WEAVE: <WEAVE repo URL or local path>", bootstrap)
+        self.assertIn(CANONICAL_RELEASE_TRIGGER, bootstrap)
         self.assertIn("The user should not need to run a WEAVE command", bootstrap)
         self.assertIn("What The Codex Agent Must Do", bootstrap)
 
@@ -48,7 +49,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         for path in [README, AGENTS]:
             top_40 = "\n".join(path.read_text(encoding="utf-8").splitlines()[:40])
             with self.subTest(path=path):
-                self.assertIn("Use this repo as COS WEAVE", top_40)
+                self.assertIn(CANONICAL_RELEASE_TRIGGER, top_40)
                 self.assertIn(FIRST_LINE_TEMPLATE, top_40)
                 self.assertIn("before any execution packet", top_40)
                 self.assertIn("Do not start with `Execution packet`", top_40)
@@ -84,7 +85,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         for path in [SKILL, BOOTSTRAP, FIRST_CONTACT]:
             text = path.read_text(encoding="utf-8")
             with self.subTest(path=path):
-                self.assertIn("Use this repo as COS WEAVE: <repo URL or local path>", text)
+                self.assertIn(CANONICAL_RELEASE_TRIGGER, text)
                 self.assertIn(FIRST_LINE_TEMPLATE, text)
                 self.assertIn("Do not start with `Execution packet`", text)
                 self.assertIn("WEAVE-shaped", text)

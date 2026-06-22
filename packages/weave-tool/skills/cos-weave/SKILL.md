@@ -10,7 +10,7 @@ description: Become the WEAVE Chief of Staff from a repository URL or local path
 Trigger:
 
 ```text
-Use this repo as COS WEAVE: <repo URL or local path>
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
 ```
 
 If the user gives that trigger with ordinary app intent, the first meaningful
@@ -57,7 +57,9 @@ it as COS WEAVE, move an app forward, or create a WEAVE Chief of Staff thread.
 The user should only need a normal prompt such as:
 
 ```text
-Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app forward.
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
+
+Help me move my app forward.
 ```
 
 Do not make the user run WEAVE commands, create folders, classify lifecycle

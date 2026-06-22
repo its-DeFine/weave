@@ -54,6 +54,8 @@ RELEASE_VISUALS = [
     "assets/weave-v0.1-lifecycle.svg",
 ]
 
+CANONICAL_RELEASE_TRIGGER = "Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git"
+
 GENERIC_PACKAGE_DOCS = [
     "packages/weave-tool/COMPANY.md",
     "packages/weave-tool/README.md",
@@ -311,6 +313,25 @@ def check_release_assets(root: Path) -> list[str]:
     return findings
 
 
+def check_release_trigger(root: Path) -> list[str]:
+    findings: list[str] = []
+    required_docs = [
+        "README.md",
+        "COS_WEAVE_FIRST_CONTACT.md",
+        "COS_WEAVE_LAUNCHER.md",
+        "docs/quickstart.md",
+        "docs/COS_WEAVE_BOOTSTRAP.md",
+        "docs/WEAVE_V0_1_RELEASE.md",
+        "docs/WEAVE_V0_1_USER_FLOW.md",
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+    ]
+    for rel in required_docs:
+        text = read_text(root, rel)
+        if CANONICAL_RELEASE_TRIGGER not in text:
+            findings.append(f"{rel}: missing canonical release trigger")
+    return findings
+
+
 def validate_repo(root: Path = REPO_ROOT) -> list[str]:
     findings: list[str] = []
     checks = [
@@ -320,6 +341,7 @@ def validate_repo(root: Path = REPO_ROOT) -> list[str]:
         check_repo_map,
         check_non_claims,
         check_release_assets,
+        check_release_trigger,
     ]
     for check in checks:
         findings.extend(check(root))
