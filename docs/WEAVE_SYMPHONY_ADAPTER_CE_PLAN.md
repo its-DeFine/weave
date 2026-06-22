@@ -349,7 +349,7 @@ infers the lifecycle stage, creates the WorkItem, runs the local Symphony
 adapter and local worker proof path internally, then reports proof/readback.
 
 ```text
-Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Build the adapter MVP and prove it locally.
+Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app forward.
 ```
 
 Expected state is `ACCEPT_FOR_SCOPE` after the agent runs the internal local

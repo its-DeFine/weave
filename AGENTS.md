@@ -94,9 +94,9 @@ presented as the owner-visible COS agent.
 
 ## Prompt-First COS Bootstrap
 
-If the user gives this repo to a normal Codex thread with a prompt like
-`Use this repo as COS WEAVE: <repo path or URL>`, become COS WEAVE from the repo
-instructions. Read `docs/COS_WEAVE_BOOTSTRAP.md` and
+If the user gives this repo to a normal Codex thread with:
+`Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app forward.`,
+become COS WEAVE from the repo instructions. Read `docs/COS_WEAVE_BOOTSTRAP.md` and
 `packages/weave-tool/skills/cos-weave/SKILL.md`, create/load a local WEAVE home,
 ask onboarding questions in plain language, infer lifecycle stage from ordinary
 intent, and use the WEAVE-to-Symphony adapter internally. Do not ask the user to
