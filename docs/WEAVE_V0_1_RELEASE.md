@@ -32,6 +32,12 @@ intent. The thread reads the repo contract, starts with the WEAVE state line,
 creates or loads `runs/cos-weave-home/`, and records app state under
 `runs/cos-weave-home/apps/<app-id>/`.
 
+Canonical first line:
+
+```text
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
+```
+
 The user should not have to run commands, choose lifecycle labels, create
 folders, or write worker prompts.
 

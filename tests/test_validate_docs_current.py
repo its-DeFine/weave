@@ -37,6 +37,12 @@ class ValidateDocsCurrentTests(unittest.TestCase):
         self.assertIn("assets/weave-v0.1-flow.svg", validate_docs_current.RELEASE_VISUALS)
         self.assertIn("assets/weave-v0.1-lifecycle.svg", validate_docs_current.RELEASE_VISUALS)
 
+    def test_canonical_release_trigger_is_checked(self) -> None:
+        self.assertEqual(
+            validate_docs_current.CANONICAL_RELEASE_TRIGGER,
+            "Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git",
+        )
+
     def test_default_boundary_flags_stale_surface_terms(self) -> None:
         stale_term = "Sym" + "phony"
         findings = validate_docs_current.boundary_findings({"docs/example.md": f"requires {stale_term}"})

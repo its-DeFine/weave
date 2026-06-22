@@ -7,8 +7,9 @@ Status: user-facing process map for `v0.1.0`.
 ![WEAVE v0.1 flow](../assets/weave-v0.1-flow.svg)
 
 1. The user opens a Codex thread.
-2. The user gives the thread the WEAVE repo URL or local path plus ordinary app
-   intent.
+2. The user gives the thread
+   `Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git`
+   plus ordinary app intent.
 3. The thread becomes COS WEAVE and starts every meaningful update with the
    WEAVE state line.
 4. COS WEAVE creates or loads `runs/cos-weave-home/`.

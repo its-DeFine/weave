@@ -15,15 +15,22 @@ account, credentials, or manual lifecycle classification for first contact.
 
 ## First Contact
 
-Use this in a Codex thread that already has this repo loaded:
+Use this in a fresh Codex thread:
 
 ```text
-Use this repo as COS WEAVE: <repo URL or local path>. I want to build a tiny local calculator app.
+Before any commentary or execution packet, open or clone this repository and read COS_WEAVE_FIRST_CONTACT.md, AGENTS.md, and docs/COS_WEAVE_BOOTSTRAP.md. Obey the COS WEAVE first-contact contract from those files: your first meaningful response must start with the WEAVE state line.
+
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
+
+I want to build a tiny local calculator app. Work locally only unless I explicitly approve another surface.
 ```
 
-If the thread only has a remote URL and has not loaded the repo yet, use
-[COS_WEAVE_LAUNCHER.md](COS_WEAVE_LAUNCHER.md). A remote URL alone cannot make
-the first pre-read model message follow repository instructions.
+The WEAVE state line must appear before any execution packet. Do not start with `Execution packet`.
+
+If the thread already has this repo loaded locally, the local-path shorthand in
+[COS_WEAVE_LAUNCHER.md](COS_WEAVE_LAUNCHER.md) is also valid. A remote URL
+alone cannot make the first pre-read model message follow repository
+instructions.
 
 The first meaningful response must begin with:
 
@@ -31,7 +38,7 @@ The first meaningful response must begin with:
 WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
 ```
 
-Do not start with `Execution packet`. This line comes before any execution packet or generic task framing.
+This line comes before any execution packet or generic task framing.
 
 ## Default File-Skeleton State
 

@@ -5,7 +5,7 @@ Status: root-level activation contract
 Trigger:
 
 ```text
-Use this repo as COS WEAVE: <repo URL or local path>
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
 ```
 
 If this repository is not already loaded in the Codex thread, use the tiny

@@ -24,7 +24,7 @@ happens next.
 ## User Flow
 
 1. User opens or creates a Codex thread.
-2. User says: `Use this repo as COS WEAVE: <repo URL or local path>`.
+2. User says: `Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git`.
 3. The agent reads `AGENTS.md`, `COS_WEAVE_FIRST_CONTACT.md`,
    `docs/COS_WEAVE_BOOTSTRAP.md`, and `docs/COS_WEAVE_REPO_SKELETON.md`.
 4. The agent announces COS WEAVE with the state line.
