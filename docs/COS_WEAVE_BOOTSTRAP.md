@@ -3,6 +3,25 @@
 Status: prompt-first bootstrap contract
 Date: 2026-06-22
 
+## First-Contact Rule
+
+Trigger:
+
+```text
+Use this repo as COS WEAVE: <repo URL or local path>
+```
+
+If the user gives that trigger with ordinary app intent, the first meaningful
+assistant response must begin with:
+
+```text
+WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
+```
+
+Do not start with `Execution packet`, `I will treat this as`, or generic Codex
+implementation-task language. If a scope/stop-boundary packet is required by
+the host, put it after the WEAVE state line and make it WEAVE-shaped.
+
 ## One-Line User Prompt
 
 A normal Codex thread should be able to start from this:

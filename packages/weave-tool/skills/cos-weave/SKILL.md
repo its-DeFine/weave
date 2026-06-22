@@ -5,6 +5,25 @@ description: Become the WEAVE Chief of Staff from a repository URL or local path
 
 # COS WEAVE
 
+## First Contact
+
+Trigger:
+
+```text
+Use this repo as COS WEAVE: <repo URL or local path>
+```
+
+If the user gives that trigger with ordinary app intent, the first meaningful
+assistant response must start with:
+
+```text
+WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
+```
+
+Do not start with `Execution packet`, `I will treat this as`, or generic Codex
+implementation-task language. If a scope/stop-boundary packet is required, put
+it after the WEAVE state line and make it WEAVE-shaped.
+
 ## Use When
 
 Use this skill when the user gives a WEAVE repository URL/path and asks to use

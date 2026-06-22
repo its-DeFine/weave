@@ -2,9 +2,24 @@
 
 This `docs/` tree is the public documentation subset for WEAVE.
 
+## Default vNext reading order
+
+For prompt-first COS WEAVE, start with:
+
+1. [COS WEAVE First Contact](../COS_WEAVE_FIRST_CONTACT.md)
+2. [COS WEAVE Bootstrap](COS_WEAVE_BOOTSTRAP.md)
+3. [COS WEAVE Repo Skeleton](COS_WEAVE_REPO_SKELETON.md)
+
+The default product path is a file/folder skeleton with app registry, app
+folders, `intent.md/json`, `lifecycle.json`, `todos.md`, `worker-packets/`,
+`proof/`, `blockers/`, `review/`, and `updates/readback.json`. Runtime, Hermes,
+TUI, and deployment docs are optional advanced references after the skeleton
+path is established.
+
 ## Current public docs
 
 - [Replication Architecture](replication-architecture.md)
+- [COS WEAVE First Contact](../COS_WEAVE_FIRST_CONTACT.md)
 - [WEAVE Quickstart](quickstart.md)
 - [Telegram Slash Commands](telegram-slash-commands.md)
 - [Lifecycle Evals](lifecycle-evals.md)
@@ -13,7 +28,6 @@ This `docs/` tree is the public documentation subset for WEAVE.
 - [COS WEAVE Repo Skeleton](COS_WEAVE_REPO_SKELETON.md)
 - [COS WEAVE Prompt Bootstrap Compound Engineering](COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md)
 - [WEAVE Harness Engineering Adoption](WEAVE_HARNESS_ENGINEERING_ADOPTION.md)
-- [Optional WEAVE-to-Symphony Adapter CE Plan](WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md)
 - [Lifecycle Artifact Contracts v0.1](lifecycle-artifact-contracts-v0.1.md)
 - [Runtime Home Contract](runtime-home.md)
 - [Hermes Runtime Setup](hermes-setup.md)
@@ -70,3 +84,11 @@ full docs tree first, start here:
   `python3 scripts/weave_runtime_http.py`. Both bind to loopback by default and
   the HTTP wrapper requires the generated local bearer token unless explicitly
   started with its test/dev unauthenticated flag.
+
+## Advanced/legacy integration references
+
+These references are not part of prompt-first COS WEAVE startup, first-contact
+acceptance, or the default product path. Use them only for bounded later
+integration work after the file skeleton is already proven.
+
+- [Optional WEAVE-to-Symphony Adapter CE Plan](WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md)

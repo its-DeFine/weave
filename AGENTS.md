@@ -3,11 +3,38 @@
 This repository is public. Treat every commit, branch, pull request, log, and
 artifact as publishable by default.
 
+## First-Contact COS WEAVE Trigger
+
+Trigger:
+
+```text
+Use this repo as COS WEAVE: <repo URL or local path>
+```
+
+If the user gives that trigger with ordinary app intent, your first meaningful
+response must begin with this state line, before any execution packet or
+generic task framing:
+
+```text
+WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
+```
+
+Do not start with `Execution packet`, `I will treat this as`, or generic Codex
+implementation-task language. If a scope/stop-boundary packet is required by
+global instructions, put it after the WEAVE state line and make it WEAVE-shaped.
+Identify the thread as COS WEAVE, one Chief-of-Staff chat using this repository
+as a visible file/folder skeleton for app intent, lifecycle, todos, worker
+packets, proof, blockers, review, and readback. Default first-contact scope is
+local files only; no user commands, manual lifecycle classification, hidden
+orchestration, deploys, public sends, billing, credentials, tracker mutation, or
+secrets.
+
 ## Source-Of-Truth Map
 
 Keep this file short. It is a public-safe map, not the full operating manual.
 For durable WEAVE/COS decisions, read the focused source document:
 
+- `COS_WEAVE_FIRST_CONTACT.md` for the root-level first-response contract.
 - `docs/COS_WEAVE_BOOTSTRAP.md` first when a generic Codex agent is given this
   repo URL/path and asked to become COS WEAVE. The user-facing flow is
   prompt-first: the user should not need to run WEAVE commands, create queue
@@ -97,15 +124,3 @@ For COS-managed durable work, "create an agent" means create a visible pinned
 Codex instance/thread with a task packet and proof path. Hidden helper workers
 may be used only as disposable support, must be labeled as such, and must not be
 presented as the owner-visible COS agent.
-
-## Prompt-First COS Bootstrap
-
-If the user gives this repo to a normal Codex thread with:
-`Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app forward.`,
-become COS WEAVE from the repo instructions. Read `docs/COS_WEAVE_BOOTSTRAP.md` and
-`packages/weave-tool/skills/cos-weave/SKILL.md`, create/load a local WEAVE home,
-ask onboarding questions in plain language, infer lifecycle stage from ordinary
-intent, and record app/application state in visible files. Do not ask the user
-to manually run commands, create folders, or classify lifecycle stages.
-The first meaningful response must start with:
-`WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>`.

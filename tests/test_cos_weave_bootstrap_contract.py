@@ -7,9 +7,15 @@ BOOTSTRAP = ROOT / "docs" / "COS_WEAVE_BOOTSTRAP.md"
 SKILL = ROOT / "packages" / "weave-tool" / "skills" / "cos-weave" / "SKILL.md"
 AGENTS = ROOT / "AGENTS.md"
 README = ROOT / "README.md"
+FIRST_CONTACT = ROOT / "COS_WEAVE_FIRST_CONTACT.md"
 ADAPTER_PLAN = ROOT / "docs" / "WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md"
 SKELETON = ROOT / "docs" / "COS_WEAVE_REPO_SKELETON.md"
 SKELETON_SAMPLE = ROOT / "docs" / "samples" / "cos-weave-skeleton"
+
+FIRST_LINE_TEMPLATE = (
+    "WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | "
+    "Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>"
+)
 
 
 def normalized(path: Path) -> str:
@@ -18,7 +24,7 @@ def normalized(path: Path) -> str:
 
 class CosWeaveBootstrapContractTests(unittest.TestCase):
     def test_prompt_first_bootstrap_surface_is_discoverable(self) -> None:
-        for path in [BOOTSTRAP, SKILL, AGENTS, README, ADAPTER_PLAN, SKELETON]:
+        for path in [BOOTSTRAP, SKILL, AGENTS, README, FIRST_CONTACT, ADAPTER_PLAN, SKELETON]:
             text = normalized(path)
             with self.subTest(path=path):
                 self.assertIn("COS WEAVE", text)
@@ -28,6 +34,79 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         self.assertIn("Use this repo as COS WEAVE: <WEAVE repo URL or local path>", bootstrap)
         self.assertIn("The user should not need to run a WEAVE command", bootstrap)
         self.assertIn("What The Codex Agent Must Do", bootstrap)
+
+    def test_first_contact_contract_is_in_top_40_lines_of_readme_and_agents(self) -> None:
+        for path in [README, AGENTS]:
+            top_40 = "\n".join(path.read_text(encoding="utf-8").splitlines()[:40])
+            with self.subTest(path=path):
+                self.assertIn("Use this repo as COS WEAVE", top_40)
+                self.assertIn(FIRST_LINE_TEMPLATE, top_40)
+                self.assertIn("before any execution packet", top_40)
+                self.assertIn("Do not start with `Execution packet`", top_40)
+                self.assertIn("Scope=local-file-skeleton", top_40)
+
+    def test_first_contact_contract_is_repeated_in_skill_and_bootstrap(self) -> None:
+        for path in [SKILL, BOOTSTRAP, FIRST_CONTACT]:
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(path=path):
+                self.assertIn("Use this repo as COS WEAVE: <repo URL or local path>", text)
+                self.assertIn(FIRST_LINE_TEMPLATE, text)
+                self.assertIn("Do not start with `Execution packet`", text)
+                self.assertIn("WEAVE-shaped", text)
+
+    def test_default_readme_path_is_file_skeleton_before_advanced_runtime(self) -> None:
+        text = README.read_text(encoding="utf-8")
+        default_block = text.split("## Advanced/Legacy Runtime And TUI Surfaces", 1)[0]
+        required = [
+            "Default File-Skeleton State",
+            "runs/cos-weave-home/",
+            "lifecycle.json",
+            "todos.md",
+            "worker-packets/",
+            "proof/",
+            "blockers/",
+            "review/",
+            "updates/readback.json",
+            "not the user-facing first-run path",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, default_block)
+        forbidden = [
+            "Before onboarding, pick one deployment mode",
+            "bin/weave tui",
+            "Managed container",
+            "Symphony",
+            "Symphone",
+        ]
+        for phrase in forbidden:
+            with self.subTest(phrase=phrase):
+                self.assertNotIn(phrase, default_block)
+
+    def test_quickstart_and_docs_index_make_file_skeleton_default(self) -> None:
+        quickstart_top = "\n".join((ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8").splitlines()[:80])
+        docs_index_top = "\n".join((ROOT / "docs" / "README.md").read_text(encoding="utf-8").splitlines()[:60])
+        for phrase in [
+            "file-skeleton-first",
+            "runs/cos-weave-home/",
+            "lifecycle.json",
+            "todos.md",
+            "worker-packets/",
+            "updates/readback.json",
+        ]:
+            with self.subTest(surface="quickstart", phrase=phrase):
+                self.assertIn(phrase, quickstart_top)
+        for phrase in ["managed container", "existing-Hermes", "bin/weave tui", "Symphony", "Symphone"]:
+            with self.subTest(surface="quickstart", phrase=phrase):
+                self.assertNotIn(phrase, quickstart_top)
+        self.assertIn("Default vNext reading order", docs_index_top)
+        self.assertIn("COS WEAVE Repo Skeleton", docs_index_top)
+        self.assertIn("lifecycle.json", docs_index_top)
+        self.assertIn("worker-packets/", docs_index_top)
+        self.assertIn("optional advanced references", docs_index_top)
+        self.assertNotIn("Symphony", docs_index_top)
+        self.assertNotIn("Symphone", docs_index_top)
+        self.assertNotIn("orchestration-adapter", docs_index_top)
 
     def test_generic_agent_has_enough_steps_from_repo_path_and_intent(self) -> None:
         text = normalized(BOOTSTRAP)

@@ -1,10 +1,15 @@
 # WEAVE Quickstart
 
-The base validation path runs locally with no API keys and no network calls.
-Guided onboarding supports four operator modes: managed container,
-existing-Hermes attach, slash-only deterministic commands, and host-local
-fallback. Requires Python 3.9+ and git; Docker is required only for the managed
-container path.
+Default COS WEAVE quickstart is prompt-first and file-skeleton-first. A normal
+user gives a Codex thread this repo URL/path plus ordinary app intent; the agent
+starts with the WEAVE state line, creates or loads `runs/cos-weave-home/`, and
+records app intent, `lifecycle.json`, `todos.md`, `worker-packets/`, `proof/`,
+`blockers/`, `review/`, and `updates/readback.json`.
+
+The user should not run commands, choose deployment modes, use hidden
+orchestration, classify lifecycle stages, or understand runtime internals before
+onboarding. Developer validation and older runtime sections below are optional
+after the local file skeleton exists.
 
 ## 1. Clone
 
@@ -14,12 +19,14 @@ cd weave
 ```
 
 If you are a Codex agent and the user gave you this repo to become COS WEAVE,
-do not start by asking the user to run commands. Read
+your first meaningful response must start with
+`WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>`.
+Do not start with `Execution packet` or generic task framing. Read
 [COS WEAVE Bootstrap](COS_WEAVE_BOOTSTRAP.md), create or load local WEAVE state,
 ask onboarding questions in plain language, infer lifecycle stage from ordinary
 intent, and record app/application state in visible files.
 
-## 2. Validate the company package
+## 2. Optional developer validation
 
 ```bash
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
@@ -54,7 +61,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 All tests should pass. The suite exercises the package validator and the
 lifecycle dependency rules.
 
-## 4. Inspect lifecycle evals
+## 4. Optional lifecycle eval inspection
 
 WEAVE uses evidence-bound eval contracts for every lifecycle stage. List them
 and generate an agent/human review template:
@@ -73,7 +80,7 @@ bin/weave eval release-readiness --run-gates --review-file release-review.json
 Hard gates can veto high rubric scores. Release readiness remains owner-gated
 even when all checks pass. See [Lifecycle Evals](lifecycle-evals.md).
 
-## 5. Try the full conversation-to-app workflow
+## 5. Optional full conversation-to-app workflow
 
 To try the end-to-end app-production loop without live Hermes, Telegram, model
 provider keys, hosting, analytics, payments, or public side effects, run the

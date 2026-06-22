@@ -1,17 +1,54 @@
+## Codex First Contact: COS WEAVE
+
+Trigger:
+
+```text
+Use this repo as COS WEAVE: <repo URL or local path>
+```
+
+If the user gives that trigger with ordinary app intent, your first meaningful
+response must begin with this state line, before any execution packet or
+generic task framing:
+
+```text
+WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
+```
+
+Do not start with `Execution packet`, `I will treat this as`, or generic Codex
+implementation-task language. If a scope/stop-boundary packet is required by
+your host instructions, put it after the WEAVE state line and make it
+WEAVE-shaped. COS WEAVE is one Chief-of-Staff chat using this repo as a visible
+file/folder skeleton for app intent, lifecycle, todos, worker packets, proof,
+blockers, review, and readback. Default first-contact scope is local files
+only; no user commands, manual lifecycle classification, hidden orchestration,
+deploys, public sends, billing, credentials, tracker mutation, or secrets.
+
+See [COS_WEAVE_FIRST_CONTACT.md](COS_WEAVE_FIRST_CONTACT.md) and
+[docs/COS_WEAVE_BOOTSTRAP.md](docs/COS_WEAVE_BOOTSTRAP.md).
+
 # WEAVE
 
 ![WEAVE runtime hero](assets/weave-hero.png)
 
-WEAVE is a runtime and agent-company package for building applications from
-agent-run product lifecycle work.
+WEAVE vNext is one COS WEAVE chat plus a repo-owned file/folder skeleton for
+building and operating applications through lifecycle state, todos, worker
+packets, proof, blockers, review, and readback.
 
 ## Quickstart
 
-Clone the repo and follow [docs/quickstart.md](docs/quickstart.md) to validate
-the package, run the test suite, execute a lifecycle dry-run, and configure the
-approval-gated Telegram gateway. The base validation path needs no API keys and
-no network calls. See [docs/runtime-home.md](docs/runtime-home.md) for the
-durable runtime-home contract.
+For the default product path, a normal user creates a Codex thread and pastes:
+
+```text
+Use this repo as COS WEAVE: <repo URL or local path>. I want to build a tiny local app.
+```
+
+The agent opens or clones this repo, starts with the WEAVE state line, and
+creates or loads `runs/cos-weave-home/`. The user should not run commands,
+choose a deployment mode, classify lifecycle stages, create folders, use an
+orchestration backend, or understand runtime internals before onboarding.
+
+Developer validation commands and older runtime surfaces are optional after the
+file skeleton exists; they are not the default first-contact UX.
 
 ## Prompt-First COS WEAVE
 
@@ -32,19 +69,55 @@ lifecycle stage from user intent, record app/application state in visible files,
 and report proof/readback. The user should not need to run commands, create
 folders, classify lifecycle stages, or understand hidden orchestration.
 
-Before onboarding, pick one deployment mode:
+## Default File-Skeleton State
 
-- **Managed container:** WEAVE builds a pinned Hermes gateway container after
-  Hermes normal-chat setup is confirmed.
-- **Existing Hermes attach:** Hermes already works; WEAVE does not install
-  Hermes or mutate provider auth. It creates the deterministic WEAVE runtime
-  home, source map, app state, and `weave-runtime` Hermes plugin/config.
-- **Slash-only deterministic mode:** normal Hermes chat stays blocked, but the
-  deterministic Telegram command surface is configured.
-- **Host-local fallback:** WEAVE can install a pinned Hermes checkout into
-  ignored local runtime state when containerization is not desired.
+The default COS WEAVE source of truth is visible files:
 
-Useful first commands:
+```text
+runs/cos-weave-home/
+  owner-profile.md
+  owner-profile.json
+  apps/
+    registry.json
+    <app-id>/
+      intent.md
+      intent.json
+      lifecycle.json
+      todos.md
+      worker-packets/
+      proof/
+      blockers/
+      review/
+      updates/readback.json
+  inbox/review-queue.json
+  updates/readback.json
+```
+
+Missing owner preferences are draft todos/questions, not a hard gate for safe
+local planning. Completion claims must go through observe, validate, govern,
+review, and sync before readback says they are accepted.
+
+## Optional Developer Validation
+
+These commands are for repo developers after the default file skeleton is clear.
+They are not the user-facing first-run path:
+
+```bash
+python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
+python3 -m unittest discover -s tests -p 'test_*.py'
+python3 scripts/runtime_smoke.py
+python3 scripts/check_no_secrets.py
+```
+
+## Advanced/Legacy Runtime And TUI Surfaces
+
+The older TUI, Hermes, runtime, deployment, gateway, and orchestration-adapter
+surfaces are advanced or historical integration paths. They must not be used as
+the default first-contact behavior. Start with the COS WEAVE file skeleton
+above, then use these only when explicitly needed for a bounded developer proof
+or later runtime integration.
+
+Optional advanced commands include:
 
 ```bash
 bin/weave help
@@ -63,7 +136,11 @@ python3 scripts/full_conversation_app_dogfood.py --help
 python3 scripts/private_app_operating_profile_eval.py --list
 ```
 
-`bin/weave tui` is the operator-first product cockpit. In interactive mode it
+Optional runtime modes include managed container, existing runtime attach,
+slash-only deterministic mode, and host-local fallback. These are not
+preconditions for prompt-first COS WEAVE app intake.
+
+The TUI is an older operator cockpit surface. In interactive mode it
 opens a resumable lifecycle cockpit with an action card, stage choices,
 navigation, review queue, artifact/file panes, stage feedback, and
 file-specific feedback. In a terminal it stays in a `weave>` command loop; use
