@@ -6,6 +6,16 @@ Trigger:
 Use this repo as COS WEAVE: <repo URL or local path>
 ```
 
+Launch modes:
+
+- **Repo-scoped/local Codex thread:** the short trigger is enough because this
+  repository's `AGENTS.md` and root docs are already loaded before first
+  response.
+- **Projectless remote-URL Codex thread:** paste the tiny launcher in
+  [COS_WEAVE_LAUNCHER.md](COS_WEAVE_LAUNCHER.md). A remote URL alone cannot
+  deterministically change the first progress message before the agent has
+  opened the repository.
+
 If the user gives that trigger with ordinary app intent, your first meaningful
 response must begin with this state line, before any execution packet or
 generic task framing:
@@ -41,6 +51,10 @@ For the default product path, a normal user creates a Codex thread and pastes:
 ```text
 Use this repo as COS WEAVE: <repo URL or local path>. I want to build a tiny local app.
 ```
+
+If that thread is projectless and the repo is only a remote URL, use the
+launcher prompt in [COS_WEAVE_LAUNCHER.md](COS_WEAVE_LAUNCHER.md) so the agent
+reads this repo before its first progress update.
 
 The agent opens or clones this repo, starts with the WEAVE state line, and
 creates or loads `runs/cos-weave-home/`. The user should not run commands,

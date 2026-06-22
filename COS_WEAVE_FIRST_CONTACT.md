@@ -8,6 +8,10 @@ Trigger:
 Use this repo as COS WEAVE: <repo URL or local path>
 ```
 
+If this repository is not already loaded in the Codex thread, use the tiny
+launcher in `COS_WEAVE_LAUNCHER.md` first. Remote URL-only startup cannot
+deterministically control a projectless thread's pre-read first response.
+
 If a normal Codex thread receives that trigger plus ordinary app intent, the
 first meaningful assistant response must start with this line shape:
 

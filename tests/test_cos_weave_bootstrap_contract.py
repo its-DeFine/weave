@@ -8,6 +8,7 @@ SKILL = ROOT / "packages" / "weave-tool" / "skills" / "cos-weave" / "SKILL.md"
 AGENTS = ROOT / "AGENTS.md"
 README = ROOT / "README.md"
 FIRST_CONTACT = ROOT / "COS_WEAVE_FIRST_CONTACT.md"
+LAUNCHER = ROOT / "COS_WEAVE_LAUNCHER.md"
 ADAPTER_PLAN = ROOT / "docs" / "WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md"
 SKELETON = ROOT / "docs" / "COS_WEAVE_REPO_SKELETON.md"
 SKELETON_SAMPLE = ROOT / "docs" / "samples" / "cos-weave-skeleton"
@@ -24,7 +25,7 @@ def normalized(path: Path) -> str:
 
 class CosWeaveBootstrapContractTests(unittest.TestCase):
     def test_prompt_first_bootstrap_surface_is_discoverable(self) -> None:
-        for path in [BOOTSTRAP, SKILL, AGENTS, README, FIRST_CONTACT, ADAPTER_PLAN, SKELETON]:
+        for path in [BOOTSTRAP, SKILL, AGENTS, README, FIRST_CONTACT, LAUNCHER, ADAPTER_PLAN, SKELETON]:
             text = normalized(path)
             with self.subTest(path=path):
                 self.assertIn("COS WEAVE", text)
@@ -44,6 +45,47 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
                 self.assertIn("before any execution packet", top_40)
                 self.assertIn("Do not start with `Execution packet`", top_40)
                 self.assertIn("Scope=local-file-skeleton", top_40)
+
+    def test_launcher_documents_projectless_remote_url_boot_order(self) -> None:
+        text = LAUNCHER.read_text(encoding="utf-8")
+        normalized_text = normalized(LAUNCHER)
+        required = [
+            "projectless Codex",
+            "remote repository URL is not loaded before",
+            "Before any commentary or execution packet",
+            "open or clone this repository",
+            "COS_WEAVE_FIRST_CONTACT.md",
+            "AGENTS.md",
+            "docs/COS_WEAVE_BOOTSTRAP.md",
+            FIRST_LINE_TEMPLATE,
+            "runs/cos-weave-home/",
+            "todos.md",
+            "Symphony is not required",
+            "Validator Prompts",
+            "Repo-scoped/local thread expected to work",
+            "Projectless remote-URL thread expected to use the tiny launcher prompt",
+        ]
+        for phrase in required:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        for phrase in ["manual lifecycle classification", "live tracker or Linear mutation", "production deployment"]:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, normalized_text)
+        self.assertIn(
+            "URL-only cannot control pre-read first contact in generic projectless Codex",
+            normalized_text,
+        )
+
+    def test_docs_do_not_overclaim_url_only_pre_read_determinism(self) -> None:
+        for path in [README, AGENTS, FIRST_CONTACT, BOOTSTRAP, LAUNCHER]:
+            text = normalized(path)
+            with self.subTest(path=path):
+                self.assertIn("remote", text.lower())
+                self.assertIn("first", text.lower())
+        self.assertIn("A remote URL alone cannot deterministically change the first progress message", normalized(README))
+        self.assertIn("A remote URL alone cannot reliably control pre-read first contact", normalized(AGENTS))
+        self.assertIn("Remote URL-only startup cannot deterministically control", normalized(FIRST_CONTACT))
+        self.assertIn("URL-only cannot control pre-read first contact in generic projectless Codex", normalized(SKILL))
 
     def test_first_contact_contract_is_repeated_in_skill_and_bootstrap(self) -> None:
         for path in [SKILL, BOOTSTRAP, FIRST_CONTACT]:
@@ -100,6 +142,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             with self.subTest(surface="quickstart", phrase=phrase):
                 self.assertNotIn(phrase, quickstart_top)
         self.assertIn("Default vNext reading order", docs_index_top)
+        self.assertIn("COS WEAVE Launcher", docs_index_top)
         self.assertIn("COS WEAVE Repo Skeleton", docs_index_top)
         self.assertIn("lifecycle.json", docs_index_top)
         self.assertIn("worker-packets/", docs_index_top)

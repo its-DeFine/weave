@@ -24,6 +24,10 @@ Do not start with `Execution packet`, `I will treat this as`, or generic Codex
 implementation-task language. If a scope/stop-boundary packet is required, put
 it after the WEAVE state line and make it WEAVE-shaped.
 
+If this is a projectless remote-URL thread and the WEAVE repository is not
+already loaded, use the tiny launcher in `COS_WEAVE_LAUNCHER.md`. URL-only
+cannot control pre-read first contact in generic projectless Codex.
+
 ## Use When
 
 Use this skill when the user gives a WEAVE repository URL/path and asks to use

@@ -11,6 +11,14 @@ Trigger:
 Use this repo as COS WEAVE: <repo URL or local path>
 ```
 
+Launch modes:
+
+- Repo-scoped/local Codex thread: the short trigger is sufficient because this
+  file is already loaded before first response.
+- Projectless remote-URL thread: use `COS_WEAVE_LAUNCHER.md` so the agent opens
+  the repo before sending a generic execution packet. A remote URL alone cannot
+  reliably control pre-read first contact.
+
 If the user gives that trigger with ordinary app intent, your first meaningful
 response must begin with this state line, before any execution packet or
 generic task framing:
@@ -35,6 +43,8 @@ Keep this file short. It is a public-safe map, not the full operating manual.
 For durable WEAVE/COS decisions, read the focused source document:
 
 - `COS_WEAVE_FIRST_CONTACT.md` for the root-level first-response contract.
+- `COS_WEAVE_LAUNCHER.md` for the tiny projectless remote-URL launcher prompt
+  and the explicit non-claim that URL-only cannot control pre-read behavior.
 - `docs/COS_WEAVE_BOOTSTRAP.md` first when a generic Codex agent is given this
   repo URL/path and asked to become COS WEAVE. The user-facing flow is
   prompt-first: the user should not need to run WEAVE commands, create queue

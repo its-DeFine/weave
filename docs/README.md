@@ -7,8 +7,9 @@ This `docs/` tree is the public documentation subset for WEAVE.
 For prompt-first COS WEAVE, start with:
 
 1. [COS WEAVE First Contact](../COS_WEAVE_FIRST_CONTACT.md)
-2. [COS WEAVE Bootstrap](COS_WEAVE_BOOTSTRAP.md)
-3. [COS WEAVE Repo Skeleton](COS_WEAVE_REPO_SKELETON.md)
+2. [COS WEAVE Launcher](../COS_WEAVE_LAUNCHER.md) for projectless remote-URL starts
+3. [COS WEAVE Bootstrap](COS_WEAVE_BOOTSTRAP.md)
+4. [COS WEAVE Repo Skeleton](COS_WEAVE_REPO_SKELETON.md)
 
 The default product path is a file/folder skeleton with app registry, app
 folders, `intent.md/json`, `lifecycle.json`, `todos.md`, `worker-packets/`,

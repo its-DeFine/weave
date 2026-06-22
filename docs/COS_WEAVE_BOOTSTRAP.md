@@ -24,7 +24,8 @@ the host, put it after the WEAVE state line and make it WEAVE-shaped.
 
 ## One-Line User Prompt
 
-A normal Codex thread should be able to start from this:
+A Codex thread that is already repo-scoped to WEAVE should be able to start from
+this:
 
 ```text
 Use this repo as COS WEAVE: <WEAVE repo URL or local path>.
@@ -38,6 +39,11 @@ Use this repo as COS WEAVE: <WEAVE repo URL or local path>. I want to build some
 
 The user should not need to run a WEAVE command, name a lifecycle stage, create
 folders, dispatch a worker, or paste a long internal prompt.
+
+For a projectless thread that only receives a remote repository URL, use the
+tiny launcher in `COS_WEAVE_LAUNCHER.md`. A remote URL alone is not loaded
+before the first progress message, so the launcher tells the agent to open the
+repo and read this contract before emitting generic host-level commentary.
 
 WEAVE is one Chief-of-Staff chat that helps organize and execute multiple
 app/application efforts through lifecycle steps, proof, blockers, workers, and
