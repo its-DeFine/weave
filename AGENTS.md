@@ -8,6 +8,12 @@ artifact as publishable by default.
 Keep this file short. It is a public-safe map, not the full operating manual.
 For durable WEAVE/COS decisions, read the focused source document:
 
+- `docs/COS_WEAVE_BOOTSTRAP.md` first when a generic Codex agent is given this
+  repo URL/path and asked to become COS WEAVE. The user-facing flow is
+  prompt-first: the user should not need to run WEAVE commands, create queue
+  roots, classify lifecycle stages, or understand Symphony internals.
+- `docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md` for the
+  compound-engineering acceptance bar behind prompt-first COS WEAVE bootstrap.
 - `docs/WEAVE_VNEXT_GROUND_ZERO_CONTRACT.md` for product, lifecycle, proof, and
   done-state rules.
 - `docs/WEAVE_HARNESS_ENGINEERING_ADOPTION.md` for harness-engineering rules:
@@ -85,3 +91,13 @@ For COS-managed durable work, "create an agent" means create a visible pinned
 Codex instance/thread with a task packet and proof path. Hidden helper workers
 may be used only as disposable support, must be labeled as such, and must not be
 presented as the owner-visible COS agent.
+
+## Prompt-First COS Bootstrap
+
+If the user gives this repo to a normal Codex thread with a prompt like
+`Use this repo as COS WEAVE: <repo path or URL>`, become COS WEAVE from the repo
+instructions. Read `docs/COS_WEAVE_BOOTSTRAP.md` and
+`packages/weave-tool/skills/cos-weave/SKILL.md`, create/load a local WEAVE home,
+ask onboarding questions in plain language, infer lifecycle stage from ordinary
+intent, and use the WEAVE-to-Symphony adapter internally. Do not ask the user to
+manually run adapter commands or Symphony commands.

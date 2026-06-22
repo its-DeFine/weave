@@ -1,0 +1,98 @@
+{
+  "allowed_actions": [
+    "create local queue events",
+    "render WEAVE worker prompt",
+    "write proof envelope",
+    "summarize readback state"
+  ],
+  "app_id": "demo-calculator",
+  "forbidden_actions": [
+    "do not start live Symphony",
+    "do not start Codex app-server against real work",
+    "do not mutate live tracker state",
+    "do not deploy, publish, bill, or send public messages",
+    "do not access credentials or print secrets"
+  ],
+  "intent_truth": {
+    "completion_contract": {
+      "allowed_done_state": "DONE_FOR_SCOPE_ONLY",
+      "controller_review_required": true
+    },
+    "intent_frame": {
+      "best_current_case": "engineering_slice",
+      "case_confidence": "medium_from_local_intent_heuristic",
+      "target_outcome": "complete the bounded local slice with proof-envelope readback",
+      "user_goal": "Implement a local calculator adapter proof with local worker readback."
+    },
+    "schema": "weave-intent-truth/v0.1",
+    "scope_lattice": {
+      "active_slice": "engineering",
+      "full_lifecycle_claim": false,
+      "not_required_stages": [
+        {
+          "reason": "local adapter proof does not require production deployment",
+          "stage": "deployment"
+        },
+        {
+          "reason": "local adapter proof does not require public messaging",
+          "stage": "marketing"
+        }
+      ],
+      "required_stages": [
+        "engineering"
+      ]
+    },
+    "state": "resolved"
+  },
+  "lifecycle_stage": "engineering",
+  "non_claims": [
+    "does not prove live Symphony service execution",
+    "does not prove Codex app-server execution",
+    "does not prove live tracker mutation",
+    "does not prove public deployment, billing, or public send"
+  ],
+  "owner_boundary": {
+    "allowed_without_owner": [
+      "edit repo-local adapter files",
+      "write public-safe local queue fixtures",
+      "run deterministic local tests"
+    ],
+    "requires_owner_approval": [
+      "public deploy",
+      "public send",
+      "paid call",
+      "credential access",
+      "live tracker mutation"
+    ],
+    "stop_conditions": [
+      "missing proof surface",
+      "unsafe external effect without approved gate",
+      "need for live Symphony or Codex app-server run"
+    ]
+  },
+  "proof_required": [
+    "targeted adapter unit tests pass",
+    "valid proof envelope references local deterministic commands",
+    "readback state is accepted_for_scope only after proof validation"
+  ],
+  "public_gate": {
+    "reason": "local deterministic adapter slice only",
+    "required": false,
+    "state": "not_required"
+  },
+  "schema": "weave-work-item/v0.1",
+  "title": "Demo calculator local adapter proof",
+  "work_item_id": "wi-demo-calculator-engineering",
+  "worker_packet": {
+    "acceptance_checks": [
+      "validated WorkItem",
+      "single dispatch item",
+      "WEAVE workflow prompt rendered",
+      "valid proof envelope accepted for scope",
+      "readback preserves non-claims"
+    ],
+    "expected_change": "repo-local adapter behavior and proof envelope closeout",
+    "objective": "Demo calculator local adapter proof",
+    "target_surface": "local deterministic adapter fixture"
+  }
+}

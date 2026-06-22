@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weave.dev/schemas/weave-work-item-v0.1.schema.json",
+  "title": "WEAVE WorkItem",
+  "type": "object",
+  "required": [
+    "schema",
+    "work_item_id",
+    "app_id",
+    "lifecycle_stage",
+    "intent_truth",
+    "owner_boundary",
+    "worker_packet",
+    "proof_required",
+    "allowed_actions",
+    "forbidden_actions",
+    "public_gate",
+    "non_claims"
+  ],
+  "properties": {
+    "schema": {
+      "const": "weave-work-item/v0.1"
+    },
+    "work_item_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "app_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "lifecycle_stage": {
+      "$ref": "#/$defs/lifecycle_stage"
+    },
+    "intent_truth": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "owner_boundary": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "worker_packet": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "proof_required": {
+      "$ref": "#/$defs/non_empty_string_list"
+    },
+    "allowed_actions": {
+      "$ref": "#/$defs/non_empty_string_list"
+    },
+    "forbidden_actions": {
+      "$ref": "#/$defs/non_empty_string_list"
+    },
+    "public_gate": {
+      "type": "object",
+      "required": ["required", "state", "reason"],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string",
+          "enum": ["not_required", "approved", "pending_owner_approval", "blocked", "denied"]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "non_claims": {
+      "$ref": "#/$defs/non_empty_string_list"
+    }
+  },
+  "$defs": {
+    "lifecycle_stage": {
+      "type": "string",
+      "enum": [
+        "first_run",
+        "owner_profile",
+        "create_app",
+        "intent",
+        "research",
+        "selection",
+        "plan",
+        "engineering",
+        "qa",
+        "deployment",
+        "kpi",
+        "marketing",
+        "iteration",
+        "analysis"
+      ]
+    },
+    "non_empty_string_list": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": true
+}

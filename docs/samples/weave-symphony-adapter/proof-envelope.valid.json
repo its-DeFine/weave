@@ -1,0 +1,26 @@
+{
+  "app_id": "demo-calculator",
+  "artifacts": [
+    "workspaces/dispatch-2688f7ba4b00f22e/dispatch.json",
+    "workspaces/dispatch-2688f7ba4b00f22e/WORKFLOW.md",
+    "workspaces/dispatch-2688f7ba4b00f22e/worker-readback.json",
+    "workspaces/dispatch-2688f7ba4b00f22e/proof.json"
+  ],
+  "claim": "Local worker process consumed the WEAVE dispatch and rendered prompt, checked the required policy markers, and wrote a proof envelope for this bounded local slice.",
+  "commands": [
+    "python3 scripts/weave_symphony_adapter.py local-worker-execute --dispatch dispatch.json --prompt WORKFLOW.md --proof-out proof.json"
+  ],
+  "lifecycle_stage": "engineering",
+  "next_action": "controller reviews local worker proof and non-claims",
+  "non_claims": [
+    "does not prove live Symphony service execution",
+    "does not prove Codex app-server execution",
+    "does not prove live tracker mutation",
+    "does not prove public deployment, billing, or public send"
+  ],
+  "proof_surface": "TOOL_VERIFIED_LOCAL",
+  "reviewer": "local-worker",
+  "schema": "weave-proof-envelope/v0.1",
+  "state": "done",
+  "work_item_id": "wi-demo-calculator-engineering"
+}

@@ -13,6 +13,25 @@ approval-gated Telegram gateway. The base validation path needs no API keys and
 no network calls. See [docs/runtime-home.md](docs/runtime-home.md) for the
 durable runtime-home contract.
 
+## Prompt-First COS WEAVE
+
+If you are a Codex agent and the user gives you this repository to become COS
+WEAVE, start here: [docs/COS_WEAVE_BOOTSTRAP.md](docs/COS_WEAVE_BOOTSTRAP.md).
+For the compound-engineering proof bar behind this prompt-first flow, read
+[docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md](docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md).
+
+The intended user prompt is one line:
+
+```text
+Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app forward.
+```
+
+The agent should open or clone the repo, read the bootstrap instructions, create
+or load local WEAVE state, ask onboarding questions in normal language, infer
+lifecycle stage from user intent, use the Symphony adapter internally, and
+report proof/readback. The user should not need to run adapter commands, create
+queue roots, classify lifecycle stages, or understand Symphony internals.
+
 Before onboarding, pick one deployment mode:
 
 - **Managed container:** WEAVE builds a pinned Hermes gateway container after

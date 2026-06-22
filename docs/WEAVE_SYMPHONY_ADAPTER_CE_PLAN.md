@@ -334,3 +334,84 @@ When future work touches WEAVE orchestration, agent spawning, Symphony, Linear,
 worker packets, proof envelopes, or lifecycle readback, agents should use the
 `compound-engineering` skill and this plan as the standing adapter contract.
 
+## Local Adapter MVP Runbook
+
+This runbook exercises the local deterministic adapter MVP. It does not start a
+live Symphony service, Codex app-server, Linear, deploy, billing, credential, or
+public-send surface.
+
+### Owner-Facing Prompt Bootstrap
+
+The normal user path is one prompt in a normal Codex thread. The user gives a
+WEAVE repo URL/path and ordinary intent. The agent reads the repository
+bootstrap contract, becomes COS WEAVE, creates or loads the Chief of Staff home,
+infers the lifecycle stage, creates the WorkItem, runs the local Symphony
+adapter and local worker proof path internally, then reports proof/readback.
+
+```text
+Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Build the adapter MVP and prove it locally.
+```
+
+Expected state is `ACCEPT_FOR_SCOPE` after the agent runs the internal local
+proof path. The user should not pass a lifecycle stage, queue root, dispatch id,
+Symphony command, adapter command, or long internal prompt.
+
+The repository-contained bootstrap contract lives in
+`docs/COS_WEAVE_BOOTSTRAP.md` and
+`packages/weave-tool/skills/cos-weave/SKILL.md`. If the source is missing or
+not a WEAVE repo, the agent reports `BLOCKED` with the exact owner action
+instead of a traceback.
+
+### Adapter Diagnostic Layer
+
+These commands are for agents, implementation debugging, and tests, not the
+owner-facing workflow.
+
+Validate the committed fixtures:
+
+```bash
+python3 scripts/weave_symphony_adapter.py validate \
+  docs/samples/weave-symphony-adapter/work-item.valid.json \
+  --kind work-item
+python3 scripts/weave_symphony_adapter.py validate \
+  docs/samples/weave-symphony-adapter/dispatch-item.valid.json \
+  --kind dispatch-item
+python3 scripts/weave_symphony_adapter.py validate \
+  docs/samples/weave-symphony-adapter/proof-envelope.valid.json \
+  --kind proof-envelope \
+  --dispatch docs/samples/weave-symphony-adapter/dispatch-item.valid.json
+```
+
+Run the local queue, prompt, local worker process, and readback loop:
+
+```bash
+mkdir -p runs
+QUEUE_ROOT="$(mktemp -d runs/weave-symphony-adapter-demo.XXXXXX)"
+python3 scripts/weave_symphony_adapter.py enqueue \
+  --queue-root "$QUEUE_ROOT" \
+  --work-item docs/samples/weave-symphony-adapter/work-item.valid.json
+python3 scripts/weave_symphony_adapter.py dispatch-next \
+  --queue-root "$QUEUE_ROOT"
+python3 scripts/weave_symphony_adapter.py render-prompt \
+  --queue-root "$QUEUE_ROOT" \
+  --work-item-id wi-demo-calculator-engineering \
+  --output "$QUEUE_ROOT/prompts/dispatch-2688f7ba4b00f22e.WORKFLOW.md"
+python3 scripts/weave_symphony_adapter.py run-local-worker \
+  --queue-root "$QUEUE_ROOT" \
+  --work-item-id wi-demo-calculator-engineering
+python3 scripts/weave_symphony_adapter.py readback \
+  --queue-root "$QUEUE_ROOT" \
+  --work-item-id wi-demo-calculator-engineering
+```
+
+Expected readback for the happy path is `accepted_for_scope`. The happy path
+creates a per-dispatch workspace under `$QUEUE_ROOT/workspaces/`, invokes a
+local worker subprocess, consumes the rendered `WORKFLOW.md`, and writes
+`proof.json`. The `fake-worker` command remains only as an adversarial simulator
+for tests of incomplete, blocked, and overclaiming closeouts.
+
+Targeted tests:
+
+```bash
+python3 -m unittest tests.test_weave_symphony_adapter
+```

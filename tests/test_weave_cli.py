@@ -1892,6 +1892,121 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("acceptance check", html_text.lower())
             self.assertNotIn("<Owner App>", html_text)
 
+    def test_cos_bootstrap_single_command_runs_local_adapter_from_ordinary_intent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "cos-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "cos-bootstrap",
+                    "--source",
+                    str(REPO_ROOT),
+                    "--home",
+                    str(home),
+                    "--surface",
+                    "codex",
+                    "--use-symphony-adapter",
+                    "--intent",
+                    "Build the adapter MVP and prove it locally.",
+                    "--json",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+            payload = json.loads(text)
+
+            self.assertEqual(rc, 0, text)
+            self.assertEqual(payload["schema"], "weave-cos-bootstrap/v0.1")
+            self.assertEqual(payload["state"], "ACCEPT_FOR_SCOPE")
+            self.assertEqual(payload["surface"], "codex")
+            self.assertEqual(payload["readback_state"], "accepted_for_scope")
+            self.assertEqual(payload["worker_reviewer"], "local-worker")
+            self.assertFalse(payload["manual_queue_commands_required"])
+            self.assertFalse(payload["manual_lifecycle_classification_required"])
+            self.assertEqual(payload["manual_steps_required"], [])
+            self.assertIn("COS WEAVE bootstrap message", payload["cos_message"])
+            self.assertIn("You are COS WEAVE in this Codex thread", payload["cos_message"])
+            self.assertIn("Do not ask the user to classify lifecycle stages", payload["cos_message"])
+            self.assertIn("does not prove live Symphony service execution", payload["non_claims"])
+            self.assertTrue(Path(payload["proof_path"]).exists())
+            self.assertTrue((home / "state.json").exists())
+            self.assertTrue((home / "cos-bootstrap" / "latest.json").exists())
+            queue_root = Path(payload["queue_root"])
+            self.assertTrue((queue_root / "events.jsonl").exists())
+            self.assertTrue((queue_root / "workspaces" / payload["dispatch_id"] / "WORKFLOW.md").exists())
+            self.assertTrue((queue_root / "workspaces" / payload["dispatch_id"] / "worker-readback.json").exists())
+
+    def test_cos_bootstrap_text_output_is_dead_simple_for_codex_thread(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "cos-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "cos-bootstrap",
+                    "--source",
+                    str(REPO_ROOT),
+                    "--home",
+                    str(home),
+                    "--surface",
+                    "codex",
+                    "--use-symphony-adapter",
+                    "--intent",
+                    "Move this app forward with local proof.",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+
+            self.assertEqual(rc, 0, text)
+            self.assertIn("WEAVE COS Bootstrap", text)
+            self.assertIn("- state: ACCEPT_FOR_SCOPE", text)
+            self.assertIn("- manual_queue_commands_required: false", text)
+            self.assertIn("- manual_lifecycle_classification_required: false", text)
+            self.assertIn("You are COS WEAVE in this Codex thread", text)
+            self.assertIn("Do not ask the user to classify lifecycle stages", text)
+            self.assertNotIn("weave_symphony_adapter.py dispatch-next", text)
+            self.assertNotIn("--queue-root", text)
+
+    def test_cos_bootstrap_invalid_source_reports_blocked_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "cos-home"
+            missing_source = Path(tmpdir) / "missing-source"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "cos-bootstrap",
+                    "--source",
+                    str(missing_source),
+                    "--home",
+                    str(home),
+                    "--surface",
+                    "codex",
+                    "--use-symphony-adapter",
+                    "--intent",
+                    "Build the app.",
+                    "--json",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+            payload = json.loads(text)
+
+            self.assertEqual(rc, 1)
+            self.assertEqual(payload["state"], "BLOCKED")
+            self.assertIn("source path does not exist", payload["reason"])
+            self.assertIn("Provide an existing local WEAVE repository path", payload["owner_action"])
+            self.assertNotIn("Traceback", text)
+            self.assertFalse((home / "state.json").exists())
+
+    def test_cos_bootstrap_helper_is_hidden_from_normal_help(self) -> None:
+        output = io.StringIO()
+        rc = weave_cli.main(["help"], output=output)
+        text = output.getvalue()
+
+        self.assertEqual(rc, 0, text)
+        self.assertNotIn("cos-bootstrap", text)
+        self.assertIn("weave chief-of-staff init", text)
+
 
 if __name__ == "__main__":
     unittest.main()

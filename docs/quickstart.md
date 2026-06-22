@@ -13,6 +13,12 @@ git clone https://github.com/its-DeFine/weave.git
 cd weave
 ```
 
+If you are a Codex agent and the user gave you this repo to become COS WEAVE,
+do not start by asking the user to run commands. Read
+[COS WEAVE Bootstrap](COS_WEAVE_BOOTSTRAP.md), create or load local WEAVE state,
+ask onboarding questions in plain language, infer lifecycle stage from ordinary
+intent, and use the Symphony adapter internally.
+
 ## 2. Validate the company package
 
 ```bash
