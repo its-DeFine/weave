@@ -1,0 +1,25 @@
+{
+  "app_id": "tiny-local-calculator",
+  "current_stage": "intent",
+  "missing_gates": [
+    "Intent gate is not complete",
+    "Requirements gate is not complete",
+    "Research gate is not complete",
+    "Selection gate is not complete",
+    "Plan gate is not complete"
+  ],
+  "requested_stage": "engineering",
+  "schema": "weave-cos-lifecycle/v0.1",
+  "stages": [
+    {
+      "label": "Intent",
+      "stage": "intent",
+      "state": "active"
+    },
+    {
+      "label": "Engineering",
+      "stage": "engineering",
+      "state": "blocked_by_prior_gates"
+    }
+  ]
+}

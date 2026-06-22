@@ -1,0 +1,10 @@
+{
+  "items": [
+    {
+      "decision": "not_accepted_as_done",
+      "id": "review-bootstrap-state",
+      "state": "pending_acceptance_checks"
+    }
+  ],
+  "schema": "weave-cos-review-queue/v0.1"
+}

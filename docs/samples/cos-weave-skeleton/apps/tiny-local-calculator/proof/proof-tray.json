@@ -1,0 +1,10 @@
+{
+  "items": [
+    {
+      "claim": "Tiny local calculator skeleton files are present",
+      "proof_surface": "TOOL_VERIFIED_LOCAL",
+      "state": "recorded"
+    }
+  ],
+  "schema": "weave-cos-proof-tray/v0.1"
+}

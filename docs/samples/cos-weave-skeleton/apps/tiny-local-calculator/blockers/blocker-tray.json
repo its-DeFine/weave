@@ -1,0 +1,9 @@
+{
+  "blockers": [
+    {
+      "id": "acceptance-checks-needed",
+      "state": "open_question"
+    }
+  ],
+  "schema": "weave-cos-blocker-tray/v0.1"
+}

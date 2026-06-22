@@ -1914,34 +1914,99 @@ class WeaveCliTests(unittest.TestCase):
             text = output.getvalue()
             payload = json.loads(text)
 
-            self.assertEqual(rc, 1, text)
+            self.assertEqual(rc, 0, text)
             self.assertEqual(payload["schema"], "weave-cos-bootstrap/v0.1")
-            self.assertEqual(payload["state"], "NEEDS_OWNER_ACTION")
+            self.assertEqual(payload["state"], "ACCEPT_FOR_SCOPE")
             self.assertEqual(payload["role"], "COS WEAVE")
             self.assertIn("one Chief-of-Staff chat", payload["role_explanation"])
             self.assertTrue(payload["state_line"].startswith("WEAVE | "))
+            self.assertIn("Scope=local-file-skeleton", payload["state_line"])
             self.assertEqual(payload["inferred_lifecycle_stage"], "intent")
             self.assertEqual(payload["app_id"], "new-app")
             self.assertTrue((home / "state.json").exists())
+            self.assertTrue((home / "owner-profile.json").exists())
+            self.assertTrue((home / "apps" / "registry.json").exists())
             self.assertTrue(Path(payload["app_state_path"]).exists())
+            self.assertTrue(Path(payload["intent_path"]).exists())
+            self.assertTrue(Path(payload["todos_path"]).exists())
+            self.assertTrue(Path(payload["lifecycle_state_path"]).exists())
             self.assertTrue(Path(payload["worker_packet_path"]).exists())
+            self.assertTrue(Path(payload["proof_path"]).exists())
+            self.assertTrue(Path(payload["review_queue_path"]).exists())
+            self.assertTrue((home / "inbox" / "review-queue.json").exists())
+            self.assertTrue((home / "updates" / "readback.json").exists())
             self.assertTrue((home / "cos-bootstrap" / "latest.json").exists())
             self.assertGreaterEqual(len(payload["onboarding_questions"]), 4)
             self.assertTrue(any("What app or application" in item for item in payload["onboarding_questions"]))
             self.assertIn("raw secrets", payload["safe_context_policy"]["avoided"])
             self.assertFalse(payload["tracker"]["linear_required"])
             self.assertEqual(payload["worker_dispatch"]["mode"], "local_packet_recorded")
-            self.assertFalse(payload["symfony_required"])
-            self.assertEqual(payload["adapter_backend"]["state"], "optional_not_used_default")
             self.assertFalse(payload["manual_queue_commands_required"])
             self.assertFalse(payload["manual_lifecycle_classification_required"])
-            self.assertFalse(payload["manual_symphony_knowledge_required"])
+            self.assertNotIn("symfony_required", payload)
+            self.assertNotIn("manual_symphony_knowledge_required", payload)
+            self.assertNotIn("adapter_backend", payload)
             self.assertNotIn("queue_root", payload)
             self.assertNotIn("dispatch_id", payload)
             self.assertIn("does not prove full lifecycle completion", payload["non_claims"])
-            self.assertIn("does not prove live Symphony service execution", payload["non_claims"])
-            self.assertIn("Ask onboarding questions in normal language", payload["cos_message"])
+            self.assertNotIn("Symphony", json.dumps(payload))
+            owner_profile = json.loads((home / "owner-profile.json").read_text(encoding="utf-8"))
+            self.assertEqual(owner_profile["state"], "draft")
+            self.assertEqual(owner_profile["assumption"], "assumed_for_local_scope")
+            self.assertFalse(owner_profile["hard_gate"])
+            todos = Path(payload["todos_path"]).read_text(encoding="utf-8")
+            self.assertIn("Clarify app purpose", todos)
+            worker_packet = Path(payload["worker_packet_path"]).read_text(encoding="utf-8")
+            self.assertIn("Launch/pin visible Codex workers", worker_packet)
+            self.assertIn("observe -> validate -> govern -> review -> sync", worker_packet)
+            self.assertIn("Ask only necessary onboarding questions in normal language", payload["cos_message"])
             self.assertIn("Do not ask the user to classify lifecycle stages", payload["cos_message"])
+
+    def test_cos_bootstrap_default_home_and_two_app_prompt_create_parallel_app_folders(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "weave-source"
+            (source / "bin").mkdir(parents=True)
+            (source / "docs").mkdir()
+            (source / "bin" / "weave").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+            (source / "docs" / "COS_WEAVE_BOOTSTRAP.md").write_text("# bootstrap\n", encoding="utf-8")
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "cos-bootstrap",
+                    "--source",
+                    str(source),
+                    "--surface",
+                    "codex",
+                    "--intent",
+                    "I have two app ideas: a tiny calculator app and a local recipe tracker.",
+                    "--json",
+                ],
+                output=output,
+            )
+            payload = json.loads(output.getvalue())
+            home = source / "runs" / "cos-weave-home"
+            registry = json.loads((home / "apps" / "registry.json").read_text(encoding="utf-8"))
+
+            self.assertEqual(rc, 0, output.getvalue())
+            self.assertEqual(Path(payload["home"]), home.resolve())
+            self.assertEqual(payload["app_count"], 2)
+            self.assertEqual(len(registry["apps"]), 2)
+            app_ids = {item["app_id"] for item in registry["apps"]}
+            self.assertIn("tiny-calculator-app", app_ids)
+            self.assertIn("local-recipe-tracker", app_ids)
+            for app_id in app_ids:
+                app_root = home / "apps" / app_id
+                self.assertTrue((app_root / "intent.md").exists())
+                self.assertTrue((app_root / "lifecycle.json").exists())
+                self.assertTrue((app_root / "todos.md").exists())
+                self.assertTrue((app_root / "worker-packets" / "WP-0001.md").exists())
+                self.assertTrue((app_root / "proof" / "proof-tray.json").exists())
+                self.assertTrue((app_root / "review" / "review-queue.json").exists())
+                self.assertTrue((app_root / "blockers" / "blocker-tray.json").exists())
+                self.assertTrue((app_root / "updates" / "readback.json").exists())
+            readback = json.loads((home / "updates" / "readback.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(readback["apps"]), 2)
+            self.assertEqual(readback["state"], "local_skeleton_ready")
 
     def test_cos_bootstrap_single_command_runs_local_adapter_from_ordinary_intent(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2032,7 +2097,6 @@ class WeaveCliTests(unittest.TestCase):
                     str(home),
                     "--surface",
                     "codex",
-                    "--use-symphony-adapter",
                     "--intent",
                     "Build the app.",
                     "--json",
@@ -2047,6 +2111,7 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("source path does not exist", payload["reason"])
             self.assertIn("Provide an existing local WEAVE repository path", payload["owner_action"])
             self.assertNotIn("Traceback", text)
+            self.assertNotIn("Symphony", text)
             self.assertFalse((home / "state.json").exists())
 
     def test_cos_bootstrap_helper_is_hidden_from_normal_help(self) -> None:

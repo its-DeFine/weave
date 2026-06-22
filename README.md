@@ -28,10 +28,9 @@ Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app 
 
 The agent should open or clone the repo, read the bootstrap instructions, create
 or load local WEAVE state, ask onboarding questions in normal language, infer
-lifecycle stage from user intent, record app/application state, and report
-proof/readback. Symphony is optional later orchestration infrastructure, not a
-default first-run requirement. The user should not need to run adapter commands,
-create queue roots, classify lifecycle stages, or understand Symphony internals.
+lifecycle stage from user intent, record app/application state in visible files,
+and report proof/readback. The user should not need to run commands, create
+folders, classify lifecycle stages, or understand hidden orchestration.
 
 Before onboarding, pick one deployment mode:
 

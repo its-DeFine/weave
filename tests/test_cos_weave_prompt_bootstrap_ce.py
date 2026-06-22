@@ -18,36 +18,31 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
     def test_ce_doc_exists_and_names_prompt_first_acceptance_bar(self) -> None:
         text = normalized(CE_DOC)
         acceptance = (
-            "A normal Codex thread given only a WEAVE repo URL/path plus ordinary intent can "
-            "discover the repo bootstrap contract, become COS WEAVE, create/load local WEAVE "
-            "state, explain the Chief-of-Staff role, infer lifecycle state, create or load "
-            "app/application state, ask only needed plain-language onboarding questions, and "
-            "report proof/readback/non-claims without asking the user to run commands, "
-            "classify lifecycle stages, create queue roots, or understand Symphony."
+            "A normal Codex thread given only a WEAVE repo URL/path plus ordinary app intent "
+            "can discover the repo bootstrap contract, begin with a WEAVE state line, become "
+            "COS WEAVE, create/load the repo-owned file skeleton, create app intent/todos/ "
+            "lifecycle/proof/review/readback files, and avoid manual commands, manual folder "
+            "setup, manual lifecycle classification, identity-gate rituals, and full "
+            "lifecycle overclaims."
         )
 
-        self.assertIn("Status: prompt-first compound-engineering contract", text)
+        self.assertIn("Status: default vNext file-skeleton CE contract", text)
         self.assertIn(acceptance, text)
-        self.assertIn("The owner should not run a bootstrap command", text)
-        self.assertIn("The expected user prompt is one line", text)
-        self.assertIn("Use this repo as COS WEAVE: <WEAVE repo URL or local path>", text)
+        self.assertIn("The first meaningful response must begin with", text)
+        self.assertIn("Scope=local-file-skeleton", text)
 
     def test_ce_doc_defines_capability_architecture_slices_and_proof_surfaces(self) -> None:
         text = normalized(CE_DOC)
         required = [
-            "Capability Question",
-            "What repo-contained instructions must exist so a generic Codex agent can self-bootstrap?",
-            "Architecture Boundary",
-            "COS WEAVE is user-facing. Symphony is optional behind-the-scenes orchestration",
+            "Required Surfaces",
+            "docs/COS_WEAVE_REPO_SKELETON.md",
             "Slice 0: Instruction Discovery",
-            "Slice 1: COS WEAVE Home",
-            "Slice 2: Vague Intent To First-Run COS State",
-            "Slice 3: Internal Worker Packet Or Visible Worker",
-            "Slice 4: Optional WEAVE-To-Symphony Adapter Proof",
-            "Slice 5: Prompt-First End-To-End Rehearsal",
-            "Slice 6: Gated Live Symphony/Codex App-Server",
-            "Proof surface:",
-            "Non-claim:",
+            "Slice 1: Skeleton Home",
+            "Slice 2: App Intake",
+            "Slice 3: Lifecycle Truth",
+            "Slice 4: Worker Packets",
+            "Slice 5: Readback After Restart",
+            "observe -> validate -> govern -> review -> sync",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
@@ -56,14 +51,14 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
     def test_ce_doc_adversarial_review_blocks_command_first_fake_proof_and_overclaiming(self) -> None:
         text = normalized(CE_DOC)
         required = [
-            "Did the product relapse into command-first UX?",
-            "Did any instruction ask the user to run adapter, queue, dispatch, or Symphony commands?",
-            "Did the agent ask the user to classify lifecycle stage manually?",
-            "Did a clean adapter/calculator E2E get mistaken for first-run product proof?",
-            "Did local proof overclaim live Symphony, live Codex app-server, tracker, deploy, public-send, billing, or credential success?",
-            "Did the default first-run path require Symphony before WEAVE could help?",
-            "Is there hidden setup burden",
-            "Does readback preserve proof path and non-claims?",
+            "Did the first response start with `WEAVE | ...`?",
+            "Did the agent become COS WEAVE before implementation work?",
+            "Did it create visible app files instead of a hidden process assumption?",
+            "Did a missing owner name become a draft owner profile/todo instead of a gate?",
+            "Did vague intent create app state immediately?",
+            "Did two app ideas create two app folders under one home?",
+            "Did the agent avoid asking the owner to run commands or classify lifecycle?",
+            "Did it avoid full-lifecycle, deploy, tracker, public-send, billing, and credential overclaims?",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
@@ -78,11 +73,8 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
     def test_ce_doc_names_live_service_gate_and_stop_boundaries(self) -> None:
         text = normalized(CE_DOC)
         required = [
-            "Future Live-Service Gate",
-            "Live Symphony/Codex app-server proof is a separate gated slice",
             "Stop as `BLOCKED` or `NEEDS_OWNER_ACTION`",
-            "live Symphony",
-            "live Codex app-server",
+            "live workers",
             "live tracker",
             "deploy",
             "public send",

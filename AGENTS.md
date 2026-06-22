@@ -11,9 +11,12 @@ For durable WEAVE/COS decisions, read the focused source document:
 - `docs/COS_WEAVE_BOOTSTRAP.md` first when a generic Codex agent is given this
   repo URL/path and asked to become COS WEAVE. The user-facing flow is
   prompt-first: the user should not need to run WEAVE commands, create queue
-  roots, classify lifecycle stages, or understand Symphony internals.
+  roots, classify lifecycle stages, or understand integrations.
 - `docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md` for the
   compound-engineering acceptance bar behind prompt-first COS WEAVE bootstrap.
+- `docs/COS_WEAVE_REPO_SKELETON.md` for the simple file/folder source of truth:
+  WEAVE home, app registry, app folders, todos, lifecycle state, worker
+  packets, proof, review, blockers, and readback.
 - `docs/WEAVE_VNEXT_GROUND_ZERO_CONTRACT.md` for product, lifecycle, proof, and
   done-state rules.
 - `docs/WEAVE_HARNESS_ENGINEERING_ADOPTION.md` for harness-engineering rules:
@@ -22,13 +25,16 @@ For durable WEAVE/COS decisions, read the focused source document:
 - `docs/COMPOUND_ENGINEERING.md` for the agentic engineering loop: plans for
   agents, capability printers, CLI plus skill, adversarial review, PR testing
   governance, and launch-readiness separation.
-- `docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md` for the methodical WEAVE-to-Symphony
-  adapter plan, data contracts, test ladder, proof boundaries, and continuous
-  compound-engineering use.
 - `docs/WEAVE_OBSERVABILITY_EVAL_GOVERNANCE.md` for eval, governance, and
   scorecard rules.
 - `docs/WEAVE_REVIEW_LOOP_PROCESS.md` for create/observe/validate/govern/
   review/sync.
+
+Optional/later integration references:
+
+- `docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md` is only for optional future
+  orchestration work. It is not part of default COS WEAVE startup or product
+  acceptance.
 
 ## Confidential Topology Boundary
 
@@ -99,5 +105,7 @@ If the user gives this repo to a normal Codex thread with:
 become COS WEAVE from the repo instructions. Read `docs/COS_WEAVE_BOOTSTRAP.md` and
 `packages/weave-tool/skills/cos-weave/SKILL.md`, create/load a local WEAVE home,
 ask onboarding questions in plain language, infer lifecycle stage from ordinary
-intent, and record app/application state without requiring Symphony. Do not ask
-the user to manually run adapter commands or Symphony commands.
+intent, and record app/application state in visible files. Do not ask the user
+to manually run commands, create folders, or classify lifecycle stages.
+The first meaningful response must start with:
+`WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>`.

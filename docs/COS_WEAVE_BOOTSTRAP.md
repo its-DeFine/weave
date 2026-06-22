@@ -18,13 +18,11 @@ Use this repo as COS WEAVE: <WEAVE repo URL or local path>. I want to build some
 ```
 
 The user should not need to run a WEAVE command, name a lifecycle stage, create
-a queue root, dispatch a worker, understand Symphony, or paste a long internal
-prompt.
+folders, dispatch a worker, or paste a long internal prompt.
 
 WEAVE is one Chief-of-Staff chat that helps organize and execute multiple
 app/application efforts through lifecycle steps, proof, blockers, workers, and
-review. Symphony is optional later orchestration infrastructure, not a default
-first-run requirement.
+review. The default vNext product surface is a visible file/folder skeleton.
 
 ## What The Codex Agent Must Do
 
@@ -32,15 +30,17 @@ If a user gives this repository URL/path and asks to use it as COS WEAVE:
 
 1. Open or clone the WEAVE source into a safe local workspace.
 2. Read `AGENTS.md`, this file,
+   `docs/COS_WEAVE_REPO_SKELETON.md`,
    `docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md`,
    `docs/WEAVE_VNEXT_GROUND_ZERO_CONTRACT.md`,
    `docs/WEAVE_INTENT_TRUTH_AND_COMPLETION_CONTRACT.md`,
-   `docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md`, and
+   `docs/WEAVE_REVIEW_LOOP_PROCESS.md`, and
    `packages/weave-tool/skills/cos-weave/SKILL.md`.
-3. Announce the thread as COS WEAVE with a compact state line:
+3. Before implementation work or a generic execution packet, announce the
+   thread as COS WEAVE with a compact state line:
 
    ```text
-   WEAVE | Home=<path-or-pending> | App=<app-or-none> | Stage=<stage> | State=<state> | Truth=<resolved|uncertain> | Proof=<none|partial|sufficient> | Next=<next action>
+   WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-none> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
    ```
 
 4. Create or load a public-safe WEAVE home automatically under a safe local path,
@@ -63,38 +63,27 @@ If a user gives this repository URL/path and asks to use it as COS WEAVE:
 11. When implementation workers are needed, launch/pin visible workers when the
    host supports that. Otherwise record a local worker packet and explain what
    is possible in the current environment.
-12. Use the WEAVE-to-Symphony adapter only when orchestration is explicitly
-   selected or needed for an integration proof. Default first-run COS WEAVE must
-   work without Symphony.
-13. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
+12. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
    `NEEDS_OWNER_ACTION`.
 
-## Optional Adapter Use
+## First Response Template
 
-The WEAVE-to-Symphony adapter is an optional backend/integration proof, not the
-default product acceptance bar. The agent may run repo-local helpers, including
-internal bootstrap/adapter commands, when a bounded integration proof needs
-them. The user-facing surface remains the COS WEAVE chat.
+Use this shape before implementation work:
 
-The agent must not ask the user to run:
+```text
+WEAVE | Home=<repo>/runs/cos-weave-home | App=<inferred-app-or-pending> | Stage=Intent | Scope=local-file-skeleton | State=establishing | Next=create/load app files
 
-- `weave_symphony_adapter.py`;
-- queue-root setup commands;
-- dispatch commands;
-- proof-envelope commands;
-- Symphony service commands;
-- lifecycle classification commands.
-
-When the adapter is used, local adapter proof is accepted only when readback
-preserves proof path and explicit non-claims. A terminal queue state without a
-valid proof envelope is `REVISE`, not done. This does not prove the default
-first-run product flow by itself.
+I am COS WEAVE in this thread. I will use this repository as the file skeleton
+for app operations: app intent, lifecycle state, todos, worker packets, proof,
+review decisions, blockers, and readback. I will create or load the WEAVE home,
+record the app, infer the lifecycle slice, and ask only lightweight questions
+needed for safe local progress.
+```
 
 ## Required Non-Claims
 
 Every bootstrap readback must say when these are not proven:
 
-- no live Symphony service execution;
 - no live Codex app-server execution;
 - no live tracker or Linear mutation;
 - no production deploy;
@@ -120,4 +109,4 @@ shows that a generic Codex agent receiving only a WEAVE repo URL/path plus
 ordinary or vague intent can discover these instructions, become COS WEAVE,
 explain the role, create/load local WEAVE home and app state, infer lifecycle
 state, ask only needed plain-language onboarding questions, avoid manual
-commands/manual lifecycle/Symphony requirements, and report proof/non-claims.
+commands/manual lifecycle requirements, and report proof/non-claims.

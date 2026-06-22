@@ -1,0 +1,7 @@
+{
+  "app_id": "tiny-local-calculator",
+  "current_stage": "intent",
+  "next_action": "confirm acceptance checks for the first local proof",
+  "schema": "weave-cos-readback/v0.1",
+  "state": "local_skeleton_ready"
+}

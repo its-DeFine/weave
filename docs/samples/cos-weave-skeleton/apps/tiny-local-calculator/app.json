@@ -1,0 +1,15 @@
+{
+  "app_id": "tiny-local-calculator",
+  "current_stage": "intent",
+  "name": "Tiny Local Calculator",
+  "next_action": "confirm acceptance checks for the first local proof",
+  "non_claims": [
+    "does not prove live worker execution",
+    "does not prove deployment",
+    "does not prove full lifecycle completion"
+  ],
+  "owner_intent": "I want to build a tiny local calculator app.",
+  "requested_stage": "engineering",
+  "schema": "weave-cos-app/v0.1",
+  "state": "local_skeleton_ready"
+}
