@@ -1,0 +1,41 @@
+{
+  "app_id": "tiny-local-calculator",
+  "app_name": "Tiny Local Calculator",
+  "blockers": [
+    {
+      "id": "owner-context-needed",
+      "missing": [
+        "Intent gate is not complete",
+        "Research gate is not complete",
+        "Selection gate is not complete",
+        "Plan gate is not complete"
+      ],
+      "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+      "state": "open_question"
+    }
+  ],
+  "current_stage": "intent",
+  "missing_gates": [
+    "Intent gate is not complete",
+    "Research gate is not complete",
+    "Selection gate is not complete",
+    "Plan gate is not complete"
+  ],
+  "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+  "non_claims": [
+    "does not prove Codex app-server execution",
+    "does not prove live tracker or Linear mutation",
+    "does not prove public deployment, billing, or public send",
+    "does not prove full lifecycle completion",
+    "does not access credentials or secret values"
+  ],
+  "proof_refs": [
+    "apps/tiny-local-calculator/proof/proof-tray.json"
+  ],
+  "requested_stage": "engineering",
+  "review_refs": [
+    "apps/tiny-local-calculator/review/review-queue.json"
+  ],
+  "schema": "weave-cos-readback/v0.1",
+  "state": "local_skeleton_ready"
+}

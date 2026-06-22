@@ -1,0 +1,9 @@
+{
+  "assumption": "assumed_for_local_scope",
+  "display_name": "owner",
+  "hard_gate": false,
+  "partner_behavior": "concise, proof-backed, ask only when needed",
+  "schema": "weave-cos-owner-profile/v0.1",
+  "state": "draft",
+  "todo": "Personalize this if useful; local app intake is not blocked on identity."
+}

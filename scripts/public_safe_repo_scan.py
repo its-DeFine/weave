@@ -2,9 +2,9 @@
 """Repo-wide public-safe scan for the public WEAVE repository.
 
 This scan complements ``scripts/check_no_secrets.py`` by catching private
-runtime references that are not necessarily credentials: local paths, private
-network addresses, private substrate repo references, and host-only runtime
-endpoints.
+references that are not necessarily credentials: local paths, private network
+addresses, private substrate repo references, host-only endpoints, and legacy
+surfaces that are no longer part of the review-ready product.
 """
 
 from __future__ import annotations
@@ -35,28 +35,14 @@ SCAN_EXTENSIONS = {
     ".yml",
 }
 
-ALLOWLIST = {
-    ("scripts/weave_runtime_api.py", "loopback-host"),
-    ("scripts/weave_runtime_http.py", "loopback-host"),
-    ("scripts/live_hermes_lifecycle_qa.py", "loopback-host"),
-    ("scripts/weave_runtime_slice.py", "loopback-host"),
-    ("tests/test_live_hermes_lifecycle_qa.py", "loopback-host"),
-}
+ALLOWLIST: set[tuple[str, str]] = set()
+
+SKIP_PREFIXES: set[tuple[str, ...]] = set()
 
 ALLOWLIST_LINE_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     # These scanner/test fixtures intentionally contain private-looking strings.
     # Keep allowlists scoped to specific labels and source lines so adjacent real
     # private data in the same file is still reported.
-    (
-        "scripts/context_sync_contract_smoke.py",
-        "local-user-path",
-        re.compile(r"/Users/\|/home/\|/opt/"),
-    ),
-    (
-        "scripts/context_sync_contract_smoke.py",
-        "credential-like-token",
-        re.compile(r"sk-\[A-Za-z0-9_|Bearer\\s"),
-    ),
     (
         "tests/test_public_safe_repo_scan.py",
         "local-user-path",
@@ -68,19 +54,14 @@ ALLOWLIST_LINE_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         re.compile(r"127\.0\.0\.1|localhost"),
     ),
     (
-        "tests/test_weave_runtime_http.py",
-        "loopback-host",
-        re.compile(r"is_loopback_bind_host\(\"localhost\"\)"),
-    ),
-    (
-        "tests/test_weave_runtime_http.py",
+        "tests/test_public_safe_repo_scan.py",
         "private-ipv4",
-        re.compile(r"is_loopback_bind_host\(\"192\.168\.1\.25\"\)"),
+        re.compile(r"192\.168"),
     ),
     (
-        "scripts/weave_prompt_library.py",
-        "loopback-host",
-        re.compile(r"r\"\\b\(\?:localhost\|127\\|\"\.localhost\""),
+        "tests/test_public_safe_repo_scan.py",
+        "legacy-surface",
+        re.compile(r"legacy_term = "),
     ),
 )
 
@@ -103,6 +84,7 @@ PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("private-runtime-placeholder", re.compile("|".join(re.escape(item) for item in PRIVATE_RUNTIME_PLACEHOLDERS), re.IGNORECASE)),
     ("private-access-command", re.compile(rf"\b(?:{re.escape(PRIVATE_ACCESS_TOOL)}|ssh\s+-i|scp\s+-r)\b", re.IGNORECASE)),
     ("private-route-term", re.compile(re.escape(PRIVATE_ROUTE_TERM), re.IGNORECASE)),
+    ("legacy-surface", re.compile(r"\b(?:Hermes|Telegram|Textual|TUI|Symphony|Symphone)\b", re.IGNORECASE)),
     ("private-key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
     ("credential-like-token", re.compile(r"\b(?:sk-[A-Za-z0-9_-]{20,}|sk-or-v1-[A-Za-z0-9_-]{16,}|sk_live_[A-Za-z0-9]{16,}|gh[pousr]_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._-]{20,})\b")),
 )
@@ -132,6 +114,8 @@ def tracked_files() -> list[Path]:
 
 def should_scan(path: Path) -> bool:
     if path.as_posix() == "scripts/public_safe_repo_scan.py":
+        return False
+    if any(path.parts[: len(prefix)] == prefix for prefix in SKIP_PREFIXES):
         return False
     return path.suffix in SCAN_EXTENSIONS
 

@@ -1,6 +1,0 @@
-name: weave-runtime
-version: "0.1.0"
-description: "Expose deterministic WEAVE runtime status commands inside Hermes gateway sessions."
-author: "WEAVE"
-hooks:
-  - command:status

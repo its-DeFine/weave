@@ -47,7 +47,7 @@ class WeaveEvalTests(unittest.TestCase):
         template = json.loads(output.getvalue())
         self.assertEqual(template["stage"], "Release Readiness")
         self.assertIn("operator_ux", template["scores"])
-        self.assertIn("runtime_safety", template["scores"])
+        self.assertIn("side_effect_safety", template["scores"])
         self.assertEqual(template["scores"]["operator_ux"]["evidence"], [])
 
     def test_custom_contract_accepts_evidence_bound_review(self) -> None:

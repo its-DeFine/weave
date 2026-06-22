@@ -1,0 +1,106 @@
+{
+  "app_id": "tiny-local-calculator",
+  "current_stage": "intent",
+  "missing_gates": [
+    "Intent gate is not complete",
+    "Research gate is not complete",
+    "Selection gate is not complete",
+    "Plan gate is not complete"
+  ],
+  "non_claims": [
+    "does not prove Codex app-server execution",
+    "does not prove live tracker or Linear mutation",
+    "does not prove public deployment, billing, or public send",
+    "does not prove full lifecycle completion",
+    "does not access credentials or secret values"
+  ],
+  "requested_stage": "engineering",
+  "review_loop": [
+    "observe",
+    "validate",
+    "govern",
+    "review",
+    "sync"
+  ],
+  "schema": "weave-cos-lifecycle/v0.1",
+  "stages": [
+    {
+      "label": "Intent",
+      "procedure_ref": "procedures/lifecycle/01-intent.md",
+      "proof_state": "missing",
+      "stage": "intent",
+      "state": "active"
+    },
+    {
+      "label": "Research",
+      "procedure_ref": "procedures/lifecycle/02-research.md",
+      "proof_state": "missing",
+      "stage": "research",
+      "state": "blocked_by_prior_gates"
+    },
+    {
+      "label": "Selection",
+      "procedure_ref": "procedures/lifecycle/03-selection.md",
+      "proof_state": "missing",
+      "stage": "selection",
+      "state": "blocked_by_prior_gates"
+    },
+    {
+      "label": "Plan",
+      "procedure_ref": "procedures/lifecycle/04-plan.md",
+      "proof_state": "missing",
+      "stage": "plan",
+      "state": "blocked_by_prior_gates"
+    },
+    {
+      "label": "Engineering",
+      "procedure_ref": "procedures/lifecycle/05-engineering.md",
+      "proof_state": "missing",
+      "stage": "engineering",
+      "state": "blocked_by_prior_gates"
+    },
+    {
+      "label": "QA",
+      "procedure_ref": "procedures/lifecycle/06-qa.md",
+      "proof_state": "not_required_yet",
+      "stage": "qa",
+      "state": "not_started"
+    },
+    {
+      "label": "Deployment",
+      "procedure_ref": "procedures/lifecycle/07-deployment.md",
+      "proof_state": "not_required_yet",
+      "stage": "deployment",
+      "state": "not_started"
+    },
+    {
+      "label": "KPI Setup",
+      "procedure_ref": "procedures/lifecycle/08-kpi-setup.md",
+      "proof_state": "not_required_yet",
+      "stage": "kpi-setup",
+      "state": "not_started"
+    },
+    {
+      "label": "Marketing",
+      "procedure_ref": "procedures/lifecycle/09-marketing.md",
+      "proof_state": "not_required_yet",
+      "stage": "marketing",
+      "state": "not_started"
+    },
+    {
+      "label": "Iteration",
+      "procedure_ref": "procedures/lifecycle/10-iteration.md",
+      "proof_state": "not_required_yet",
+      "stage": "iteration",
+      "state": "not_started"
+    },
+    {
+      "label": "Analysis",
+      "procedure_ref": "procedures/lifecycle/11-analysis.md",
+      "proof_state": "not_required_yet",
+      "stage": "analysis",
+      "state": "not_started"
+    }
+  ],
+  "updated_at": "2026-06-22T16:52:35Z"
+}

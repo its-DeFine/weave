@@ -1,0 +1,24 @@
+{
+  "app_id": "tiny-local-calculator",
+  "items": [
+    {
+      "artifact_refs": [
+        "apps/tiny-local-calculator/app.json",
+        "apps/tiny-local-calculator/intent-truth.json",
+        "apps/tiny-local-calculator/lifecycle/lifecycle-state.json",
+        "apps/tiny-local-calculator/tasks/worker-packets/WP-0001.md"
+      ],
+      "decision": "not_accepted_as_done",
+      "id": "review-bootstrap-state",
+      "loop": [
+        "observe",
+        "validate",
+        "govern",
+        "review",
+        "sync"
+      ],
+      "state": "pending_owner_context"
+    }
+  ],
+  "schema": "weave-cos-review-queue/v0.1"
+}

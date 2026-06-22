@@ -39,7 +39,7 @@ Use this skill when operating a WEAVE company, project, or task.
 - KPI Setup also unlocks the local Iteration and Analysis growth loop under
   Marketing.
 - Missing live stages must be emitted as unavailable or omitted with a reason.
-- Volatile API, gateway, pricing, model, or capability claims require a current
+- Volatile API, pricing, model, or capability claims require a current
   source check before stage completion.
 - Approval-gated actions must stop before execution.
 - Returning to an earlier stage requires an overwrite record that names the

@@ -1,118 +1,91 @@
 {
-  "schema": "weave/primitives/v0.1",
-  "application": "weave-lifecycle-runtime",
+  "schema": "weave/primitives/v0.2",
+  "application": "cos-weave-file-skeleton",
   "registryScope": "cross-application-lifecycle-primitives",
-  "reviewBoundary": "This registry is not an Askuno app manifest. It defines reusable lifecycle evidence primitives used by WEAVE validation, docs, and runtime review surfaces.",
+  "reviewBoundary": "Reusable lifecycle primitives for COS WEAVE local file state. They are not live service, deployment, or tracker proof.",
   "usedBy": [
-    "packages/weave-tool/scripts/validate_company_package.py",
-    "docs/month1/review-evidence-pack.md",
-    "docs/month1/weave-lifecycle-contract-v0.md",
-    "scripts/lifecycle_rehearsal_smoke.py",
-    "scripts/full_conversation_app_dogfood.py",
-    "scripts/live_hermes_lifecycle_qa.py"
+    "scripts/weave_cos_skeleton.py",
+    "scripts/weave_cli.py",
+    "scripts/weave_eval.py",
+    "packages/weave-tool/scripts/validate_company_package.py"
   ],
-  "runtimeMode": "telegram-command-first",
-  "futureAdapterTarget": "livepeer-app-lifecycle",
-  "defaultContextIndex": {
-    "schema": "weave/context-index/v0.1",
-    "recommendedRepository": "its-DeFine/weave-context",
-    "sampleIndex": "docs/context-sources/livepeer-context-index.sample.json",
-    "sourceTypes": [
-      "api",
-      "gateway",
-      "pipeline",
-      "documentation",
-      "kpi",
-      "outreach",
-      "orchestrator-capability"
-    ],
-    "applicationPaths": [
-      "existing_api",
-      "gateway_capability",
-      "new_orchestrator_capability"
-    ]
-  },
   "primitives": [
     {
-      "id": "intent-contract",
-      "name": "Intent Contract",
+      "id": "intent-record",
+      "name": "Intent Record",
       "lifecycleStage": "intent",
-      "pipelineIntent": "lifecycle-state",
-      "availability": "local-runtime",
-      "customerUse": "Names the target user, app intent, authority boundary, and truthful proof standard.",
-      "futureAdapterMapping": "Can later initialize a terminal skill or hosted operator session."
+      "fileSurface": "apps/<app-id>/intent.md and intent.json",
+      "customerUse": "Preserves owner words, inferred app, boundaries, and missing information."
     },
     {
       "id": "research-brief",
       "name": "Research Brief",
-      "lifecycleStage": "research-analysis",
-      "pipelineIntent": "evidence-capture",
-      "availability": "local-runtime",
-      "customerUse": "Records demand, infrastructure, pricing, competitors, and risks before selection.",
-      "futureAdapterMapping": "Can later pull approved sources and runtime telemetry into the brief."
+      "lifecycleStage": "research",
+      "fileSurface": "apps/<app-id>/lifecycle/02-research/",
+      "customerUse": "Records facts, assumptions, source needs, and risks before selection."
     },
     {
       "id": "selection-record",
       "name": "Selection Record",
       "lifecycleStage": "selection",
-      "pipelineIntent": "decision-record",
-      "availability": "local-runtime",
-      "customerUse": "Explains why one application wedge is selected and what alternatives are deferred.",
-      "futureAdapterMapping": "Can later feed owner review and public reporting."
+      "fileSurface": "apps/<app-id>/lifecycle/03-selection/",
+      "customerUse": "Shows chosen path, rejected alternatives, tradeoffs, and reversibility."
     },
     {
       "id": "execution-plan",
       "name": "Execution Plan",
       "lifecycleStage": "plan",
-      "pipelineIntent": "task-planning",
-      "availability": "local-runtime",
-      "customerUse": "Turns the selected wedge into bounded engineering, QA, KPI setup, marketing, and review tasks.",
-      "futureAdapterMapping": "Can later dispatch task packets to approved execution lanes."
+      "fileSurface": "apps/<app-id>/lifecycle/04-plan/",
+      "customerUse": "Turns the selected wedge into bounded work packets and checks."
     },
     {
-      "id": "engineering-evidence",
-      "name": "Engineering Evidence",
-      "lifecycleStage": "engineering-integration",
-      "pipelineIntent": "implementation-proof",
-      "availability": "local-runtime",
-      "customerUse": "Links implementation work, changed files, command output, and claim limits.",
-      "futureAdapterMapping": "Can later attach pull requests, deployment logs, or workload outputs."
+      "id": "engineering-proof",
+      "name": "Engineering Proof",
+      "lifecycleStage": "engineering",
+      "fileSurface": "apps/<app-id>/lifecycle/05-engineering/",
+      "customerUse": "Links implementation artifacts, commands, limits, and changed files."
     },
     {
-      "id": "qa-result",
-      "name": "QA Result",
-      "lifecycleStage": "qa-readiness",
-      "pipelineIntent": "quality-gate",
-      "availability": "local-runtime",
-      "customerUse": "Records tests, live checks, failure cases, and readiness judgment.",
-      "futureAdapterMapping": "Can later attach browser checks, API checks, and payment-path checks."
+      "id": "qa-proof",
+      "name": "QA Proof",
+      "lifecycleStage": "qa",
+      "fileSurface": "apps/<app-id>/lifecycle/06-qa/",
+      "customerUse": "Records happy-path, failure-path, and claim-boundary validation."
     },
     {
-      "id": "kpi-setup",
+      "id": "deployment-gate",
+      "name": "Deployment Gate",
+      "lifecycleStage": "deployment",
+      "fileSurface": "apps/<app-id>/lifecycle/07-deployment/",
+      "customerUse": "Names target, owner approval boundary, post-deploy QA, and non-claims."
+    },
+    {
+      "id": "kpi-definition",
       "name": "KPI Setup",
       "lifecycleStage": "kpi-setup",
-      "pipelineIntent": "metric-definition",
-      "availability": "local-runtime",
-      "customerUse": "Defines public and private metrics before marketing starts.",
-      "futureAdapterMapping": "Can later bind aggregate app metrics to public reporting."
+      "fileSurface": "apps/<app-id>/lifecycle/08-kpi-setup/",
+      "customerUse": "Defines meaningful metrics, data boundary, and review cadence."
     },
     {
-      "id": "marketing-plan",
-      "name": "Marketing Plan",
+      "id": "marketing-gate",
+      "name": "Marketing Gate",
       "lifecycleStage": "marketing",
-      "pipelineIntent": "distribution-support",
-      "availability": "owner-gated",
-      "customerUse": "Prepares audience, channel, message angle, KPI capture path, and approval state.",
-      "futureAdapterMapping": "Can later create approved ads, posts, or distribution tasks."
+      "fileSurface": "apps/<app-id>/lifecycle/09-marketing/",
+      "customerUse": "Prepares truthful claims, channel plan, and public-send approval boundary."
     },
     {
       "id": "iteration-record",
       "name": "Iteration Record",
       "lifecycleStage": "iteration",
-      "pipelineIntent": "learning-loop",
-      "availability": "local-runtime",
-      "customerUse": "Records what changed because of QA, KPI, marketing, feedback, or payment evidence.",
-      "futureAdapterMapping": "Can later restart the lifecycle from new evidence."
+      "fileSurface": "apps/<app-id>/lifecycle/10-iteration/",
+      "customerUse": "Maps feedback or evidence to bounded changes and regression checks."
+    },
+    {
+      "id": "analysis-record",
+      "name": "Analysis Record",
+      "lifecycleStage": "analysis",
+      "fileSurface": "apps/<app-id>/lifecycle/11-analysis/",
+      "customerUse": "Compares outcome to intent and recommends continue, pivot, or stop."
     }
   ]
 }

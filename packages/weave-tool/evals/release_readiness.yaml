@@ -3,7 +3,7 @@
   "blockers": [
     "any failed hard gate",
     "unreviewed public claim",
-    "secret/private runtime reference",
+    "secret/private reference",
     "owner approval missing for public release"
   ],
   "description": "Evaluate whether the current repository state is ready for owner-approved public push/release.",
@@ -16,23 +16,9 @@
       "timeout_seconds": 300
     },
     {
-      "command": "python3 scripts/runtime_smoke.py",
-      "description": "Runtime smoke passes.",
-      "id": "runtime_smoke_pass",
-      "kind": "command",
-      "timeout_seconds": 300
-    },
-    {
-      "command": "python3 scripts/lifecycle_rehearsal_smoke.py",
-      "description": "Lifecycle rehearsal proof passes.",
-      "id": "lifecycle_rehearsal_smoke_pass",
-      "kind": "command",
-      "timeout_seconds": 300
-    },
-    {
-      "command": "python3 scripts/month1_product_app_qa.py --report-out runs/month1-product-qa-release-gate.json",
-      "description": "Month 1 product app QA passes from the repository root.",
-      "id": "month1_product_app_qa_pass",
+      "command": "bin/weave cos-bootstrap --source . --intent \"build a tiny local calculator app\"",
+      "description": "COS WEAVE bootstrap smoke passes.",
+      "id": "cos_bootstrap_smoke_pass",
       "kind": "command",
       "timeout_seconds": 300
     },
@@ -71,7 +57,7 @@
   "required_inputs": [
     "current diff",
     "test output",
-    "smoke output",
+    "bootstrap smoke output",
     "public-safe scan",
     "release notes or PR body"
   ],
@@ -84,9 +70,9 @@
       "question": "Can a new operator discover setup modes, doctor/status, and local deterministic proof?"
     },
     {
-      "id": "runtime_safety",
+      "id": "side_effect_safety",
       "max_score": 4,
-      "question": "Are auth, bind policy, CORS, and side effects safe by default?"
+      "question": "Are live, public, paid, credential, and destructive side effects gated by default?"
     },
     {
       "id": "lifecycle_governance",

@@ -34,6 +34,8 @@ SKIP_DIRS = {
     ".workflow",
 }
 
+SKIP_PREFIXES: set[tuple[str, ...]] = set()
+
 # Secret-like key names (from weave_command_bus.py SECRET_KEY_RE pattern, extended).
 SECRET_KEY_RE = re.compile(
     r"(api[_-]?key|secret|token|password|passcode|credential|private[_-]?key"
@@ -155,6 +157,8 @@ def main() -> int:
     all_hits: list[str] = []
     for relative in candidate_files():
         if any(part in SKIP_DIRS for part in relative.parts):
+            continue
+        if any(relative.parts[: len(prefix)] == prefix for prefix in SKIP_PREFIXES):
             continue
         path = REPO_ROOT / relative
         if not path.is_file():

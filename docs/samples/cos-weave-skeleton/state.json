@@ -1,0 +1,37 @@
+{
+  "active_app_id": "tiny-local-calculator",
+  "app_count": 1,
+  "non_claims": [
+    "does not prove Codex app-server execution",
+    "does not prove live tracker or Linear mutation",
+    "does not prove public deployment, billing, or public send",
+    "does not prove full lifecycle completion",
+    "does not access credentials or secret values"
+  ],
+  "procedure_refs": [
+    "procedures/lifecycle/01-intent.md",
+    "procedures/lifecycle/02-research.md",
+    "procedures/lifecycle/03-selection.md",
+    "procedures/lifecycle/04-plan.md",
+    "procedures/lifecycle/05-engineering.md",
+    "procedures/lifecycle/06-qa.md",
+    "procedures/lifecycle/07-deployment.md",
+    "procedures/lifecycle/08-kpi-setup.md",
+    "procedures/lifecycle/09-marketing.md",
+    "procedures/lifecycle/10-iteration.md",
+    "procedures/lifecycle/11-analysis.md"
+  ],
+  "review_loop": [
+    "observe",
+    "validate",
+    "govern",
+    "review",
+    "sync"
+  ],
+  "schema": "weave-cos-skeleton/v0.1",
+  "source_repo": "<weave-repo>",
+  "standard_home": "runs/cos-weave-home",
+  "state": "local_skeleton_ready",
+  "surface": "codex",
+  "updated_at": "2026-06-22T16:52:35Z"
+}

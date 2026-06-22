@@ -1,0 +1,13 @@
+{
+  "app_readback_refs": [
+    "apps/tiny-local-calculator/updates/readback.json"
+  ],
+  "review_loop": [
+    "observe",
+    "validate",
+    "govern",
+    "review",
+    "sync"
+  ],
+  "schema": "weave-cos-review-inbox/v0.1"
+}

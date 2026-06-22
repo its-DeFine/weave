@@ -87,8 +87,8 @@ def validate_body(body: str) -> None:
         missing.append("Merge Criteria section")
     if "local proof" not in lowered:
         missing.append("local proof boundary label")
-    if "runtime/live proof" not in lowered and "live proof" not in lowered:
-        missing.append("runtime/live proof boundary label")
+    if "runtime/live proof" not in lowered and "live proof" not in lowered and "live/public proof" not in lowered:
+        missing.append("live/public proof boundary label")
     if "unproven" not in lowered and "non-claim" not in lowered:
         missing.append("unproven boundary or non-claim statement")
     if "failing checks" not in lowered:

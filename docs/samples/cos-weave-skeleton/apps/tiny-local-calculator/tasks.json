@@ -1,0 +1,21 @@
+{
+  "schema": "weave-cos-task-ledger/v0.1",
+  "tasks": [
+    {
+      "app_id": "tiny-local-calculator",
+      "objective": "clarify first app intent and acceptance checks",
+      "review_loop": [
+        "observe",
+        "validate",
+        "govern",
+        "review",
+        "sync"
+      ],
+      "schema": "weave-cos-task/v0.1",
+      "stage": "intent",
+      "state": "local_skeleton_ready",
+      "task_id": "TASK-0001",
+      "worker_packet_ref": "apps/tiny-local-calculator/tasks/worker-packets/WP-0001.md"
+    }
+  ]
+}

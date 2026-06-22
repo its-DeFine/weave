@@ -1,0 +1,13 @@
+{
+  "app_id": "tiny-local-calculator",
+  "review_loop": [
+    "observe",
+    "validate",
+    "govern",
+    "review",
+    "sync"
+  ],
+  "schema": "weave-cos-stage-state/v0.1",
+  "stage": "research",
+  "state": "blocked_by_prior_gates"
+}

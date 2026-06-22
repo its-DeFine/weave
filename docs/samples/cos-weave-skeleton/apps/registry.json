@@ -1,0 +1,14 @@
+{
+  "active_app_id": "tiny-local-calculator",
+  "apps": [
+    {
+      "app_id": "tiny-local-calculator",
+      "current_stage": "intent",
+      "name": "Tiny Local Calculator",
+      "readback_ref": "apps/tiny-local-calculator/updates/readback.json",
+      "state": "local_skeleton_ready"
+    }
+  ],
+  "schema": "weave-cos-app-registry/v0.1",
+  "updated_at": "2026-06-22T16:52:35Z"
+}
