@@ -129,6 +129,12 @@ class WeaveCliTests(unittest.TestCase):
         self.assertNotIn("gateway", text)
         self.assertNotIn("t" + "ui", text.lower())
 
+    def test_generated_lifecycle_matches_eval_contract_order(self) -> None:
+        skeleton_stages = [stage for stage, _label in weave_cli.weave_cos_skeleton.LIFECYCLE_STAGES]
+        self.assertEqual(skeleton_stages, weave_cli.weave_eval.STAGE_ORDER)
+        self.assertNotIn("requirements", skeleton_stages)
+        self.assertIn("kpi-setup", skeleton_stages)
+
 
 if __name__ == "__main__":
     unittest.main()

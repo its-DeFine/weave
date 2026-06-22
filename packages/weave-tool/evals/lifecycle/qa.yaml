@@ -4,10 +4,7 @@
     "QA only reviewed prose",
     "target surface not exercised",
     "failure path untested",
-    "public-safe scan failed",
-    "runtime-agent claim lacks executed isolated topology",
-    "sender/receiver readback missing or one-sided",
-    "fixture/local queue substituted for live transport without claim downgrade"
+    "public-safe scan failed"
   ],
   "description": "Evaluate whether actual target-surface QA proves the artifact works and fails safely.",
   "hard_gates": [
@@ -32,11 +29,6 @@
       "kind": "command",
       "redact_output": true,
       "timeout_seconds": 120
-    },
-    {
-      "description": "Runtime-agent QA includes isolated sender/receiver topology, per-runtime config readback, scenario execution, matching evidence from both sides when applicable, and a teardown policy with lifecycle cleanup states.",
-      "id": "runtime_agent_mesh_readback",
-      "kind": "manual"
     }
   ],
   "require_evidence_for_scores": true,
@@ -45,27 +37,9 @@
     "target surface proof",
     "failure-path evidence",
     "regression notes",
-    "runtime-agent QA contract when applicable",
-    "runtime resource lifecycle manifest when applicable",
-    "teardown policy and cleanup evidence when applicable",
-    "sender and receiver readback artifacts when applicable",
     "proof-boundary claim label"
   ],
   "requires_review": true,
-  "runtime_agent_qa": {
-    "cleanup_policy_schema": "weave.runtime-cleanup-policy/v0.1",
-    "manifest_schema": "weave.runtime-qa-manifest/v0.1",
-    "resource_states_required": [
-      "created",
-      "running",
-      "completed",
-      "teardown_requested",
-      "stopped",
-      "removed",
-      "phased_out"
-    ],
-    "teardown_policy_required": true
-  },
   "rubric": [
     {
       "id": "happy_path_proof",
@@ -91,11 +65,6 @@
       "id": "evidence_quality",
       "max_score": 4,
       "question": "Is proof fresh, reproducible, and target-surface specific?"
-    },
-    {
-      "id": "runtime_mesh_proof",
-      "max_score": 4,
-      "question": "When runtime communication is claimed, were isolated runtimes launched or attached, configured with the intended model/tools, exercised through the target path, and read back from both sides?"
     }
   ],
   "schema": "weave.lifecycle-eval/v0.1",

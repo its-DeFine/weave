@@ -61,9 +61,9 @@
     },
     {
       "id": "kpi-definition",
-      "name": "KPI Definition",
-      "lifecycleStage": "kpi",
-      "fileSurface": "apps/<app-id>/lifecycle/08-kpi/",
+      "name": "KPI Setup",
+      "lifecycleStage": "kpi-setup",
+      "fileSurface": "apps/<app-id>/lifecycle/08-kpi-setup/",
       "customerUse": "Defines meaningful metrics, data boundary, and review cadence."
     },
     {

@@ -5,6 +5,9 @@ description: Keep local WEAVE primitives shaped for Livepeer pipelines without o
 
 # Livepeer Adapter Boundary
 
+Status: optional domain extension, not part of the generic COS WEAVE default
+surface.
+
 ## Use When
 
 Use this skill whenever a WEAVE primitive or app references Livepeer.

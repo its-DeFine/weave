@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">WEAVE v0.1 lifecycle map</title>
+  <desc id="desc">A diagram showing WEAVE lifecycle stages and the review gate that prevents unproven completion claims.</desc>
+  <defs>
+    <style>
+      .bg { fill: #fbfbf8; }
+      .stage { fill: #ffffff; stroke: #1f2937; stroke-width: 2; rx: 8; }
+      .gate { fill: #eaf7ef; stroke: #1d7f45; stroke-width: 2; rx: 8; }
+      .title { font: 700 34px Inter, Arial, sans-serif; fill: #101820; }
+      .label { font: 700 18px Inter, Arial, sans-serif; fill: #101820; }
+      .text { font: 500 14px Inter, Arial, sans-serif; fill: #344250; }
+      .arrow { stroke: #26313d; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1,1 L9,5 L1,9 Z" fill="#26313d"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1280" height="720"/>
+  <text class="title" x="64" y="70">WEAVE v0.1 lifecycle: every app has the same map</text>
+  <g transform="translate(64,122)">
+    <rect class="stage" x="0" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="22" y="34">01 intent</text>
+    <text class="text" x="22" y="58">what is being built</text>
+    <path class="arrow" d="M172 41 H206"/>
+    <rect class="stage" x="216" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="238" y="34">02 research</text>
+    <text class="text" x="238" y="58">facts and constraints</text>
+    <path class="arrow" d="M388 41 H422"/>
+    <rect class="stage" x="432" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="454" y="34">03 selection</text>
+    <text class="text" x="454" y="58">choose approach</text>
+    <path class="arrow" d="M604 41 H638"/>
+    <rect class="stage" x="648" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="670" y="34">04 plan</text>
+    <text class="text" x="670" y="58">steps and packets</text>
+    <path class="arrow" d="M820 41 H854"/>
+    <rect class="stage" x="864" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="886" y="34">05 engineering</text>
+    <text class="text" x="886" y="58">build safely</text>
+  </g>
+  <g transform="translate(64,274)">
+    <rect class="stage" x="0" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="22" y="34">06 qa</text>
+    <text class="text" x="22" y="58">test and inspect</text>
+    <path class="arrow" d="M172 41 H206"/>
+    <rect class="stage" x="216" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="238" y="34">07 deployment</text>
+    <text class="text" x="238" y="58">only when proven</text>
+    <path class="arrow" d="M388 41 H422"/>
+    <rect class="stage" x="432" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="454" y="34">08 kpi-setup</text>
+    <text class="text" x="454" y="58">measure outcomes</text>
+    <path class="arrow" d="M604 41 H638"/>
+    <rect class="stage" x="648" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="670" y="34">09 marketing</text>
+    <text class="text" x="670" y="58">launch material</text>
+    <path class="arrow" d="M820 41 H854"/>
+    <rect class="stage" x="864" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="886" y="34">10 iteration</text>
+    <text class="text" x="886" y="58">improve from proof</text>
+    <path class="arrow" d="M1036 41 H1070"/>
+    <rect class="stage" x="1080" y="0" width="172" height="82" rx="8"/>
+    <text class="label" x="1102" y="34">11 analysis</text>
+    <text class="text" x="1102" y="58">decide next loop</text>
+  </g>
+  <rect class="gate" x="260" y="500" width="760" height="116" rx="8"/>
+  <text class="label" x="300" y="540">Review gate for every meaningful claim</text>
+  <text class="text" x="300" y="572">observe -> validate -> govern -> review -> sync</text>
+  <text class="text" x="300" y="598">Allowed outcomes: ACCEPT_FOR_SCOPE, REVISE, BLOCKED, NEEDS_OWNER_ACTION.</text>
+  <path class="arrow" d="M150 356 V438 H640 V490"/>
+  <path class="arrow" d="M950 204 V238 H150 V264"/>
+</svg>

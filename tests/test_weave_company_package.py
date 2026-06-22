@@ -23,8 +23,8 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         summary = validator.validate_package(PACKAGE_ROOT)
 
         self.assertEqual(summary.slug, "weave")
-        self.assertEqual(summary.version, "2026.06.22-cos-skeleton")
-        self.assertEqual(summary.skill_count, 11)
+        self.assertEqual(summary.version, "0.1.0")
+        self.assertEqual(summary.skill_count, 10)
         self.assertGreaterEqual(summary.primitive_count, 11)
         self.assertEqual(summary.eval_contract_count, 12)
 
@@ -34,15 +34,21 @@ class WeaveCompanyPackageTests(unittest.TestCase):
         self.assertEqual(fields["runtime"], "cos-file-skeleton")
         self.assertEqual(fields["runtimeFallback"], "none-required")
         self.assertEqual(fields["defaultSurface"], "codex-thread")
+        self.assertEqual(fields["releaseTag"], "v0.1.0")
+        self.assertEqual(fields["releaseChannel"], "public-v0.1")
 
     def test_only_current_skills_remain(self) -> None:
         skills = validator.validate_skills(PACKAGE_ROOT)
 
         self.assertIn("cos-weave", skills)
         self.assertIn("compound-engineering", skills)
-        self.assertIn("livepeer-adapter-boundary", skills)
+        self.assertNotIn("livepeer-adapter-boundary", skills)
         self.assertNotIn("runtime-bridge", skills)
         self.assertNotIn("gestalt-runtime", skills)
+
+        extension = PACKAGE_ROOT / "extensions" / "livepeer" / "skills" / "livepeer-adapter-boundary" / "SKILL.md"
+        self.assertTrue(extension.exists())
+        self.assertIn("optional domain extension", extension.read_text(encoding="utf-8"))
 
     def test_primitives_cover_complete_lifecycle(self) -> None:
         primitives = validator.validate_primitives(PACKAGE_ROOT)
@@ -56,7 +62,7 @@ class WeaveCompanyPackageTests(unittest.TestCase):
             "engineering",
             "qa",
             "deployment",
-            "kpi",
+            "kpi-setup",
             "marketing",
             "iteration",
             "analysis",

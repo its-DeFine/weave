@@ -1,0 +1,6 @@
+{
+  "app_readback_refs": [
+    "apps/tiny-local-calculator/updates/readback.json"
+  ],
+  "schema": "weave-cos-worker-packets/v0.1"
+}

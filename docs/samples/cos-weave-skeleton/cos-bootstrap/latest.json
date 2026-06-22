@@ -1,0 +1,242 @@
+{
+  "app_count": 1,
+  "app_id": "tiny-local-calculator",
+  "app_name": "Tiny Local Calculator",
+  "app_readback": {
+    "app_id": "tiny-local-calculator",
+    "app_name": "Tiny Local Calculator",
+    "blockers": [
+      {
+        "id": "owner-context-needed",
+        "missing": [
+          "Intent gate is not complete",
+          "Research gate is not complete",
+          "Selection gate is not complete",
+          "Plan gate is not complete"
+        ],
+        "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+        "state": "open_question"
+      }
+    ],
+    "current_stage": "intent",
+    "missing_gates": [
+      "Intent gate is not complete",
+      "Research gate is not complete",
+      "Selection gate is not complete",
+      "Plan gate is not complete"
+    ],
+    "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+    "non_claims": [
+      "does not prove Codex app-server execution",
+      "does not prove live tracker or Linear mutation",
+      "does not prove public deployment, billing, or public send",
+      "does not prove full lifecycle completion",
+      "does not access credentials or secret values"
+    ],
+    "proof_refs": [
+      "apps/tiny-local-calculator/proof/proof-tray.json"
+    ],
+    "requested_stage": "engineering",
+    "review_refs": [
+      "apps/tiny-local-calculator/review/review-queue.json"
+    ],
+    "schema": "weave-cos-readback/v0.1",
+    "state": "local_skeleton_ready"
+  },
+  "app_registry_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/registry.json",
+  "app_state_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/app.json",
+  "apps": [
+    {
+      "app_id": "tiny-local-calculator",
+      "name": "Tiny Local Calculator"
+    }
+  ],
+  "blocker_tray_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/blockers/blocker-tray.json",
+  "cos_message": "WEAVE | Home=<weave-repo>/docs/samples/cos-weave-skeleton | App=Tiny Local Calculator | Stage=Intent | Scope=local-file-skeleton | State=local_skeleton_ready | Truth=partial | Proof=local-skeleton | Next=continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks\nI am COS WEAVE in this Codex thread. I use this repository as a visible file skeleton for app intent, lifecycle state, todos, worker packets, proof, blockers, review, and readback.\nWEAVE home: <weave-repo>/docs/samples/cos-weave-skeleton\nSource repo: <weave-repo>\nOwner intent: build a tiny local calculator app\nProof path: <weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/proof/proof-tray.json\nNext safe action: continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks\nNo live workers, tracker mutation, deploy, public send, billing, credential access, or production effect is claimed.",
+  "home": "<weave-repo>/docs/samples/cos-weave-skeleton",
+  "inferred_lifecycle_stage": "intent",
+  "intent": "build a tiny local calculator app",
+  "intent_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/intent.md",
+  "lifecycle_state_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/lifecycle.json",
+  "live_effects": false,
+  "manual_lifecycle_classification_required": false,
+  "manual_queue_commands_required": false,
+  "manual_steps_required": [],
+  "missing_gates": [
+    "Intent gate is not complete",
+    "Research gate is not complete",
+    "Selection gate is not complete",
+    "Plan gate is not complete"
+  ],
+  "non_claims": [
+    "does not prove Codex app-server execution",
+    "does not prove live tracker or Linear mutation",
+    "does not prove public deployment, billing, or public send",
+    "does not prove full lifecycle completion",
+    "does not access credentials or secret values"
+  ],
+  "onboarding_questions": [
+    "What should I call you, if you want the draft owner profile personalized?",
+    "What app or application should we work on first?",
+    "What outcome would make this first WEAVE session useful?",
+    "What constraints or hard gates apply, such as no deploy, no public send, no tracker mutation, no paid calls, or credential restrictions?"
+  ],
+  "owner_profile_path": "<weave-repo>/docs/samples/cos-weave-skeleton/owner-profile.json",
+  "procedure_refs": [
+    "procedures/lifecycle/01-intent.md",
+    "procedures/lifecycle/02-research.md",
+    "procedures/lifecycle/03-selection.md",
+    "procedures/lifecycle/04-plan.md",
+    "procedures/lifecycle/05-engineering.md",
+    "procedures/lifecycle/06-qa.md",
+    "procedures/lifecycle/07-deployment.md",
+    "procedures/lifecycle/08-kpi-setup.md",
+    "procedures/lifecycle/09-marketing.md",
+    "procedures/lifecycle/10-iteration.md",
+    "procedures/lifecycle/11-analysis.md"
+  ],
+  "proof_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/proof/proof-tray.json",
+  "readback": {
+    "active_app": {
+      "app_id": "tiny-local-calculator",
+      "app_name": "Tiny Local Calculator",
+      "blockers": [
+        {
+          "id": "owner-context-needed",
+          "missing": [
+            "Intent gate is not complete",
+            "Research gate is not complete",
+            "Selection gate is not complete",
+            "Plan gate is not complete"
+          ],
+          "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+          "state": "open_question"
+        }
+      ],
+      "current_stage": "intent",
+      "missing_gates": [
+        "Intent gate is not complete",
+        "Research gate is not complete",
+        "Selection gate is not complete",
+        "Plan gate is not complete"
+      ],
+      "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+      "non_claims": [
+        "does not prove Codex app-server execution",
+        "does not prove live tracker or Linear mutation",
+        "does not prove public deployment, billing, or public send",
+        "does not prove full lifecycle completion",
+        "does not access credentials or secret values"
+      ],
+      "proof_refs": [
+        "apps/tiny-local-calculator/proof/proof-tray.json"
+      ],
+      "requested_stage": "engineering",
+      "review_refs": [
+        "apps/tiny-local-calculator/review/review-queue.json"
+      ],
+      "schema": "weave-cos-readback/v0.1",
+      "state": "local_skeleton_ready"
+    },
+    "active_app_id": "tiny-local-calculator",
+    "apps": [
+      {
+        "app_id": "tiny-local-calculator",
+        "app_name": "Tiny Local Calculator",
+        "blockers": [
+          {
+            "id": "owner-context-needed",
+            "missing": [
+              "Intent gate is not complete",
+              "Research gate is not complete",
+              "Selection gate is not complete",
+              "Plan gate is not complete"
+            ],
+            "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+            "state": "open_question"
+          }
+        ],
+        "current_stage": "intent",
+        "missing_gates": [
+          "Intent gate is not complete",
+          "Research gate is not complete",
+          "Selection gate is not complete",
+          "Plan gate is not complete"
+        ],
+        "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+        "non_claims": [
+          "does not prove Codex app-server execution",
+          "does not prove live tracker or Linear mutation",
+          "does not prove public deployment, billing, or public send",
+          "does not prove full lifecycle completion",
+          "does not access credentials or secret values"
+        ],
+        "proof_refs": [
+          "apps/tiny-local-calculator/proof/proof-tray.json"
+        ],
+        "requested_stage": "engineering",
+        "review_refs": [
+          "apps/tiny-local-calculator/review/review-queue.json"
+        ],
+        "schema": "weave-cos-readback/v0.1",
+        "state": "local_skeleton_ready"
+      }
+    ],
+    "home": "<weave-repo>/docs/samples/cos-weave-skeleton",
+    "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+    "non_claims": [
+      "does not prove Codex app-server execution",
+      "does not prove live tracker or Linear mutation",
+      "does not prove public deployment, billing, or public send",
+      "does not prove full lifecycle completion",
+      "does not access credentials or secret values"
+    ],
+    "review_loop": [
+      "observe",
+      "validate",
+      "govern",
+      "review",
+      "sync"
+    ],
+    "schema": "weave-cos-readback/v0.1",
+    "state": "local_skeleton_ready"
+  },
+  "readback_path": "<weave-repo>/docs/samples/cos-weave-skeleton/updates/readback.json",
+  "requested_lifecycle_stage": "engineering",
+  "review_queue_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/review/review-queue.json",
+  "role": "COS WEAVE",
+  "role_explanation": "WEAVE is one Chief-of-Staff chat for organizing and executing multiple app/application efforts through lifecycle steps.",
+  "safe_context_policy": {
+    "avoided": [
+      "raw secrets",
+      "raw logs",
+      "raw transcripts",
+      "cookies",
+      "browser sessions",
+      "database dumps",
+      "broad private data"
+    ],
+    "checked": [
+      "AGENTS.md",
+      "docs/COS_WEAVE_BOOTSTRAP.md",
+      "docs/COS_WEAVE_REPO_SKELETON.md",
+      "packages/weave-tool/skills/cos-weave/SKILL.md"
+    ]
+  },
+  "schema": "weave-cos-bootstrap/v0.1",
+  "source": "<weave-repo>",
+  "state": "ACCEPT_FOR_SCOPE",
+  "state_line": "WEAVE | Home=<weave-repo>/docs/samples/cos-weave-skeleton | App=Tiny Local Calculator | Stage=Intent | Scope=local-file-skeleton | State=local_skeleton_ready | Truth=partial | Proof=local-skeleton | Next=continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+  "surface": "codex",
+  "todos_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/todos.md",
+  "tracker": {
+    "linear_required": false,
+    "message": "Tracker access is optional; local WEAVE task ledger is authoritative until a tracker is connected and approved.",
+    "mode": "local"
+  },
+  "worker_dispatch": {
+    "mode": "local_packet_recorded",
+    "visible_worker_instruction": "Launch/pin visible Codex workers when the host supports thread creation; otherwise keep local packets and report the limitation."
+  },
+  "worker_packet_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/worker-packets/WP-0001.md"
+}

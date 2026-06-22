@@ -1,0 +1,100 @@
+{
+  "app_id": "tiny-local-calculator",
+  "app_name": "Tiny Local Calculator",
+  "completion_contract": {
+    "allowed_done_state": "ACCEPT_FOR_SCOPE",
+    "controller_review_required": true,
+    "missing_gates": [
+      "Intent gate is not complete",
+      "Research gate is not complete",
+      "Selection gate is not complete",
+      "Plan gate is not complete"
+    ],
+    "proof_required": "local skeleton files and proof envelope only"
+  },
+  "intent_frame": {
+    "best_current_case": "intent_discovery",
+    "case_confidence": "medium_for_app_names_low_for_product_details",
+    "target_outcome": "create local WEAVE app state and identify missing owner context before worker dispatch",
+    "user_goal": "build a tiny local calculator app"
+  },
+  "non_claims": [
+    "does not prove Codex app-server execution",
+    "does not prove live tracker or Linear mutation",
+    "does not prove public deployment, billing, or public send",
+    "does not prove full lifecycle completion",
+    "does not access credentials or secret values"
+  ],
+  "owner_boundary": {
+    "forbidden_without_separate_approval": [
+      "credential_use_requires_owner_approval",
+      "public_send_requires_owner_approval",
+      "paid_spend_requires_owner_approval",
+      "production_deploy_requires_owner_approval",
+      "tracker_mutation_requires_owner_approval",
+      "live_worker_orchestration_requires_host_support"
+    ],
+    "mode": "local_files_only"
+  },
+  "schema": "weave-intent-truth/v0.1",
+  "scope_lattice": {
+    "active_slice": "local_file_skeleton_intake",
+    "full_lifecycle_claim": false,
+    "not_required_stages": [
+      {
+        "label": "Research",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "research"
+      },
+      {
+        "label": "Selection",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "selection"
+      },
+      {
+        "label": "Plan",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "plan"
+      },
+      {
+        "label": "Engineering",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "engineering"
+      },
+      {
+        "label": "QA",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "qa"
+      },
+      {
+        "label": "Deployment",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "deployment"
+      },
+      {
+        "label": "KPI Setup",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "kpi-setup"
+      },
+      {
+        "label": "Marketing",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "marketing"
+      },
+      {
+        "label": "Iteration",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "iteration"
+      },
+      {
+        "label": "Analysis",
+        "reason": "not required until owner intent, acceptance checks, and hard gates are recorded",
+        "stage": "analysis"
+      }
+    ],
+    "required_stages": [
+      "intent"
+    ]
+  },
+  "state": "partial"
+}

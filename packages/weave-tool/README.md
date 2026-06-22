@@ -18,7 +18,7 @@ Expected shape:
 ```text
 valid WEAVE package: weave
 version: 2026.06.22-cos-skeleton
-skills: 11
+skills: 10
 primitives: 11
 eval_contracts: 12
 ```
@@ -33,6 +33,9 @@ eval_contracts: 12
 - `evals/release_readiness.yaml`: review-readiness gate.
 - `primitives/registry.json`: lifecycle primitive map.
 - `scripts/validate_company_package.py`: public package validator.
+- `extensions/livepeer/`: optional domain extension with a review skill for
+  Livepeer-specific pipeline boundaries. It is not part of the generic default
+  COS WEAVE surface.
 
 ## Boundary
 

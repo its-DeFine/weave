@@ -4,10 +4,10 @@ kind: company
 slug: weave
 name: WEAVE
 description: COS-first application operating skeleton for Codex threads.
-version: "2026.06.22-cos-skeleton"
+version: "0.1.0"
 releaseDate: "2026-06-22"
-releaseTag: v2026.06.22-cos-skeleton
-releaseChannel: public-cos-skeleton
+releaseTag: v0.1.0
+releaseChannel: public-v0.1
 license: MIT
 homepage: https://github.com/its-DeFine/weave
 runtime: cos-file-skeleton
@@ -26,6 +26,7 @@ The package contains:
 - compound engineering and review-loop skills;
 - lifecycle eval contracts;
 - lifecycle primitives for intent through analysis;
+- optional domain extensions outside the generic default skill surface;
 - public-safe validation tooling.
 
 The package does not require an external runtime, tracker, deployment target,

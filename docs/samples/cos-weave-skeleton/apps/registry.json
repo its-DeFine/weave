@@ -9,5 +9,6 @@
       "state": "local_skeleton_ready"
     }
   ],
-  "schema": "weave-cos-app-registry/v0.1"
+  "schema": "weave-cos-app-registry/v0.1",
+  "updated_at": "2026-06-22T16:52:35Z"
 }

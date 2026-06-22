@@ -32,7 +32,8 @@ Read these in order for COS WEAVE work:
 4. `docs/COS_WEAVE_REPO_SKELETON.md`
 5. `docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md`
 6. `docs/WEAVE_REVIEW_LOOP_PROCESS.md`
-7. `packages/weave-tool/skills/cos-weave/SKILL.md`
+7. `docs/WEAVE_CONCEPT_CHANGE_MAINTAINER_PLAYBOOK.md`
+8. `packages/weave-tool/skills/cos-weave/SKILL.md`
 
 ## Current Product Boundary
 
@@ -61,6 +62,7 @@ Before claiming a review-ready repository, run:
 
 ```bash
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
+python3 scripts/validate_docs_current.py
 python3 -m unittest discover -s tests -p 'test_*.py'
 python3 scripts/check_no_secrets.py
 python3 scripts/public_safe_repo_scan.py

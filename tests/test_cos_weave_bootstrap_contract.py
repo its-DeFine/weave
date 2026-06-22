@@ -1,4 +1,6 @@
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
 
@@ -23,6 +25,10 @@ LEGACY_TERMS = ["Her" + "mes", "Tele" + "gram", "Tex" + "tual", "T" + "UI", "Sym
 
 def normalized(path: Path) -> str:
     return " ".join(path.read_text(encoding="utf-8").split())
+
+
+def file_set(root: Path) -> set[str]:
+    return {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
 
 
 class CosWeaveBootstrapContractTests(unittest.TestCase):
@@ -193,14 +199,25 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             "README.md",
             "apps/registry.json",
             "apps/tiny-local-calculator/app.json",
+            "apps/tiny-local-calculator/intent-truth.json",
+            "apps/tiny-local-calculator/intent.json",
             "apps/tiny-local-calculator/intent.md",
             "apps/tiny-local-calculator/lifecycle.json",
+            "apps/tiny-local-calculator/lifecycle/lifecycle-state.json",
+            "apps/tiny-local-calculator/tasks.json",
+            "apps/tiny-local-calculator/tasks/tasks.json",
+            "apps/tiny-local-calculator/tasks/worker-packets/WP-0001.md",
             "apps/tiny-local-calculator/todos.md",
             "apps/tiny-local-calculator/worker-packets/WP-0001.md",
             "apps/tiny-local-calculator/proof/proof-tray.json",
             "apps/tiny-local-calculator/blockers/blocker-tray.json",
             "apps/tiny-local-calculator/review/review-queue.json",
             "apps/tiny-local-calculator/updates/readback.json",
+            "procedures/lifecycle/08-kpi-setup.md",
+            "proof/tray.json",
+            "blockers/tray.json",
+            "review/queue.json",
+            "updates/readback.json",
         ]
         for rel in required:
             with self.subTest(rel=rel):
@@ -214,6 +231,34 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         self.assertIn("tiny local calculator", sample_text.lower())
         self.assertIn("observe -> validate -> govern -> review -> sync", sample_text)
         self.assertNotIn("external orchestrator", sample_text.lower())
+        self.assertNotIn("02-requirements", sample_text.lower())
+
+    def test_repo_skeleton_sample_matches_generated_file_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "sample"
+            result = subprocess.run(
+                [
+                    str(ROOT / "bin" / "weave"),
+                    "cos-bootstrap",
+                    "--source",
+                    str(ROOT),
+                    "--home",
+                    str(home),
+                    "--intent",
+                    "build a tiny local calculator app",
+                    "--app-id",
+                    "tiny-local-calculator",
+                    "--app-name",
+                    "Tiny Local Calculator",
+                    "--json",
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(file_set(SKELETON_SAMPLE), file_set(home))
 
     def test_bootstrap_contract_blocks_manual_setup_user_work(self) -> None:
         text = normalized(BOOTSTRAP)

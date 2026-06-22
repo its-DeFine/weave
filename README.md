@@ -2,6 +2,8 @@
 
 ![WEAVE repo skeleton hero](assets/weave-hero.png)
 
+Current release: `v0.1.0`.
+
 WEAVE vNext is a COS-first repository skeleton for Codex. A user gives a Codex
 thread this repository URL or path plus ordinary app intent. The thread becomes
 COS WEAVE, creates visible local state, and keeps app lifecycle work legible
@@ -46,8 +48,15 @@ runs/cos-weave-home/
       app.json
       intent.md
       intent.json
+      intent-truth.json
       lifecycle.json
+      lifecycle/
+        lifecycle-state.json
       todos.md
+      tasks.json
+      tasks/
+        tasks.json
+        worker-packets/
       worker-packets/
       proof/
       blockers/
@@ -63,6 +72,17 @@ runs/cos-weave-home/
 ```
 
 These developer commands are not the user-facing first-run path.
+
+## Visual Model
+
+The user-facing process is shown in:
+
+- [WEAVE v0.1 flow](assets/weave-v0.1-flow.svg)
+- [WEAVE v0.1 lifecycle map](assets/weave-v0.1-lifecycle.svg)
+
+The visual model is deliberately simple: one COS WEAVE thread, one visible
+WEAVE home, many app folders, and lifecycle state that only advances with
+proof and review.
 
 ## What WEAVE Does
 
@@ -91,6 +111,7 @@ bin/weave cos-bootstrap --source . --intent "build a tiny local calculator app"
 bin/weave readback --home runs/cos-weave-home
 bin/weave eval --list
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
+python3 scripts/validate_docs_current.py
 python3 -m unittest discover -s tests -p 'test_*.py'
 python3 scripts/check_no_secrets.py
 python3 scripts/public_safe_repo_scan.py

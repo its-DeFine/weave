@@ -52,7 +52,7 @@ Each lifecycle stage has:
 
 The lifecycle exists to prevent overclaiming. A narrow calculator artifact can
 be accepted for Intent + Engineering + QA without pretending Deployment,
-Marketing, KPI, Iteration, or Analysis happened.
+Marketing, KPI Setup, Iteration, or Analysis happened.
 
 ## Review Loop
 

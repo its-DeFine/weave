@@ -18,15 +18,13 @@ Analysis work that changes artifacts, makes claims, or requests owner approval.
 - prior evidence
 - known blockers
 - allowed and forbidden areas
-- local files, tools, or external transport surfaces involved, if any
+- local files, tools, or external surfaces involved, if any
 
 ## Outputs
 
 - work packet
 - scoped task list
 - acceptance checks
-- external-agent QA contract when the work depends on external agents, tool
-  bridges, network transport, or profile-isolated workers
 - approval gates
 - risk and rollback notes
 - expected evidence packet shape
@@ -38,12 +36,8 @@ Analysis work that changes artifacts, makes claims, or requests owner approval.
 - Include explicit acceptance checks before execution starts.
 - Mark external, paid, production, credential, and custody actions as gated.
 - If a request mixes strategy and execution, split the plan before acting.
-- For external-agent work, include the isolated QA topology before Engineering:
-  worktree/profile count, model/provider parity, credential reference
-  shape, toolsets, MCP servers, peer identities, communication scenario,
-  parallel test lanes, expected artifacts, teardown, and allowed claim boundary.
-- Do not let a local queue, fixture, or direct file-copy scenario satisfy a live
-  transport claim. Name the exact proof surface that QA must exercise.
+- Do not let nearby files or fixture output satisfy a live/public claim. Name
+  the exact proof surface that QA must exercise.
 
 ## Stop Conditions
 
@@ -54,5 +48,4 @@ Analysis work that changes artifacts, makes claims, or requests owner approval.
 ## Verification
 
 The plan is ready when another agent can execute it without guessing the target,
-scope, boundaries, or checks. For external-agent features, readiness also
-requires an explicit QA contract for the claimed interaction surface.
+scope, boundaries, or checks.

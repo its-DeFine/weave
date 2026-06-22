@@ -37,6 +37,8 @@ jobs:
           python-version: "3.12"
       - name: Validate WEAVE package
         run: python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
+      - name: Validate docs currentness
+        run: python3 scripts/validate_docs_current.py
       - name: Unit tests
         run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Secret scan

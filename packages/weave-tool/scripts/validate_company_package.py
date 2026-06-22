@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-EXPECTED_VERSION = "2026.06.22-cos-skeleton"
+EXPECTED_VERSION = "0.1.0"
 EXPECTED_RELEASE_DATE = "2026-06-22"
 REQUIRED_SKILLS = {
     "codebase-orientation",
@@ -19,7 +19,6 @@ REQUIRED_SKILLS = {
     "engineering-execution",
     "evidence-packet",
     "implementation-planning",
-    "livepeer-adapter-boundary",
     "primitive-market-research",
     "qa-verification",
     "security-release-review",
@@ -107,6 +106,8 @@ def validate_company(package_root: Path) -> dict[str, str]:
         "slug": "weave",
         "version": EXPECTED_VERSION,
         "releaseDate": EXPECTED_RELEASE_DATE,
+        "releaseTag": "v0.1.0",
+        "releaseChannel": "public-v0.1",
     }
     for key, value in expected.items():
         if fields.get(key) != value:
@@ -151,7 +152,7 @@ def validate_primitives(package_root: Path) -> list[dict[str, object]]:
     primitives = payload.get("primitives")
     if not isinstance(primitives, list) or len(primitives) < 9:
         raise PackageValidationError("primitives/registry.json must define at least nine lifecycle primitives")
-    required = {"intent", "research", "selection", "plan", "engineering", "qa", "deployment", "kpi", "marketing", "iteration", "analysis"}
+    required = {"intent", "research", "selection", "plan", "engineering", "qa", "deployment", "kpi-setup", "marketing", "iteration", "analysis"}
     stages = {str(item.get("lifecycleStage")) for item in primitives if isinstance(item, dict)}
     if not required.issubset(stages):
         raise PackageValidationError(f"primitive stages missing: {sorted(required - stages)}")

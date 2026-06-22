@@ -1,7 +1,15 @@
 {
+  "app_id": "tiny-local-calculator",
   "blockers": [
     {
-      "id": "acceptance-checks-needed",
+      "id": "owner-context-needed",
+      "missing": [
+        "Intent gate is not complete",
+        "Research gate is not complete",
+        "Selection gate is not complete",
+        "Plan gate is not complete"
+      ],
+      "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
       "state": "open_question"
     }
   ],

@@ -1,9 +1,32 @@
 {
   "items": [
     {
-      "claim": "Tiny local calculator skeleton files are present",
+      "app_id": "tiny-local-calculator",
+      "artifact_refs": [
+        "apps/tiny-local-calculator/app.json",
+        "apps/tiny-local-calculator/intent-truth.json",
+        "apps/tiny-local-calculator/lifecycle/lifecycle-state.json",
+        "apps/tiny-local-calculator/tasks/worker-packets/WP-0001.md"
+      ],
+      "claim": "COS WEAVE skeleton home and app state were created locally",
+      "non_claims": [
+        "does not prove Codex app-server execution",
+        "does not prove live tracker or Linear mutation",
+        "does not prove public deployment, billing, or public send",
+        "does not prove full lifecycle completion",
+        "does not access credentials or secret values"
+      ],
       "proof_surface": "TOOL_VERIFIED_LOCAL",
-      "state": "recorded"
+      "review_loop_state": {
+        "govern": "hard_gates_recorded",
+        "observe": "recorded",
+        "review": "pending",
+        "sync": "readback_written",
+        "validate": "pending_owner_context"
+      },
+      "schema": "weave-proof-envelope/v0.1",
+      "state": "recorded",
+      "task_id": "TASK-0001"
     }
   ],
   "schema": "weave-cos-proof-tray/v0.1"

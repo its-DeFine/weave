@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">WEAVE v0.1 flow</title>
+  <desc id="desc">A diagram showing a Codex thread becoming COS WEAVE, creating a visible WEAVE home, managing app folders, and reporting proof reviewed lifecycle state.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7f8fb; }
+      .panel { fill: #ffffff; stroke: #1d2733; stroke-width: 2; rx: 8; }
+      .soft { fill: #eaf2ff; stroke: #2662d9; stroke-width: 2; rx: 8; }
+      .proof { fill: #edf8ef; stroke: #1d7f45; stroke-width: 2; rx: 8; }
+      .warn { fill: #fff7df; stroke: #9a6a00; stroke-width: 2; rx: 8; }
+      .title { font: 700 34px Inter, Arial, sans-serif; fill: #101820; }
+      .label { font: 700 22px Inter, Arial, sans-serif; fill: #101820; }
+      .text { font: 500 17px Inter, Arial, sans-serif; fill: #26313d; }
+      .small { font: 500 14px Inter, Arial, sans-serif; fill: #3e4a57; }
+      .arrow { stroke: #26313d; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #7d8791; stroke-width: 2; fill: none; stroke-dasharray: 8 8; marker-end: url(#arrow-soft); }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#26313d"/>
+    </marker>
+    <marker id="arrow-soft" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#7d8791"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1280" height="720"/>
+  <text class="title" x="64" y="72">WEAVE v0.1: one COS thread, visible app state, proof before claims</text>
+  <rect class="panel" x="64" y="126" width="220" height="136" rx="8"/>
+  <text class="label" x="92" y="170">1. User intent</text>
+  <text class="text" x="92" y="205">Repo URL or path</text>
+  <text class="text" x="92" y="230">plus ordinary app words</text>
+  <rect class="soft" x="362" y="118" width="260" height="152" rx="8"/>
+  <text class="label" x="394" y="162">2. COS WEAVE</text>
+  <text class="text" x="394" y="197">Starts with state line</text>
+  <text class="text" x="394" y="222">Infers app and slice</text>
+  <text class="small" x="394" y="247">No manual stage labels</text>
+  <rect class="panel" x="710" y="118" width="250" height="152" rx="8"/>
+  <text class="label" x="742" y="162">3. WEAVE home</text>
+  <text class="text" x="742" y="197">runs/cos-weave-home/</text>
+  <text class="text" x="742" y="222">owner profile</text>
+  <text class="text" x="742" y="247">registry and readback</text>
+  <rect class="panel" x="1012" y="118" width="204" height="152" rx="8"/>
+  <text class="label" x="1038" y="162">4. Apps</text>
+  <text class="text" x="1038" y="197">One folder per app</text>
+  <text class="text" x="1038" y="222">todos, proof</text>
+  <text class="text" x="1038" y="247">review, blockers</text>
+  <path class="arrow" d="M284 194 H352"/>
+  <path class="arrow" d="M622 194 H700"/>
+  <path class="arrow" d="M960 194 H1002"/>
+  <rect class="warn" x="150" y="386" width="290" height="152" rx="8"/>
+  <text class="label" x="182" y="430">Lifecycle slice</text>
+  <text class="text" x="182" y="465">Do the next safe part</text>
+  <text class="text" x="182" y="490">Record blockers early</text>
+  <text class="small" x="182" y="515">No deploy claims by default</text>
+  <rect class="proof" x="522" y="386" width="280" height="152" rx="8"/>
+  <text class="label" x="554" y="430">Proof and review</text>
+  <text class="text" x="554" y="465">observe -> validate</text>
+  <text class="text" x="554" y="490">govern -> review -> sync</text>
+  <text class="small" x="554" y="515">Claims require artifacts</text>
+  <rect class="soft" x="884" y="386" width="290" height="152" rx="8"/>
+  <text class="label" x="916" y="430">User readback</text>
+  <text class="text" x="916" y="465">What is done</text>
+  <text class="text" x="916" y="490">What is missing</text>
+  <text class="text" x="916" y="515">Next safe action</text>
+  <path class="arrow" d="M1114 270 V325 H295 V376"/>
+  <path class="arrow" d="M440 462 H512"/>
+  <path class="arrow" d="M802 462 H874"/>
+  <path class="dash" d="M1029 386 V330 H492 V280"/>
+  <text class="small" x="64" y="650">Default boundary: local files only. External systems, credentials, paid actions, public sends, and deployment require explicit later approval and proof.</text>
+</svg>

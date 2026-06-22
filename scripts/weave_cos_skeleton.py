@@ -23,14 +23,13 @@ READBACK_SCHEMA = "weave-cos-readback/v0.1"
 
 LIFECYCLE_STAGES: list[tuple[str, str]] = [
     ("intent", "Intent"),
-    ("requirements", "Requirements"),
     ("research", "Research"),
     ("selection", "Selection"),
     ("plan", "Plan"),
     ("engineering", "Engineering"),
     ("qa", "QA"),
     ("deployment", "Deployment"),
-    ("kpi", "KPI"),
+    ("kpi-setup", "KPI Setup"),
     ("marketing", "Marketing"),
     ("iteration", "Iteration"),
     ("analysis", "Analysis"),
@@ -118,7 +117,7 @@ def infer_requested_stage(intent: str) -> str:
     if re.search(r"\b(deploy|ship|release|publish live|production)\b", text):
         return "deployment"
     if re.search(r"\b(kpi|metric|analytics|measure)\b", text):
-        return "kpi"
+        return "kpi-setup"
     if re.search(r"\b(marketing|launch campaign|social|gtm)\b", text):
         return "marketing"
     if re.search(r"\b(iterate|improve|revise)\b", text):
