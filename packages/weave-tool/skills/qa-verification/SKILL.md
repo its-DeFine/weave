@@ -1,6 +1,6 @@
 ---
 name: qa-verification
-description: Verify runtime, UI, package, and lifecycle claims with checks, evidence, and failure boundaries.
+description: Verify package, file-state, UI, and lifecycle claims with checks, evidence, and failure boundaries.
 ---
 
 # QA Verification
@@ -8,7 +8,7 @@ description: Verify runtime, UI, package, and lifecycle claims with checks, evid
 ## Use When
 
 Use this skill before promoting a lifecycle stage, publishing a package, or
-claiming that a runtime surface works.
+claiming that a lifecycle surface works.
 
 ## Inputs
 
@@ -16,8 +16,8 @@ claiming that a runtime surface works.
 - changed artifacts
 - claimed behavior
 - acceptance checks
-- runtime-agent QA contract, when the claim depends on Hermes agents, MCP,
-  gateway routing, A2A/XMTP transport, containers, or isolated profiles
+- external-agent QA contract, when the claim depends on external agents,
+  tool bridges, network transport, or isolated profiles
 - public/private boundary
 
 ## Outputs
@@ -25,8 +25,8 @@ claiming that a runtime surface works.
 - verification commands
 - pass/fail result
 - failure cases checked
-- isolated runtime topology, launched scenario, and per-runtime readback when
-  runtime-agent behavior is claimed
+- isolated topology, launched scenario, and per-agent readback when
+  external-agent behavior is claimed
 - visual or local evidence when relevant
 - claim limits
 - release verdict
@@ -37,8 +37,8 @@ claiming that a runtime surface works.
 - Separate local dry-run proof from hosted or live service proof.
 - Check both happy path and at least one meaningful failure boundary when the
   feature has user-facing risk.
-- For runtime-agent features, QA must launch or attach the specified isolated
-  runtimes, read back model/provider/tool/MCP configuration from each runtime,
+- For external-agent features, QA must launch or attach the specified isolated
+  agents, read back model/provider/tool configuration from each agent,
   run the communication scenario, collect evidence from both sender and
   receiver, and label the exact proof surface.
 - One-sided logs, parent-session tool calls, fixture packets, or local file-copy
@@ -48,8 +48,8 @@ claiming that a runtime surface works.
 
 ## Stop Conditions
 
-- A claimed production or hosted runtime cannot be verified.
-- A runtime-agent claim lacks an executable QA contract or cannot launch the
+- A claimed production or hosted surface cannot be verified.
+- An external-agent claim lacks an executable QA contract or cannot launch the
   isolated topology it names.
 - Evidence contains private paths, credentials, or internal infrastructure.
 - A failed check changes the release verdict.
@@ -57,7 +57,6 @@ claiming that a runtime surface works.
 ## Verification
 
 QA is complete when the release verdict names what passed, what remains
-unverified, and what claim is allowed. For runtime-agent claims, QA is not
-complete until sender and receiver readback artifacts match the scenario in
-`docs/runtime-agent-qa-contract.md`.
-
+unverified, and what claim is allowed. For external-agent claims, QA is not
+complete until sender and receiver readback artifacts match the declared
+scenario.

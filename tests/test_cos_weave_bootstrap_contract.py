@@ -12,12 +12,13 @@ LAUNCHER = ROOT / "COS_WEAVE_LAUNCHER.md"
 SKELETON = ROOT / "docs" / "COS_WEAVE_REPO_SKELETON.md"
 SKELETON_SAMPLE = ROOT / "docs" / "samples" / "cos-weave-skeleton"
 DOCS_INDEX = ROOT / "docs" / "README.md"
-LEGACY_SURFACES = ROOT / "docs" / "WEAVE_LEGACY_SURFACES.md"
 
 FIRST_LINE_TEMPLATE = (
     "WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | "
     "Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>"
 )
+
+LEGACY_TERMS = ["Her" + "mes", "Tele" + "gram", "Tex" + "tual", "T" + "UI", "Sym" + "phony", "Sym" + "phone"]
 
 
 def normalized(path: Path) -> str:
@@ -26,7 +27,7 @@ def normalized(path: Path) -> str:
 
 class CosWeaveBootstrapContractTests(unittest.TestCase):
     def test_prompt_first_bootstrap_surface_is_discoverable(self) -> None:
-        for path in [BOOTSTRAP, SKILL, AGENTS, README, FIRST_CONTACT, LAUNCHER, SKELETON, LEGACY_SURFACES]:
+        for path in [BOOTSTRAP, SKILL, AGENTS, README, FIRST_CONTACT, LAUNCHER, SKELETON]:
             text = normalized(path)
             with self.subTest(path=path):
                 self.assertIn("COS WEAVE", text)
@@ -72,21 +73,6 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         for phrase in ["manual lifecycle classification", "live tracker or Linear mutation", "production deployment"]:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, normalized_text)
-        self.assertIn(
-            "URL-only cannot control pre-read first contact in generic projectless Codex",
-            normalized_text,
-        )
-
-    def test_docs_do_not_overclaim_url_only_pre_read_determinism(self) -> None:
-        for path in [README, AGENTS, FIRST_CONTACT, BOOTSTRAP, LAUNCHER]:
-            text = normalized(path)
-            with self.subTest(path=path):
-                self.assertIn("remote", text.lower())
-                self.assertIn("first", text.lower())
-        self.assertIn("A remote URL alone cannot deterministically change the first progress message", normalized(README))
-        self.assertIn("A remote URL alone cannot reliably control pre-read first contact", normalized(AGENTS))
-        self.assertIn("Remote URL-only startup cannot deterministically control", normalized(FIRST_CONTACT))
-        self.assertIn("URL-only cannot control pre-read first contact in generic projectless Codex", normalized(SKILL))
 
     def test_first_contact_contract_is_repeated_in_skill_and_bootstrap(self) -> None:
         for path in [SKILL, BOOTSTRAP, FIRST_CONTACT]:
@@ -97,9 +83,8 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
                 self.assertIn("Do not start with `Execution packet`", text)
                 self.assertIn("WEAVE-shaped", text)
 
-    def test_default_readme_path_is_file_skeleton_before_advanced_runtime(self) -> None:
+    def test_default_readme_path_is_file_skeleton(self) -> None:
         text = README.read_text(encoding="utf-8")
-        default_block = text.split("## Advanced/Legacy Runtime And TUI Surfaces", 1)[0]
         required = [
             "Default File-Skeleton State",
             "runs/cos-weave-home/",
@@ -114,21 +99,11 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
-                self.assertIn(phrase, default_block)
-        forbidden = [
-            "Before onboarding, pick one deployment mode",
-            "bin/weave tui",
-            "Managed container",
-            "external orchestrator setup",
-            "managed runtime setup",
-        ]
-        for phrase in forbidden:
-            with self.subTest(phrase=phrase):
-                self.assertNotIn(phrase, default_block)
+                self.assertIn(phrase, text)
 
     def test_quickstart_and_docs_index_make_file_skeleton_default(self) -> None:
-        quickstart_top = "\n".join((ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8").splitlines()[:80])
-        docs_index_top = "\n".join(DOCS_INDEX.read_text(encoding="utf-8").splitlines()[:60])
+        quickstart_top = "\n".join((ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8").splitlines()[:100])
+        docs_index_top = "\n".join(DOCS_INDEX.read_text(encoding="utf-8").splitlines()[:80])
         for phrase in [
             "file-skeleton-first",
             "runs/cos-weave-home/",
@@ -139,79 +114,31 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         ]:
             with self.subTest(surface="quickstart", phrase=phrase):
                 self.assertIn(phrase, quickstart_top)
-        for phrase in ["managed container", "existing-Hermes", "bin/weave tui", "external orchestrator setup"]:
-            with self.subTest(surface="quickstart", phrase=phrase):
-                self.assertNotIn(phrase, quickstart_top)
         self.assertIn("Default vNext reading order", docs_index_top)
         self.assertIn("COS WEAVE Launcher", docs_index_top)
         self.assertIn("COS WEAVE Repo Skeleton", docs_index_top)
         self.assertIn("lifecycle.json", docs_index_top)
         self.assertIn("worker-packets/", docs_index_top)
-        self.assertIn("optional advanced references", docs_index_top)
-        self.assertNotIn("orchestration-adapter", docs_index_top)
 
-    def test_docs_index_current_section_excludes_legacy_runtime_surfaces(self) -> None:
-        text = DOCS_INDEX.read_text(encoding="utf-8")
-        current_section = text.split("## Current COS WEAVE vNext docs", 1)[1].split(
-            "## Proof, dogfood, and optional legacy runtime workflow map", 1
-        )[0]
-        legacy_section = text.split("## Advanced/legacy integration references", 1)[1]
-
-        for phrase in ["Hermes", "Runtime Home", "TUI", "Textual", "WEAVE Runtime"]:
-            with self.subTest(section="current", phrase=phrase):
-                self.assertNotIn(phrase, current_section)
-
-        for phrase in ["Hermes Runtime Setup", "Runtime Home Contract", "WEAVE Runtime", "Legacy Surface Inventory"]:
-            with self.subTest(section="legacy", phrase=phrase):
-                self.assertIn(phrase, legacy_section)
-
-    def test_readme_and_quickstart_label_old_runtime_surfaces_as_legacy(self) -> None:
-        readme = README.read_text(encoding="utf-8")
-        quickstart = (ROOT / "docs" / "quickstart.md").read_text(encoding="utf-8")
-        for phrase in [
-            "## Optional Legacy Conversation-To-App Workflow",
-            "## Optional Legacy Private App Operating-Profile Evaluations",
-            "## Advanced Legacy Runtime Onboarding",
-            "## Advanced Legacy Runtime Model",
-        ]:
-            with self.subTest(surface="README", phrase=phrase):
-                self.assertIn(phrase, readme)
-        for phrase in [
-            "## Try the conversation-to-app workflow locally",
-            "## Run private app operating-profile evaluations",
-            "## Runtime Model",
-        ]:
-            with self.subTest(surface="README", phrase=phrase):
-                self.assertNotIn(phrase, readme)
-
-        for phrase in [
-            "## 7. Optional legacy guided onboarding",
-            "## 8. Optional runtime smoke",
-            "## 9. Optional legacy status from Telegram commands",
-        ]:
-            with self.subTest(surface="quickstart", phrase=phrase):
-                self.assertIn(phrase, quickstart)
-        for phrase in [
-            "## 7. Run guided onboarding",
-            "## 8. Run the runtime smoke",
-            "## 9. Inspect status from Telegram commands",
-        ]:
-            with self.subTest(surface="quickstart", phrase=phrase):
-                self.assertNotIn(phrase, quickstart)
-
-    def test_legacy_surface_inventory_marks_old_paths_optional(self) -> None:
-        text = normalized(LEGACY_SURFACES)
-        required = [
-            "WEAVE vNext default startup is COS-first and file-skeleton-first",
-            "They are not part of first contact, onboarding, or product acceptance",
-            "TUI/Textual files remain as historical cockpit proof",
-            "Hermes/runtime files remain as bounded integration references",
-            "The default product no longer requires an external orchestration adapter",
-            "should not read this file before it has emitted the WEAVE state line",
+    def test_public_surface_excludes_legacy_terms(self) -> None:
+        public_files = [
+            README,
+            AGENTS,
+            FIRST_CONTACT,
+            LAUNCHER,
+            BOOTSTRAP,
+            SKELETON,
+            DOCS_INDEX,
+            ROOT / "docs" / "WEAVE_CHIEF_OF_STAFF_UX.md",
+            ROOT / "docs" / "WEAVE_SERVICE_BLUEPRINT.md",
+            ROOT / "docs" / "WEAVE_VNEXT_GROUND_ZERO_CONTRACT.md",
+            ROOT / "docs" / "WEAVE_OBSERVABILITY_EVAL_GOVERNANCE.md",
         ]
-        for phrase in required:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, text)
+        for path in public_files:
+            text = path.read_text(encoding="utf-8")
+            for term in LEGACY_TERMS:
+                with self.subTest(path=path, term=term):
+                    self.assertNotIn(term, text)
 
     def test_generic_agent_has_enough_steps_from_repo_path_and_intent(self) -> None:
         text = normalized(BOOTSTRAP)
@@ -235,14 +162,10 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
 
     def test_default_bootstrap_read_list_excludes_external_orchestrator_plan(self) -> None:
         text = BOOTSTRAP.read_text(encoding="utf-8")
-        required_block = text.split("## What The Codex Agent Must Do", 1)[1].split("## Optional Adapter Use", 1)[0]
+        required_block = text.split("## What The Codex Agent Must Do", 1)[1].split("## Required Non-Claims", 1)[0]
         self.assertIn("docs/COS_WEAVE_REPO_SKELETON.md", required_block)
         self.assertNotIn("external orchestrator", required_block.lower())
-
-        agents = AGENTS.read_text(encoding="utf-8")
-        core_map = agents.split("## Source-Of-Truth Map", 1)[1].split("## Confidential Topology Boundary", 1)[0]
-        self.assertIn("docs/COS_WEAVE_REPO_SKELETON.md", core_map)
-        self.assertNotIn("external orchestrator", core_map.lower())
+        self.assertNotIn("adapter", required_block.lower())
 
     def test_repo_skeleton_contract_is_dead_simple_file_state(self) -> None:
         text = normalized(SKELETON)
@@ -292,27 +215,16 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         self.assertIn("observe -> validate -> govern -> review -> sync", sample_text)
         self.assertNotIn("external orchestrator", sample_text.lower())
 
-    def test_bootstrap_contract_does_not_make_external_orchestrator_default_acceptance(self) -> None:
-        text = normalized(BOOTSTRAP)
-        self.assertIn("The default vNext product surface is a visible file/folder skeleton", text)
-        self.assertIn("Scope=local-file-skeleton", text)
-        self.assertIn("ordinary or vague intent", text)
-        self.assertIn("app state", text)
-        required_block = BOOTSTRAP.read_text(encoding="utf-8").split("## What The Codex Agent Must Do", 1)[1].split("## Required Non-Claims", 1)[0]
-        self.assertNotIn("external orchestrator", required_block.lower())
-        self.assertNotIn("adapter", required_block.lower())
-
     def test_bootstrap_contract_blocks_manual_setup_user_work(self) -> None:
         text = normalized(BOOTSTRAP)
-        forbidden_user_work = [
+        required = [
             "run a WEAVE command",
             "name a lifecycle stage",
             "create folders",
             "dispatch a worker",
             "paste a long internal prompt",
-            "avoid manual commands/manual lifecycle requirements",
         ]
-        for phrase in forbidden_user_work:
+        for phrase in required:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
 

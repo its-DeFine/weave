@@ -12,9 +12,9 @@
   "description": "Evaluate whether actual target-surface QA proves the artifact works and fails safely.",
   "hard_gates": [
     {
-      "command": "python3 scripts/runtime_smoke.py",
-      "description": "Runtime smoke passes.",
-      "id": "runtime_smoke_pass",
+      "command": "bin/weave cos-bootstrap --source . --intent \"build a tiny local calculator app\"",
+      "description": "COS WEAVE bootstrap smoke passes.",
+      "id": "cos_bootstrap_smoke_pass",
       "kind": "command",
       "timeout_seconds": 300
     },
@@ -42,7 +42,7 @@
   "require_evidence_for_scores": true,
   "required_inputs": [
     "test matrix",
-    "runtime proof",
+    "target surface proof",
     "failure-path evidence",
     "regression notes",
     "runtime-agent QA contract when applicable",

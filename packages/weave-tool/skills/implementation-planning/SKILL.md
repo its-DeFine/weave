@@ -18,15 +18,15 @@ Analysis work that changes artifacts, makes claims, or requests owner approval.
 - prior evidence
 - known blockers
 - allowed and forbidden areas
-- runtime/tool/transport surfaces involved, if any
+- local files, tools, or external transport surfaces involved, if any
 
 ## Outputs
 
 - work packet
 - scoped task list
 - acceptance checks
-- runtime-agent QA contract when the work depends on Hermes agents, MCP tools,
-  gateways, A2A/XMTP transport, containers, or profile-isolated runtimes
+- external-agent QA contract when the work depends on external agents, tool
+  bridges, network transport, or profile-isolated workers
 - approval gates
 - risk and rollback notes
 - expected evidence packet shape
@@ -38,8 +38,8 @@ Analysis work that changes artifacts, makes claims, or requests owner approval.
 - Include explicit acceptance checks before execution starts.
 - Mark external, paid, production, credential, and custody actions as gated.
 - If a request mixes strategy and execution, split the plan before acting.
-- For agent-runtime work, include the isolated QA topology before Engineering:
-  container/worktree/profile count, model/provider parity, credential reference
+- For external-agent work, include the isolated QA topology before Engineering:
+  worktree/profile count, model/provider parity, credential reference
   shape, toolsets, MCP servers, peer identities, communication scenario,
   parallel test lanes, expected artifacts, teardown, and allowed claim boundary.
 - Do not let a local queue, fixture, or direct file-copy scenario satisfy a live
@@ -54,5 +54,5 @@ Analysis work that changes artifacts, makes claims, or requests owner approval.
 ## Verification
 
 The plan is ready when another agent can execute it without guessing the target,
-scope, boundaries, or checks. For runtime-agent features, readiness also requires
-an explicit runtime QA contract; see `docs/runtime-agent-qa-contract.md`.
+scope, boundaries, or checks. For external-agent features, readiness also
+requires an explicit QA contract for the claimed interaction surface.

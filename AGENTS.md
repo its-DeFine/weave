@@ -1,7 +1,7 @@
 # WEAVE Public Repository Agent Rules
 
-This repository is public. Treat every commit, branch, pull request, log, and
-artifact as publishable by default.
+This repository is public. Treat commits, branches, pull requests, logs, and
+artifacts as publishable by default.
 
 ## First-Contact COS WEAVE Trigger
 
@@ -11,120 +11,75 @@ Trigger:
 Use this repo as COS WEAVE: <repo URL or local path>
 ```
 
-Launch modes:
-
-- Repo-scoped/local Codex thread: the short trigger is sufficient because this
-  file is already loaded before first response.
-- Projectless remote-URL thread: use `COS_WEAVE_LAUNCHER.md` so the agent opens
-  the repo before sending a generic execution packet. A remote URL alone cannot
-  reliably control pre-read first contact.
-
-If the user gives that trigger with ordinary app intent, your first meaningful
-response must begin with this state line, before any execution packet or
-generic task framing:
+If the user gives that trigger with ordinary app intent, the first meaningful
+response must begin with:
 
 ```text
 WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
 ```
 
 Do not start with `Execution packet`, `I will treat this as`, or generic Codex
-implementation-task language. If a scope/stop-boundary packet is required by
-global instructions, put it after the WEAVE state line and make it WEAVE-shaped.
-Identify the thread as COS WEAVE, one Chief-of-Staff chat using this repository
-as a visible file/folder skeleton for app intent, lifecycle, todos, worker
-packets, proof, blockers, review, and readback. Default first-contact scope is
-local files only; no user commands, manual lifecycle classification, hidden
-orchestration, deploys, public sends, billing, credentials, tracker mutation, or
-secrets.
+task framing. If host instructions require a packet, place it after the WEAVE
+state line and make it WEAVE-shaped before any execution packet.
 
-## Source-Of-Truth Map
+## Source Of Truth
 
-Keep this file short. It is a public-safe map, not the full operating manual.
-For durable WEAVE/COS decisions, read the focused source document:
+Read these in order for COS WEAVE work:
 
-- `COS_WEAVE_FIRST_CONTACT.md` for the root-level first-response contract.
-- `COS_WEAVE_LAUNCHER.md` for the tiny projectless remote-URL launcher prompt
-  and the explicit non-claim that URL-only cannot control pre-read behavior.
-- `docs/COS_WEAVE_BOOTSTRAP.md` first when a generic Codex agent is given this
-  repo URL/path and asked to become COS WEAVE. The user-facing flow is
-  prompt-first: the user should not need to run WEAVE commands, create queue
-  roots, classify lifecycle stages, or understand integrations.
-- `docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md` for the
-  compound-engineering acceptance bar behind prompt-first COS WEAVE bootstrap.
-- `docs/COS_WEAVE_REPO_SKELETON.md` for the simple file/folder source of truth:
-  WEAVE home, app registry, app folders, todos, lifecycle state, worker
-  packets, proof, review, blockers, and readback.
-- `docs/WEAVE_VNEXT_GROUND_ZERO_CONTRACT.md` for product, lifecycle, proof, and
-  done-state rules.
-- `docs/WEAVE_HARNESS_ENGINEERING_ADOPTION.md` for harness-engineering rules:
-  repo-local knowledge, progressive disclosure, agent-legible validation
-  surfaces, feedback loops, mechanical checks, and garbage collection.
-- `docs/COMPOUND_ENGINEERING.md` for the agentic engineering loop: plans for
-  agents, capability printers, CLI plus skill, adversarial review, PR testing
-  governance, and launch-readiness separation.
-- `docs/WEAVE_OBSERVABILITY_EVAL_GOVERNANCE.md` for eval, governance, and
-  scorecard rules.
-- `docs/WEAVE_REVIEW_LOOP_PROCESS.md` for create/observe/validate/govern/
-  review/sync.
+1. `COS_WEAVE_FIRST_CONTACT.md`
+2. `COS_WEAVE_LAUNCHER.md`
+3. `docs/COS_WEAVE_BOOTSTRAP.md`
+4. `docs/COS_WEAVE_REPO_SKELETON.md`
+5. `docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md`
+6. `docs/WEAVE_REVIEW_LOOP_PROCESS.md`
+7. `packages/weave-tool/skills/cos-weave/SKILL.md`
 
-## Confidential Topology Boundary
+## Current Product Boundary
 
-Do not commit or mention private operating details, including:
+Current WEAVE is a Codex-first local file skeleton. It creates or loads
+`runs/cos-weave-home/`, records app state, infers lifecycle stage from normal
+language, writes worker packets, proof trays, blockers, review queues, and
+readback.
 
-- internal device nicknames, workstation names, runtime host names, or service names
-- overlay-network vendor names, VPN product names, private route names, private
-  IPs, or private DNS names
-- runtime isolation names, container names, host-specific usernames, home
-  directories, SSH key paths, or operator shell commands
-- credential locations, auth payloads, refresh tokens, API keys, secrets,
-  Keychain item names, or secret manager object names
-- private repo names, unpublished runbooks, private deployment topology, or
-  owner-specific access procedures
+Do not require the user to run commands, create folders, name lifecycle stages,
+wire integrations, provide credentials, or understand internal prompts before
+WEAVE can start.
 
-Use generic language such as `remote runtime`, `owner-approved transport`,
-`private runtime address`, and `private runtime home` when a public artifact
-needs to describe a capability boundary.
+## Public Safety Boundary
+
+Do not commit or expose:
+
+- raw secrets, tokens, cookies, browser sessions, private keys, or credentials;
+- raw logs, raw transcripts, raw database dumps, or broad private data;
+- private paths, private network addresses, hostnames, usernames, or topology;
+- public sends, deployments, billing, custody, or external side effects without
+  exact approval and target-surface readback.
 
 ## Required Checks
 
-Before committing or pushing public changes, run:
+Before claiming a review-ready repository, run:
 
 ```bash
 python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
+python3 -m unittest discover -s tests -p 'test_*.py'
 python3 scripts/check_no_secrets.py
 python3 scripts/public_safe_repo_scan.py
-python3 -m unittest discover -s tests -p 'test_*.py'
-python3 scripts/runtime_smoke.py
 git diff --check
 ```
 
-If any check fails, fix the source artifact and amend the relevant commit. Do
-not add a follow-up cleanup commit for confidential-info removal on an open PR.
+## Anti-Repeat Guardrail
 
-## COS Anti-Repeat Guardrail
+For WEAVE/COS changes, prompt compliance is not enough. The tested flow must not
+depend on the owner using WEAVE vocabulary or a checklist. The proof must bind
+to the target surface: a fresh COS WEAVE instance can read the repo, create the
+file skeleton, infer lifecycle state, write proof/review/readback, and state
+non-claims.
 
-WEAVE/COS agents must treat owner prompts as normal-user intent, not as test
-scripts. If a claim is about Codex, Hermes, worker spawning, pinned threads,
-onboarding, lifecycle routing, or owner-facing behavior, local CLI artifacts are
-supporting evidence only. The claim cannot be accepted until the target surface
-is exercised or the missing target-surface proof is recorded as a non-claim.
+Before `READY_FOR_REVIEW`, check:
 
-Before claiming `READY_FOR_REVIEW` or `DONE`, check:
-
-- prior context and memory-derived failure patterns were considered without raw
-  transcripts, raw logs, secrets, or private topology;
-- the tested user flow did not depend on the owner using WEAVE vocabulary or an
-  explicit test checklist;
-- proof is bound to the actual claim and acceptance check;
-- assumptions, missing surfaces, and non-claims are visible;
-- completion state, proof state, and owner mental model have been synced.
-
-For WEAVE/COS changes, run the `cos-runtime-truth` eval or explain why it is not
-applicable. Explicit prompt compliance is not enough to prove WEAVE works.
-
-## Visible Worker Rule
-
-For COS-managed durable work, "create an agent" means create a visible pinned
-Codex instance/thread with a task packet and proof path. Hidden helper workers
-may be used only as disposable support, must be labeled as such, and must not be
-presented as the owner-visible COS agent.
+- target surface was exercised or explicitly named as unproven;
+- generated state survives context compaction through files;
+- worker packets include scope, proof, gates, and review loop;
+- review loop is visible in proof/readback;
+- no full lifecycle, live, public, paid, or credential claim is made from local
+  proof alone.

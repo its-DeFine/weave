@@ -1,6 +1,0 @@
-{
-  "analyticsEnabled": false,
-  "hostingStatus": "local-only",
-  "paymentsEnabled": false,
-  "schema": "pocket-orchard-config/v0.1"
-}

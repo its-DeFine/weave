@@ -28,42 +28,20 @@ jobs:
       - name: Validate PR proof ledger
         run: python3 scripts/validate_pr_proof_ledger.py
 
-  public-package-validation:
+  public-safe:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Validate WEAVE company package
+      - name: Validate WEAVE package
         run: python3 packages/weave-tool/scripts/validate_company_package.py packages/weave-tool
-
-  public-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Hermes runtime setup check
-        run: python3 scripts/setup_runtime.py --check
-      - name: Runtime smoke
-        run: python3 scripts/runtime_smoke.py
-      - name: Lifecycle artifact validator
-        run: python3 scripts/validate_lifecycle_artifacts.py docs/samples/lifecycle-artifacts.example.json
-      - name: Lifecycle rehearsal smoke
-        run: python3 scripts/lifecycle_rehearsal_smoke.py --report-out /tmp/weave-lifecycle-rehearsal.json
       - name: Unit tests
         run: python3 -m unittest discover -s tests -p 'test_*.py'
-
-  public-leak-guard:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - name: Secret scan
         run: python3 scripts/check_no_secrets.py
-      - name: Public-safe repo scan
+      - name: Public-safe repository scan
         run: python3 scripts/public_safe_repo_scan.py
+      - name: Diff check
+        run: git diff --check
