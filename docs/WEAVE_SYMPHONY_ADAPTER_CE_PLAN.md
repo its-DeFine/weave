@@ -345,16 +345,21 @@ public-send surface.
 The normal user path is one prompt in a normal Codex thread. The user gives a
 WEAVE repo URL/path and ordinary intent. The agent reads the repository
 bootstrap contract, becomes COS WEAVE, creates or loads the Chief of Staff home,
-infers the lifecycle stage, creates the WorkItem, runs the local Symphony
-adapter and local worker proof path internally, then reports proof/readback.
+explains the Chief-of-Staff role, infers the lifecycle stage, creates or loads
+app/application state, asks needed onboarding questions, and reports proof and
+non-claims. Symphony is optional later orchestration infrastructure, not a
+default first-run requirement.
 
 ```text
 Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app forward.
 ```
 
-Expected state is `ACCEPT_FOR_SCOPE` after the agent runs the internal local
-proof path. The user should not pass a lifecycle stage, queue root, dispatch id,
-Symphony command, adapter command, or long internal prompt.
+For vague first-run intent, expected state is usually `NEEDS_OWNER_ACTION`
+with lightweight onboarding/app questions and local WEAVE home/app state
+created. A bounded implementation slice may later report `ACCEPT_FOR_SCOPE`
+after a valid proof path exists. The user should not pass a lifecycle stage,
+queue root, dispatch id, Symphony command, adapter command, or long internal
+prompt.
 
 The repository-contained bootstrap contract lives in
 `docs/COS_WEAVE_BOOTSTRAP.md` and
@@ -365,7 +370,8 @@ instead of a traceback.
 ### Adapter Diagnostic Layer
 
 These commands are for agents, implementation debugging, and tests, not the
-owner-facing workflow.
+owner-facing workflow. They prove the optional adapter backend only; a clean
+adapter/calculator E2E does not prove the full first-run COS WEAVE product flow.
 
 Validate the committed fixtures:
 

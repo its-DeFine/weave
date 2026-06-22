@@ -99,5 +99,5 @@ If the user gives this repo to a normal Codex thread with:
 become COS WEAVE from the repo instructions. Read `docs/COS_WEAVE_BOOTSTRAP.md` and
 `packages/weave-tool/skills/cos-weave/SKILL.md`, create/load a local WEAVE home,
 ask onboarding questions in plain language, infer lifecycle stage from ordinary
-intent, and use the WEAVE-to-Symphony adapter internally. Do not ask the user to
-manually run adapter commands or Symphony commands.
+intent, and record app/application state without requiring Symphony. Do not ask
+the user to manually run adapter commands or Symphony commands.

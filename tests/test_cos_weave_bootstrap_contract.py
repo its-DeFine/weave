@@ -34,15 +34,25 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             "Read `AGENTS.md`, this file",
             "Announce the thread as COS WEAVE",
             "Create or load a public-safe WEAVE home automatically",
+            "Search safe local/non-secret context",
             "Ask first-run owner/app questions in plain language",
             "Infer lifecycle stage from ordinary user intent",
-            "Create the WEAVE `WorkItem`, dispatch it through the WEAVE-to-Symphony adapter",
-            "run the local worker proof path",
+            "Create or load the app/application workspace under WEAVE home",
+            "Ask about Linear/tracker access only when the workflow needs it",
+            "Use deterministic prompts/procedures for lifecycle steps",
+            "Use the WEAVE-to-Symphony adapter only when orchestration is explicitly selected",
             "Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
+
+    def test_bootstrap_contract_does_not_make_symphony_default_acceptance(self) -> None:
+        text = normalized(BOOTSTRAP)
+        self.assertIn("Symphony is optional later orchestration infrastructure, not a default first-run requirement", text)
+        self.assertIn("This does not prove the default first-run product flow by itself", text)
+        self.assertIn("ordinary or vague intent", text)
+        self.assertIn("app state", text)
 
     def test_bootstrap_contract_blocks_manual_symfony_adapter_user_work(self) -> None:
         text = normalized(BOOTSTRAP)
@@ -84,6 +94,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         self.assertIn("Repo-local commands and adapter helpers may be used by the agent as implementation details", text)
         self.assertIn("They are not the product UX", text)
         self.assertIn("Do not make the user run WEAVE commands", text)
+        self.assertIn("Do not require Symphony for default first-run COS WEAVE", text)
 
 
 if __name__ == "__main__":

@@ -20,9 +20,10 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
         acceptance = (
             "A normal Codex thread given only a WEAVE repo URL/path plus ordinary intent can "
             "discover the repo bootstrap contract, become COS WEAVE, create/load local WEAVE "
-            "state, use the WEAVE-to-Symphony adapter internally, and report proof/readback "
-            "without asking the user to run commands, classify lifecycle stages, create queue "
-            "roots, or understand Symphony."
+            "state, explain the Chief-of-Staff role, infer lifecycle state, create or load "
+            "app/application state, ask only needed plain-language onboarding questions, and "
+            "report proof/readback/non-claims without asking the user to run commands, "
+            "classify lifecycle stages, create queue roots, or understand Symphony."
         )
 
         self.assertIn("Status: prompt-first compound-engineering contract", text)
@@ -37,13 +38,14 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
             "Capability Question",
             "What repo-contained instructions must exist so a generic Codex agent can self-bootstrap?",
             "Architecture Boundary",
-            "COS WEAVE is user-facing. Symphony is behind the scenes.",
+            "COS WEAVE is user-facing. Symphony is optional behind-the-scenes orchestration",
             "Slice 0: Instruction Discovery",
             "Slice 1: COS WEAVE Home",
-            "Slice 2: Normal Intent To WorkItem",
-            "Slice 3: Internal Adapter Proof",
-            "Slice 4: Prompt-First End-To-End Rehearsal",
-            "Slice 5: Gated Live Symphony/Codex App-Server",
+            "Slice 2: Vague Intent To First-Run COS State",
+            "Slice 3: Internal Worker Packet Or Visible Worker",
+            "Slice 4: Optional WEAVE-To-Symphony Adapter Proof",
+            "Slice 5: Prompt-First End-To-End Rehearsal",
+            "Slice 6: Gated Live Symphony/Codex App-Server",
             "Proof surface:",
             "Non-claim:",
         ]
@@ -57,8 +59,9 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
             "Did the product relapse into command-first UX?",
             "Did any instruction ask the user to run adapter, queue, dispatch, or Symphony commands?",
             "Did the agent ask the user to classify lifecycle stage manually?",
-            "Did a fake proof replace actual local worker proof on the happy path?",
+            "Did a clean adapter/calculator E2E get mistaken for first-run product proof?",
             "Did local proof overclaim live Symphony, live Codex app-server, tracker, deploy, public-send, billing, or credential success?",
+            "Did the default first-run path require Symphony before WEAVE could help?",
             "Is there hidden setup burden",
             "Does readback preserve proof path and non-claims?",
         ]

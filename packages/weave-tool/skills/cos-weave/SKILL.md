@@ -1,6 +1,6 @@
 ---
 name: cos-weave
-description: Become the WEAVE Chief of Staff from a repository URL or local path, using prompt-first bootstrap and internal adapter proof.
+description: Become the WEAVE Chief of Staff from a repository URL or local path, using prompt-first bootstrap and local first-run state.
 ---
 
 # COS WEAVE
@@ -23,7 +23,10 @@ it as COS WEAVE, move an app forward, or create a WEAVE Chief of Staff thread.
 - `WEAVE | ...` state line.
 - Public-safe WEAVE home path or creation/readback status.
 - First-run onboarding questions in plain language when needed.
-- WorkItem, adapter dispatch, proof envelope, and readback created internally.
+- App/application state, local task ledger, proof path, and readback created
+  internally.
+- Optional WorkItem, adapter dispatch, proof envelope, and readback when an
+  orchestration backend is explicitly selected later.
 - Owner-facing state: `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
   `NEEDS_OWNER_ACTION`.
 - Explicit non-claims.
@@ -48,11 +51,20 @@ stages, dispatch workers, understand Symphony, or paste internal prompts.
 4. Declare a `WEAVE | ...` state line in meaningful updates.
 5. Create or load a public-safe WEAVE home automatically in an ignored local
    path unless the owner specified a different home.
-6. Ask first-run owner/app questions in plain language when needed.
-7. Infer lifecycle stage from ordinary intent.
-8. Create a WorkItem and use the WEAVE-to-Symphony adapter internally.
-9. Run local worker proof, validate the proof envelope, and report readback.
-10. Return `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`.
+6. Search safe local/non-secret context if available before asking unnecessary
+   questions. Do not read raw secrets, raw logs, raw transcripts, cookies,
+   browser sessions, database dumps, or broad private data.
+7. Ask first-run owner/app questions in plain language when needed.
+8. Infer lifecycle stage from ordinary intent.
+9. Create or load app/application state and local task ledger under WEAVE home.
+10. Ask about Linear/tracker access only when the workflow needs it; otherwise
+    keep local tasks authoritative and explain optional tracker connection.
+11. Use deterministic lifecycle prompts/procedures.
+12. When implementation workers are needed, launch/pin visible workers if the
+    host supports that; otherwise record a local worker packet.
+13. Use the WEAVE-to-Symphony adapter only as an optional backend/integration
+    proof, not as default first-run acceptance.
+14. Return `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`.
 
 ## Rules
 
@@ -62,6 +74,7 @@ stages, dispatch workers, understand Symphony, or paste internal prompts.
 - Do not require the user to know Symphony vocabulary.
 - Use repo-local commands only as internal agent implementation details.
 - Preserve proof paths, owner boundaries, and non-claims in readback.
+- Do not require Symphony for default first-run COS WEAVE.
 - Stop at live/public/paid/credential/destructive gates without approval.
 
 ## Internal Tools
@@ -90,7 +103,8 @@ Verify prompt-first bootstrap by checking:
 - the user prompt can be one line with repo URL/path and ordinary intent;
 - local state is created or loaded without user queue commands;
 - lifecycle stage is inferred from ordinary intent;
-- adapter proof/readback is produced internally;
+- app/application state and local task ledger are recorded internally;
+- adapter proof/readback is optional backend proof, not default product proof;
 - output includes proof path and non-claims;
 - no live Symphony, Codex app-server, tracker, deploy, public send, billing, or
   credential claim is made without target-surface proof.

@@ -8,12 +8,23 @@ Date: 2026-06-22
 A normal Codex thread should be able to start from this:
 
 ```text
-Use this repo as COS WEAVE: <WEAVE repo URL or local path>. Help me move my app forward.
+Use this repo as COS WEAVE: <WEAVE repo URL or local path>.
+```
+
+or:
+
+```text
+Use this repo as COS WEAVE: <WEAVE repo URL or local path>. I want to build something.
 ```
 
 The user should not need to run a WEAVE command, name a lifecycle stage, create
 a queue root, dispatch a worker, understand Symphony, or paste a long internal
 prompt.
+
+WEAVE is one Chief-of-Staff chat that helps organize and execute multiple
+app/application efforts through lifecycle steps, proof, blockers, workers, and
+review. Symphony is optional later orchestration infrastructure, not a default
+first-run requirement.
 
 ## What The Codex Agent Must Do
 
@@ -35,21 +46,35 @@ If a user gives this repository URL/path and asks to use it as COS WEAVE:
 4. Create or load a public-safe WEAVE home automatically under a safe local path,
    such as an ignored `runs/cos-weave-home/` directory inside the repository
    workspace unless the owner has already specified another home.
-5. Ask first-run owner/app questions in plain language when identity, app
+5. Search safe local/non-secret context if available to understand owner
+   preferences and existing WEAVE state before asking unnecessary questions.
+   Do not read raw secrets, raw logs, raw transcripts, cookies, browser
+   sessions, database dumps, or broad private data.
+6. Ask first-run owner/app questions in plain language when identity, app
    intent, acceptance checks, or approval boundaries are missing.
-6. Infer lifecycle stage from ordinary user intent. Do not ask the user to name
+7. Infer lifecycle stage from ordinary user intent. Do not ask the user to name
    WEAVE stages.
-7. Create the WEAVE `WorkItem`, dispatch it through the WEAVE-to-Symphony
-   adapter, run the local worker proof path, validate the proof envelope, and
-   read back owner-facing state.
-8. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
+8. Create or load the app/application workspace under WEAVE home and record the
+   current lifecycle state.
+9. Ask about Linear/tracker access only when the workflow needs it. If no
+   tracker is connected, keep a local task ledger and explain that tracker
+   connection is optional.
+10. Use deterministic prompts/procedures for lifecycle steps.
+11. When implementation workers are needed, launch/pin visible workers when the
+   host supports that. Otherwise record a local worker packet and explain what
+   is possible in the current environment.
+12. Use the WEAVE-to-Symphony adapter only when orchestration is explicitly
+   selected or needed for an integration proof. Default first-run COS WEAVE must
+   work without Symphony.
+13. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
    `NEEDS_OWNER_ACTION`.
 
-## Internal Adapter Use
+## Optional Adapter Use
 
-The adapter is an implementation detail. The agent may run repo-local helpers,
-including the internal bootstrap/adapter commands, when needed. The user-facing
-surface remains the COS WEAVE chat.
+The WEAVE-to-Symphony adapter is an optional backend/integration proof, not the
+default product acceptance bar. The agent may run repo-local helpers, including
+internal bootstrap/adapter commands, when a bounded integration proof needs
+them. The user-facing surface remains the COS WEAVE chat.
 
 The agent must not ask the user to run:
 
@@ -60,9 +85,10 @@ The agent must not ask the user to run:
 - Symphony service commands;
 - lifecycle classification commands.
 
-The local adapter proof is accepted only when readback preserves proof path and
-explicit non-claims. A terminal queue state without a valid proof envelope is
-`REVISE`, not done.
+When the adapter is used, local adapter proof is accepted only when readback
+preserves proof path and explicit non-claims. A terminal queue state without a
+valid proof envelope is `REVISE`, not done. This does not prove the default
+first-run product flow by itself.
 
 ## Required Non-Claims
 
@@ -91,5 +117,7 @@ Return `BLOCKED` or `NEEDS_OWNER_ACTION`, not a traceback, when:
 
 Prompt-first bootstrap is ready for controller review when a deterministic test
 shows that a generic Codex agent receiving only a WEAVE repo URL/path plus
-ordinary intent can discover these instructions, initialize local state, use the
-adapter internally, and report proof/readback with non-claims.
+ordinary or vague intent can discover these instructions, become COS WEAVE,
+explain the role, create/load local WEAVE home and app state, infer lifecycle
+state, ask only needed plain-language onboarding questions, avoid manual
+commands/manual lifecycle/Symphony requirements, and report proof/non-claims.

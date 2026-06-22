@@ -1191,6 +1191,14 @@ def chief_of_staff_command(args: argparse.Namespace, output: TextIO) -> int:
     raise CliError(f"unknown Chief of Staff command: {args.chief_command_name}")
 
 
+COS_FIRST_RUN_ONBOARDING_QUESTIONS = [
+    "What should I call you, and what partner behavior is useful: concise executor, careful planner, or frequent reviewer?",
+    "What app or application should we work on first?",
+    "What outcome would make this first WEAVE session useful?",
+    "What constraints or hard gates apply, such as no deploy, no public send, no tracker mutation, no paid calls, or credential restrictions?",
+]
+
+
 def cos_bootstrap_message(home: Path, source: Path, intent: str, readback: dict[str, object] | None = None) -> str:
     state = str(readback.get("state", "agent_in_progress")) if readback else "ready"
     proof = str(readback.get("proof_path", "pending")) if readback else "pending"
@@ -1198,6 +1206,7 @@ def cos_bootstrap_message(home: Path, source: Path, intent: str, readback: dict[
     return (
         "COS WEAVE bootstrap message:\n"
         "You are COS WEAVE in this Codex thread. Use the WEAVE repository as your operating manual and keep one owner-facing chat surface.\n"
+        "WEAVE is one Chief-of-Staff chat that helps organize and execute multiple app/application efforts through lifecycle steps, proof, blockers, and review.\n"
         f"WEAVE home: {home}\n"
         f"Source repo: {source}\n"
         f"Owner intent: {intent}\n"
@@ -1250,6 +1259,8 @@ def print_cos_bootstrap_payload(payload: dict[str, object], output: TextIO, *, a
         print_line(output, f"- proof_path: {payload['proof_path']}")
     if "readback_state" in payload:
         print_line(output, f"- readback_state: {payload['readback_state']}")
+    if "inferred_lifecycle_stage" in payload:
+        print_line(output, f"- inferred_lifecycle_stage: {payload['inferred_lifecycle_stage']}")
     if "reason" in payload:
         print_line(output, f"- reason: {payload['reason']}")
     if "owner_action" in payload:
@@ -1258,6 +1269,11 @@ def print_cos_bootstrap_payload(payload: dict[str, object], output: TextIO, *, a
     print_line(output, "- manual_lifecycle_classification_required: false")
     print_line(output, "- live_effects: false")
     print_line(output)
+    if payload.get("onboarding_questions"):
+        print_line(output, "Onboarding questions:")
+        for question in payload["onboarding_questions"]:  # type: ignore[index]
+            print_line(output, f"- {question}")
+        print_line(output)
     print_line(output, str(payload["cos_message"]))
 
 
@@ -1294,7 +1310,8 @@ def cos_bootstrap(args: argparse.Namespace, output: TextIO) -> int:
         print_cos_bootstrap_payload(payload, output, as_json=args.json)
         return 1
 
-    app_id = weave_chief_of_staff.slugify(args.app_id or source.name or "weave-app")
+    app_id_seed = args.app_id or (source.name if args.use_symphony_adapter else "new-app")
+    app_id = weave_chief_of_staff.slugify(app_id_seed or "new-app")
     app_name = args.app_name or app_id.replace("-", " ").title()
     init_args = argparse.Namespace(
         home=home,
@@ -1313,6 +1330,89 @@ def cos_bootstrap(args: argparse.Namespace, output: TextIO) -> int:
     )
     if not (home / "state.json").exists():
         weave_chief_of_staff.write_home(home, weave_chief_of_staff.build_state(init_args))
+
+    if not args.use_symphony_adapter:
+        bootstrap_dir = home / "cos-bootstrap"
+        proof_path = home / "tasks" / "WEAVE-0001" / "proof.json"
+        app_state_path = home / "apps" / app_id / "lifecycle.json"
+        worker_packet_path = home / "tasks" / "WEAVE-0001" / "packet.md"
+        state_payload = weave_chief_of_staff.load_state(home)
+        state_line = weave_chief_of_staff.compact_state_line(state_payload, app_id)
+        payload = {
+            "schema": "weave-cos-bootstrap/v0.1",
+            "state": "NEEDS_OWNER_ACTION",
+            "surface": args.surface,
+            "home": str(home),
+            "source": str(source),
+            "intent": args.intent,
+            "role": "COS WEAVE",
+            "role_explanation": "WEAVE is one Chief-of-Staff chat for organizing and executing multiple app/application efforts through lifecycle steps.",
+            "state_line": state_line,
+            "app_id": app_id,
+            "app_state_path": str(app_state_path),
+            "worker_packet_path": str(worker_packet_path),
+            "proof_path": str(proof_path),
+            "inferred_lifecycle_stage": "intent",
+            "onboarding_questions": COS_FIRST_RUN_ONBOARDING_QUESTIONS,
+            "safe_context_policy": {
+                "checked": [
+                    "AGENTS.md",
+                    "docs/COS_WEAVE_BOOTSTRAP.md",
+                    "packages/weave-tool/skills/cos-weave/SKILL.md",
+                ],
+                "avoided": [
+                    "raw secrets",
+                    "raw logs",
+                    "raw transcripts",
+                    "cookies",
+                    "browser sessions",
+                    "database dumps",
+                    "broad private data",
+                ],
+            },
+            "tracker": {
+                "mode": "local",
+                "linear_required": False,
+                "owner_message": "No tracker is required for first run; WEAVE keeps a local task ledger until a tracker connection is needed and approved.",
+            },
+            "worker_dispatch": {
+                "mode": "local_packet_recorded",
+                "visible_worker_required_now": False,
+                "packet_path": str(worker_packet_path),
+                "owner_message": "When implementation workers are needed, COS WEAVE should launch/pin visible workers if the host supports that; otherwise it records a local worker packet.",
+            },
+            "symfony_required": False,
+            "adapter_backend": {
+                "state": "optional_not_used_default",
+                "message": "The WEAVE-to-Symphony adapter remains available for later orchestration proof but is not required for default first-run acceptance.",
+            },
+            "manual_steps_required": [],
+            "manual_queue_commands_required": False,
+            "manual_lifecycle_classification_required": False,
+            "manual_symphony_knowledge_required": False,
+            "live_effects": False,
+            "non_claims": [
+                "does not prove live Symphony service execution",
+                "does not prove Codex app-server execution",
+                "does not prove live tracker or Linear mutation",
+                "does not prove public deployment, billing, or public send",
+                "does not prove full lifecycle completion",
+                "does not access credentials or secret values",
+            ],
+        }
+        payload["cos_message"] = cos_bootstrap_message(
+            home,
+            source,
+            args.intent,
+            {
+                "state": payload["state"],
+                "proof_path": payload["proof_path"],
+                "next_action": "answer the lightweight onboarding/app questions",
+            },
+        )
+        weave_symphony_adapter.write_json_or_print(payload, bootstrap_dir / "latest.json", output)
+        print_cos_bootstrap_payload(payload, output, as_json=args.json)
+        return 1
 
     work_item = weave_symphony_adapter.work_item_from_intent(
         args.intent,
@@ -1747,7 +1847,7 @@ def parse_internal_cos_bootstrap(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--source", required=True)
     parser.add_argument("--home", type=Path, required=True)
     parser.add_argument("--surface", choices=("codex", "hermes", "both", "unknown"), default="codex")
-    parser.add_argument("--use-symphony-adapter", action="store_true", required=True)
+    parser.add_argument("--use-symphony-adapter", action="store_true")
     parser.add_argument("--intent", required=True)
     parser.add_argument("--app-id")
     parser.add_argument("--app-name")

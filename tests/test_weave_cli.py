@@ -1892,6 +1892,57 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("acceptance check", html_text.lower())
             self.assertNotIn("<Owner App>", html_text)
 
+    def test_cos_bootstrap_default_first_run_from_vague_intent_does_not_require_symphony(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "cos-home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "cos-bootstrap",
+                    "--source",
+                    str(REPO_ROOT),
+                    "--home",
+                    str(home),
+                    "--surface",
+                    "codex",
+                    "--intent",
+                    "I want to build something.",
+                    "--json",
+                ],
+                output=output,
+            )
+            text = output.getvalue()
+            payload = json.loads(text)
+
+            self.assertEqual(rc, 1, text)
+            self.assertEqual(payload["schema"], "weave-cos-bootstrap/v0.1")
+            self.assertEqual(payload["state"], "NEEDS_OWNER_ACTION")
+            self.assertEqual(payload["role"], "COS WEAVE")
+            self.assertIn("one Chief-of-Staff chat", payload["role_explanation"])
+            self.assertTrue(payload["state_line"].startswith("WEAVE | "))
+            self.assertEqual(payload["inferred_lifecycle_stage"], "intent")
+            self.assertEqual(payload["app_id"], "new-app")
+            self.assertTrue((home / "state.json").exists())
+            self.assertTrue(Path(payload["app_state_path"]).exists())
+            self.assertTrue(Path(payload["worker_packet_path"]).exists())
+            self.assertTrue((home / "cos-bootstrap" / "latest.json").exists())
+            self.assertGreaterEqual(len(payload["onboarding_questions"]), 4)
+            self.assertTrue(any("What app or application" in item for item in payload["onboarding_questions"]))
+            self.assertIn("raw secrets", payload["safe_context_policy"]["avoided"])
+            self.assertFalse(payload["tracker"]["linear_required"])
+            self.assertEqual(payload["worker_dispatch"]["mode"], "local_packet_recorded")
+            self.assertFalse(payload["symfony_required"])
+            self.assertEqual(payload["adapter_backend"]["state"], "optional_not_used_default")
+            self.assertFalse(payload["manual_queue_commands_required"])
+            self.assertFalse(payload["manual_lifecycle_classification_required"])
+            self.assertFalse(payload["manual_symphony_knowledge_required"])
+            self.assertNotIn("queue_root", payload)
+            self.assertNotIn("dispatch_id", payload)
+            self.assertIn("does not prove full lifecycle completion", payload["non_claims"])
+            self.assertIn("does not prove live Symphony service execution", payload["non_claims"])
+            self.assertIn("Ask onboarding questions in normal language", payload["cos_message"])
+            self.assertIn("Do not ask the user to classify lifecycle stages", payload["cos_message"])
+
     def test_cos_bootstrap_single_command_runs_local_adapter_from_ordinary_intent(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             home = Path(tmpdir) / "cos-home"
