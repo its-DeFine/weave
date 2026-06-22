@@ -35,7 +35,6 @@ import weave_first_run
 import weave_hermes_setup
 import weave_launch_ops
 import weave_qa_proof
-import weave_symphony_adapter
 import weave_tui
 
 
@@ -1317,94 +1316,28 @@ def cos_bootstrap(args: argparse.Namespace, output: TextIO) -> int:
         print_cos_bootstrap_payload(payload, output, as_json=args.json)
         return 1
 
-    app_id_seed = args.app_id or (source.name if args.use_symphony_adapter else None)
-    app_id = weave_chief_of_staff.slugify(app_id_seed or "new-app")
-    app_name = args.app_name or app_id.replace("-", " ").title()
-    init_args = argparse.Namespace(
+    payload = weave_cos_skeleton.bootstrap(
+        source=source,
         home=home,
-        app_id=app_id,
-        app_name=app_name,
-        owner_name=args.owner_name,
-        communication_style=weave_chief_of_staff.DEFAULT_OWNER_STYLE,
         surface=args.surface,
-        tracker="local",
-        update_mode="notify",
-        source_url=str(source),
-        weave_version="local",
-        write=True,
-        force=True,
-        json=False,
+        intent=args.intent,
+        app_id=args.app_id,
+        app_name=args.app_name,
     )
-    if not args.use_symphony_adapter:
-        payload = weave_cos_skeleton.bootstrap(
-            source=source,
-            home=home,
-            surface=args.surface,
-            intent=args.intent,
-            app_id=args.app_id,
-            app_name=args.app_name,
-        )
-        payload["cos_message"] = cos_bootstrap_message(
-            home,
-            source,
-            args.intent,
-            {
-                "state": payload["state"],
-                "proof_path": payload["proof_path"],
-                "next_action": payload["readback"]["next_action"],
-                "state_line": payload["state_line"],
-            },
-        )
-        weave_cos_skeleton.write_json(home / "cos-bootstrap" / "latest.json", payload)
-        print_cos_bootstrap_payload(payload, output, as_json=args.json)
-        return 0
-
-    if not (home / "state.json").exists():
-        weave_chief_of_staff.write_home(home, weave_chief_of_staff.build_state(init_args))
-
-    work_item = weave_symphony_adapter.work_item_from_intent(
+    payload["cos_message"] = cos_bootstrap_message(
+        home,
+        source,
         args.intent,
-        app_id=app_id,
-        work_item_id=args.work_item_id,
-        title=args.title,
+        {
+            "state": payload["state"],
+            "proof_path": payload["proof_path"],
+            "next_action": payload["readback"]["next_action"],
+            "state_line": payload["state_line"],
+        },
     )
-    queue_root = home / "adapters" / "symphony" / "local-queue" / work_item["work_item_id"]
-    store = weave_symphony_adapter.LocalQueueStore(queue_root)
-    store.enqueue_work_item(work_item)
-    dispatch_item = store.dispatch_next()
-    if args.use_symphony_adapter:
-        envelope = weave_symphony_adapter.run_local_worker(store, work_item_id=work_item["work_item_id"])
-    else:
-        raise CliError("cos-bootstrap currently requires --use-symphony-adapter for local worker proof")
-    readback = weave_symphony_adapter.readback_from_store(store, work_item_id=work_item["work_item_id"])
-    state = "ACCEPT_FOR_SCOPE" if readback["state"] == "accepted_for_scope" else str(readback["state"]).upper()
-
-    bootstrap_dir = home / "cos-bootstrap"
-    proof_path = queue_root / str(readback["proof_path"])
-    payload: dict[str, object] = {
-        "schema": "weave-cos-bootstrap/v0.1",
-        "state": state,
-        "surface": args.surface,
-        "home": str(home),
-        "source": str(source),
-        "intent": args.intent,
-        "app_id": app_id,
-        "work_item_id": work_item["work_item_id"],
-        "dispatch_id": dispatch_item["id"],
-        "queue_root": str(queue_root),
-        "proof_path": str(proof_path),
-        "readback_state": readback["state"],
-        "readback": readback,
-        "worker_reviewer": envelope["reviewer"],
-        "manual_steps_required": [],
-        "manual_queue_commands_required": False,
-        "manual_lifecycle_classification_required": False,
-        "non_claims": readback["non_claims"],
-    }
-    payload["cos_message"] = cos_bootstrap_message(home, source, args.intent, readback)
-    weave_symphony_adapter.write_json_or_print(payload, bootstrap_dir / "latest.json", output)
+    weave_cos_skeleton.write_json(home / "cos-bootstrap" / "latest.json", payload)
     print_cos_bootstrap_payload(payload, output, as_json=args.json)
-    return 0 if state == "ACCEPT_FOR_SCOPE" else 1
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1795,13 +1728,9 @@ def parse_internal_cos_bootstrap(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--source", required=True)
     parser.add_argument("--home", type=Path, default=None)
     parser.add_argument("--surface", choices=("codex", "hermes", "both", "unknown"), default="codex")
-    parser.add_argument("--use-symphony-adapter", action="store_true")
     parser.add_argument("--intent", required=True)
     parser.add_argument("--app-id")
     parser.add_argument("--app-name")
-    parser.add_argument("--work-item-id")
-    parser.add_argument("--title")
-    parser.add_argument("--owner-name", default="owner")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     args.command = "cos-bootstrap"
@@ -1874,8 +1803,6 @@ def main(
         setup_gateway.GatewaySetupError,
         setup_runtime.RuntimeSetupError,
         weave_chief_of_staff.ChiefOfStaffError,
-        weave_symphony_adapter.AdapterStateError,
-        weave_symphony_adapter.AdapterValidationError,
     ) as exc:
         print_line(output)
         warn(output, str(exc))

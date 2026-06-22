@@ -1892,7 +1892,7 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("acceptance check", html_text.lower())
             self.assertNotIn("<Owner App>", html_text)
 
-    def test_cos_bootstrap_default_first_run_from_vague_intent_does_not_require_symphony(self) -> None:
+    def test_cos_bootstrap_default_first_run_from_vague_intent_uses_local_skeleton(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             home = Path(tmpdir) / "cos-home"
             output = io.StringIO()
@@ -1943,13 +1943,13 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(payload["worker_dispatch"]["mode"], "local_packet_recorded")
             self.assertFalse(payload["manual_queue_commands_required"])
             self.assertFalse(payload["manual_lifecycle_classification_required"])
-            self.assertNotIn("symfony_required", payload)
-            self.assertNotIn("manual_symphony_knowledge_required", payload)
+            self.assertNotIn("external_orchestrator_required", payload)
+            self.assertNotIn("manual_orchestrator_knowledge_required", payload)
             self.assertNotIn("adapter_backend", payload)
             self.assertNotIn("queue_root", payload)
             self.assertNotIn("dispatch_id", payload)
             self.assertIn("does not prove full lifecycle completion", payload["non_claims"])
-            self.assertNotIn("Symphony", json.dumps(payload))
+            self.assertNotIn("external orchestrator", json.dumps(payload).lower())
             owner_profile = json.loads((home / "owner-profile.json").read_text(encoding="utf-8"))
             self.assertEqual(owner_profile["state"], "draft")
             self.assertEqual(owner_profile["assumption"], "assumed_for_local_scope")
@@ -2015,7 +2015,7 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(len(readback["apps"]), 2)
             self.assertEqual(readback["state"], "local_skeleton_ready")
 
-    def test_cos_bootstrap_single_command_runs_local_adapter_from_ordinary_intent(self) -> None:
+    def test_cos_bootstrap_single_command_creates_local_skeleton_from_ordinary_intent(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             home = Path(tmpdir) / "cos-home"
             output = io.StringIO()
@@ -2028,9 +2028,8 @@ class WeaveCliTests(unittest.TestCase):
                     str(home),
                     "--surface",
                     "codex",
-                    "--use-symphony-adapter",
                     "--intent",
-                    "Build the adapter MVP and prove it locally.",
+                    "Build a simple note-taking app locally.",
                     "--json",
                 ],
                 output=output,
@@ -2042,22 +2041,22 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(payload["schema"], "weave-cos-bootstrap/v0.1")
             self.assertEqual(payload["state"], "ACCEPT_FOR_SCOPE")
             self.assertEqual(payload["surface"], "codex")
-            self.assertEqual(payload["readback_state"], "accepted_for_scope")
-            self.assertEqual(payload["worker_reviewer"], "local-worker")
             self.assertFalse(payload["manual_queue_commands_required"])
             self.assertFalse(payload["manual_lifecycle_classification_required"])
             self.assertEqual(payload["manual_steps_required"], [])
+            self.assertFalse(payload["live_effects"])
             self.assertIn("COS WEAVE bootstrap message", payload["cos_message"])
             self.assertIn("You are COS WEAVE in this Codex thread", payload["cos_message"])
             self.assertIn("Do not ask the user to classify lifecycle stages", payload["cos_message"])
-            self.assertIn("does not prove live Symphony service execution", payload["non_claims"])
+            self.assertIn("does not prove Codex app-server execution", payload["non_claims"])
             self.assertTrue(Path(payload["proof_path"]).exists())
             self.assertTrue((home / "state.json").exists())
             self.assertTrue((home / "cos-bootstrap" / "latest.json").exists())
-            queue_root = Path(payload["queue_root"])
-            self.assertTrue((queue_root / "events.jsonl").exists())
-            self.assertTrue((queue_root / "workspaces" / payload["dispatch_id"] / "WORKFLOW.md").exists())
-            self.assertTrue((queue_root / "workspaces" / payload["dispatch_id"] / "worker-readback.json").exists())
+            self.assertTrue(Path(payload["todos_path"]).exists())
+            self.assertTrue(Path(payload["worker_packet_path"]).exists())
+            self.assertTrue(Path(payload["readback_path"]).exists())
+            self.assertNotIn("queue_root", payload)
+            self.assertNotIn("worker_reviewer", payload)
 
     def test_cos_bootstrap_text_output_is_dead_simple_for_codex_thread(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2072,7 +2071,6 @@ class WeaveCliTests(unittest.TestCase):
                     str(home),
                     "--surface",
                     "codex",
-                    "--use-symphony-adapter",
                     "--intent",
                     "Move this app forward with local proof.",
                 ],
@@ -2087,7 +2085,7 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("- manual_lifecycle_classification_required: false", text)
             self.assertIn("You are COS WEAVE in this Codex thread", text)
             self.assertIn("Do not ask the user to classify lifecycle stages", text)
-            self.assertNotIn("weave_symphony_adapter.py dispatch-next", text)
+            self.assertNotIn("dispatch-next", text)
             self.assertNotIn("--queue-root", text)
 
     def test_cos_bootstrap_invalid_source_reports_blocked_without_traceback(self) -> None:
@@ -2118,7 +2116,7 @@ class WeaveCliTests(unittest.TestCase):
             self.assertIn("source path does not exist", payload["reason"])
             self.assertIn("Provide an existing local WEAVE repository path", payload["owner_action"])
             self.assertNotIn("Traceback", text)
-            self.assertNotIn("Symphony", text)
+            self.assertNotIn("external orchestrator", text.lower())
             self.assertFalse((home / "state.json").exists())
 
     def test_cos_bootstrap_helper_is_hidden_from_normal_help(self) -> None:

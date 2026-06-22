@@ -9,7 +9,6 @@ AGENTS = ROOT / "AGENTS.md"
 README = ROOT / "README.md"
 FIRST_CONTACT = ROOT / "COS_WEAVE_FIRST_CONTACT.md"
 LAUNCHER = ROOT / "COS_WEAVE_LAUNCHER.md"
-ADAPTER_PLAN = ROOT / "docs" / "WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md"
 SKELETON = ROOT / "docs" / "COS_WEAVE_REPO_SKELETON.md"
 SKELETON_SAMPLE = ROOT / "docs" / "samples" / "cos-weave-skeleton"
 
@@ -25,7 +24,7 @@ def normalized(path: Path) -> str:
 
 class CosWeaveBootstrapContractTests(unittest.TestCase):
     def test_prompt_first_bootstrap_surface_is_discoverable(self) -> None:
-        for path in [BOOTSTRAP, SKILL, AGENTS, README, FIRST_CONTACT, LAUNCHER, ADAPTER_PLAN, SKELETON]:
+        for path in [BOOTSTRAP, SKILL, AGENTS, README, FIRST_CONTACT, LAUNCHER, SKELETON]:
             text = normalized(path)
             with self.subTest(path=path):
                 self.assertIn("COS WEAVE", text)
@@ -60,7 +59,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             FIRST_LINE_TEMPLATE,
             "runs/cos-weave-home/",
             "todos.md",
-            "Symphony is not required",
+            "No external orchestrator is required",
             "Validator Prompts",
             "Repo-scoped/local thread expected to work",
             "Projectless remote-URL thread expected to use the tiny launcher prompt",
@@ -118,8 +117,8 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             "Before onboarding, pick one deployment mode",
             "bin/weave tui",
             "Managed container",
-            "Symphony",
-            "Symphone",
+            "external orchestrator setup",
+            "managed runtime setup",
         ]
         for phrase in forbidden:
             with self.subTest(phrase=phrase):
@@ -138,7 +137,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         ]:
             with self.subTest(surface="quickstart", phrase=phrase):
                 self.assertIn(phrase, quickstart_top)
-        for phrase in ["managed container", "existing-Hermes", "bin/weave tui", "Symphony", "Symphone"]:
+        for phrase in ["managed container", "existing-Hermes", "bin/weave tui", "external orchestrator setup"]:
             with self.subTest(surface="quickstart", phrase=phrase):
                 self.assertNotIn(phrase, quickstart_top)
         self.assertIn("Default vNext reading order", docs_index_top)
@@ -147,8 +146,6 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         self.assertIn("lifecycle.json", docs_index_top)
         self.assertIn("worker-packets/", docs_index_top)
         self.assertIn("optional advanced references", docs_index_top)
-        self.assertNotIn("Symphony", docs_index_top)
-        self.assertNotIn("Symphone", docs_index_top)
         self.assertNotIn("orchestration-adapter", docs_index_top)
 
     def test_generic_agent_has_enough_steps_from_repo_path_and_intent(self) -> None:
@@ -171,16 +168,16 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
 
-    def test_default_bootstrap_read_list_excludes_symphony_adapter_plan(self) -> None:
+    def test_default_bootstrap_read_list_excludes_external_orchestrator_plan(self) -> None:
         text = BOOTSTRAP.read_text(encoding="utf-8")
         required_block = text.split("## What The Codex Agent Must Do", 1)[1].split("## Optional Adapter Use", 1)[0]
         self.assertIn("docs/COS_WEAVE_REPO_SKELETON.md", required_block)
-        self.assertNotIn("WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md", required_block)
+        self.assertNotIn("external orchestrator", required_block.lower())
 
         agents = AGENTS.read_text(encoding="utf-8")
         core_map = agents.split("## Source-Of-Truth Map", 1)[1].split("Optional/later integration references:", 1)[0]
         self.assertIn("docs/COS_WEAVE_REPO_SKELETON.md", core_map)
-        self.assertNotIn("WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md", core_map)
+        self.assertNotIn("external orchestrator", core_map.lower())
 
     def test_repo_skeleton_contract_is_dead_simple_file_state(self) -> None:
         text = normalized(SKELETON)
@@ -228,16 +225,16 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         )
         self.assertIn("tiny local calculator", sample_text.lower())
         self.assertIn("observe -> validate -> govern -> review -> sync", sample_text)
-        self.assertNotIn("Symphony", sample_text)
+        self.assertNotIn("external orchestrator", sample_text.lower())
 
-    def test_bootstrap_contract_does_not_make_symphony_default_acceptance(self) -> None:
+    def test_bootstrap_contract_does_not_make_external_orchestrator_default_acceptance(self) -> None:
         text = normalized(BOOTSTRAP)
         self.assertIn("The default vNext product surface is a visible file/folder skeleton", text)
         self.assertIn("Scope=local-file-skeleton", text)
         self.assertIn("ordinary or vague intent", text)
         self.assertIn("app state", text)
         required_block = BOOTSTRAP.read_text(encoding="utf-8").split("## What The Codex Agent Must Do", 1)[1].split("## Required Non-Claims", 1)[0]
-        self.assertNotIn("Symphony", required_block)
+        self.assertNotIn("external orchestrator", required_block.lower())
         self.assertNotIn("adapter", required_block.lower())
 
     def test_bootstrap_contract_blocks_manual_setup_user_work(self) -> None:

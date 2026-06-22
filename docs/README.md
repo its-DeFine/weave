@@ -91,5 +91,3 @@ full docs tree first, start here:
 These references are not part of prompt-first COS WEAVE startup, first-contact
 acceptance, or the default product path. Use them only for bounded later
 integration work after the file skeleton is already proven.
-
-- [Optional WEAVE-to-Symphony Adapter CE Plan](WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md)

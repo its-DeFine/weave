@@ -43,9 +43,7 @@ ALLOWLIST = {
     ("tests/test_live_hermes_lifecycle_qa.py", "loopback-host"),
 }
 
-SKIP_PREFIXES = {
-    ("vendor", "symphony"),
-}
+SKIP_PREFIXES: set[tuple[str, ...]] = set()
 
 ALLOWLIST_LINE_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     # These scanner/test fixtures intentionally contain private-looking strings.

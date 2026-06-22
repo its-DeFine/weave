@@ -254,6 +254,3 @@ The reusable package skill lives at
 WEAVE work involves agent orchestration, missing capability/tooling decisions,
 target-surface proof, PR readiness, launch readback, or repeated harness
 failures.
-
-For WEAVE-to-Symphony adapter work, the standing compound-engineering plan is
-`docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md`.

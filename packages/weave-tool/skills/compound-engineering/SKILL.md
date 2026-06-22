@@ -10,7 +10,7 @@ description: Plan and execute agentic engineering loops with explicit capability
 Use this skill when work involves any of:
 
 - turning vague owner intent into agent-executable work;
-- WEAVE lifecycle, Chief of Staff, worker orchestration, or Symphony adapter
+- WEAVE lifecycle, Chief of Staff, worker orchestration, or prompt/runtime
   changes;
 - building or choosing a CLI, local queue, index, fixture, evaluator, browser
   proof, or API wrapper before implementation;
@@ -83,22 +83,6 @@ Non-claims: <what this slice does not prove>
    proof quality.
 9. Record non-claims and owner gates.
 10. Update the harness when a repeated failure pattern appears.
-
-## WEAVE To Symphony Adapter Rule
-
-For WEAVE-to-Symphony work, use
-`docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md` as the standing plan.
-
-Required boundary:
-
-- WEAVE owns user intent, lifecycle truth, proof envelopes, owner gates, and
-  readback.
-- Symphony owns isolated workspaces, Codex app-server execution, retries,
-  blocked/running state, and optional operational dashboard surfaces.
-- The adapter owns conversion between WEAVE `WorkItem` records and
-  Symphony-dispatchable work.
-
-Never claim adapter success until the current slice has target-surface proof.
 
 ## Proof Rules
 

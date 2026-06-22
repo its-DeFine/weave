@@ -34,9 +34,7 @@ SKIP_DIRS = {
     ".workflow",
 }
 
-SKIP_PREFIXES = {
-    ("vendor", "symphony"),
-}
+SKIP_PREFIXES: set[tuple[str, ...]] = set()
 
 # Secret-like key names (from weave_command_bus.py SECRET_KEY_RE pattern, extended).
 SECRET_KEY_RE = re.compile(

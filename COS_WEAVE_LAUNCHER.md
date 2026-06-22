@@ -22,9 +22,8 @@ Use this repo as COS WEAVE: <repo URL or local path>. I want to build <ordinary 
 
 For a projectless thread that only receives a remote URL, use the launcher
 prompt below. This is not a user command, manual lifecycle classification,
-hidden orchestration setup, or Symphony setup. It is the smallest instruction
-needed to make the agent read the repo contract before sending a generic
-progress packet.
+or hidden orchestration setup. It is the smallest instruction needed to make
+the agent read the repo contract before sending a generic progress packet.
 
 ## Launcher Prompt
 
@@ -61,7 +60,7 @@ runs/cos-weave-home/
 The launcher does not prove live Codex app-server execution, live tracker or
 Linear mutation, production deployment, public sends, billing, credentials, or
 live orchestration. The default startup path is the local file skeleton.
-Symphony is not required.
+No external orchestrator is required.
 
 ## Validator Prompts
 
