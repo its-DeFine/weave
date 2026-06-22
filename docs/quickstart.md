@@ -80,7 +80,7 @@ bin/weave eval release-readiness --run-gates --review-file release-review.json
 Hard gates can veto high rubric scores. Release readiness remains owner-gated
 even when all checks pass. See [Lifecycle Evals](lifecycle-evals.md).
 
-## 5. Optional full conversation-to-app workflow
+## 5. Optional legacy full conversation-to-app proof
 
 To try the end-to-end app-production loop without live Hermes, Telegram, model
 provider keys, hosting, analytics, payments, or public side effects, run the
@@ -124,9 +124,12 @@ prove live Hermes autonomy, Telegram operation, deployment, analytics, payments,
 real users, or market demand. For the committed proof bundle, see
 [Month 1 Full Conversation-To-App Dogfood](month1/full-conversation-app-dogfood.md).
 
-## 6. Choose a setup mode
+## 6. Optional legacy runtime/TUI setup modes
 
-Use the doctor and dry-run commands before writing runtime state:
+This section is not the default COS WEAVE first-run path. Use it only for
+bounded developer validation of older TUI/runtime surfaces after the visible
+file skeleton already exists. Use the doctor and dry-run commands before
+writing runtime state:
 
 ```bash
 bin/weave help
@@ -141,7 +144,8 @@ bin/weave launch-ops --app-id demo-app --create-app --write
 bin/weave onboard --dry-run
 ```
 
-`bin/weave tui` is the fastest local product surface for the intended WEAVE UX.
+`bin/weave tui` is an older local cockpit proof surface, not the default vNext
+product UX.
 Without `--write` it previews the cockpit and leaves the runtime home untouched.
 In an interactive terminal it enters a `weave>` command loop with stage action
 cards, visible choices, review queue, artifact and file panes, resume state,
@@ -201,7 +205,7 @@ capabilities, owner notifications, kill switches, scheduler fixtures, and a
 validated lifecycle bundle. It does not deploy, send public messages, spend
 money, or handle raw credentials.
 
-Pick one mode:
+Legacy runtime modes:
 
 - **Managed container:** `bin/weave onboard --hermes-ready` after Hermes normal
   chat is verified. WEAVE builds and runs the pinned container gateway.
@@ -214,17 +218,23 @@ Pick one mode:
 - **Host-local fallback:** `bin/weave onboard --local --install-hermes` when you
   want a pinned host-local Hermes checkout instead of a container.
 
-All normal setup modes create the deterministic WEAVE layer unless you call a
+These legacy setup modes create the deterministic WEAVE layer unless you call a
 script-level CI/testing flag such as `--check`, `--dry-run`, or
-`--skip-weave-root`.
+`--skip-weave-root`. They are optional advanced integration paths, not
+preconditions for prompt-first COS WEAVE app intake.
 
-You can feel the deterministic command surface locally before Telegram pairing:
+You can feel the legacy deterministic command surface locally before Telegram
+pairing:
 
 ```bash
 bin/weave command /status
 ```
 
-## 7. Run guided onboarding
+## 7. Optional legacy guided onboarding
+
+This section is not the default COS WEAVE first-run path. Use it only for
+bounded developer validation of older runtime, gateway, Telegram, and TUI
+integration surfaces after the visible file skeleton already exists.
 
 ```bash
 bin/weave onboard
@@ -347,7 +357,7 @@ Telegram gateway credentials are intentionally linked in the new environment.
 Hermes setup readiness is also shown; normal chat stays blocked until normal
 Hermes setup is confirmed or slash-only mode is explicitly selected.
 
-For a host-local fallback instead of the default container:
+For a host-local fallback instead of the legacy container:
 
 ```bash
 bin/weave onboard --local --install-hermes
@@ -393,7 +403,7 @@ confirmation prompts for non-gated local work. Hermes must still ask the owner
 through the Telegram LLM conversation before secrets, auth changes, public
 sends, paid or metered work, production/service changes, or destructive work.
 
-## 8. Run the runtime smoke
+## 8. Optional runtime smoke
 
 ```bash
 python3 scripts/runtime_smoke.py
@@ -439,7 +449,7 @@ provisioner contract, first-slice root/app/ledger contract, REST dispatch
 skeleton, and deterministic Telegram slash-command output. It imports nothing
 outside the standard library and makes no network calls.
 
-## 9. Inspect status from Telegram commands
+## 9. Optional legacy status from Telegram commands
 
 Optional: start the local REST skeleton first:
 
@@ -458,9 +468,9 @@ It also binds to the loopback interface by default and requires bearer auth from
 `--allow-unauthenticated-local` only for explicit tests/dev runs; `/health`
 reports the active `transport.auth_policy`.
 
-Telegram is the status surface for this release. Normal messages go to Hermes.
-Slash commands are intercepted by the gateway and answered from deterministic
-local runtime state:
+Telegram is the status surface for the legacy runtime path. Normal messages go
+to Hermes. Slash commands are intercepted by the gateway and answered from
+deterministic local runtime state:
 
 ```text
 /status

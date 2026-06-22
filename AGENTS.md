@@ -67,12 +67,6 @@ For durable WEAVE/COS decisions, read the focused source document:
 - `docs/WEAVE_REVIEW_LOOP_PROCESS.md` for create/observe/validate/govern/
   review/sync.
 
-Optional/later integration references:
-
-- `docs/WEAVE_SYMPHONY_ADAPTER_CE_PLAN.md` is only for optional future
-  orchestration work. It is not part of default COS WEAVE startup or product
-  acceptance.
-
 ## Confidential Topology Boundary
 
 Do not commit or mention private operating details, including:

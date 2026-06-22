@@ -38,7 +38,7 @@ See [COS_WEAVE_FIRST_CONTACT.md](COS_WEAVE_FIRST_CONTACT.md) and
 
 # WEAVE
 
-![WEAVE runtime hero](assets/weave-hero.png)
+![WEAVE repo skeleton hero](assets/weave-hero.png)
 
 WEAVE vNext is one COS WEAVE chat plus a repo-owned file/folder skeleton for
 building and operating applications through lifecycle state, todos, worker
@@ -188,19 +188,22 @@ grant on verified completion. See
 [docs/missions/MISSION_TEMPLATE.md](docs/missions/MISSION_TEMPLATE.md) for the
 mission format, required fields, and a worked example.
 
-The current release shape is deliberately narrow:
+The current vNext product shape is deliberately narrow:
 
-- WEAVE is a standalone repository.
-- Hermes is the active runtime and CEO agent dependency.
-- WEAVE supplies the company package, lifecycle, primitives, adapter boundaries,
-  agent skill contracts, and validation tests.
+- WEAVE is a standalone repository skeleton.
+- The default surface is one COS WEAVE chat plus visible local files under
+  `runs/cos-weave-home/`.
+- Each app has file-browsable intent, lifecycle, todos, worker packets, proof,
+  blockers, review decisions, and readback.
+- Older runtime, TUI, gateway, deployment, and external-orchestration material is
+  retained only as advanced or historical developer proof.
 
 ## Repository Layout
 
 ```text
-docs/                  Public documentation and replication architecture.
-packages/weave-tool/   Hermes-default WEAVE company package.
-scripts/               Local validation, smoke, runtime, and gateway scripts.
+docs/                  Public docs, COS bootstrap, skeleton contracts, and legacy references.
+packages/weave-tool/   WEAVE package, skills, lifecycle primitives, and legacy helpers.
+scripts/               Local validation, skeleton helpers, smoke, and legacy runtime scripts.
 tests/                 Public-safe validation tests.
 ```
 
@@ -245,7 +248,7 @@ Before opening or merging a PR, record the issue, proof commands, proof
 boundaries, and merge criteria in the PR body. See
 [docs/pr-proof-ledger.md](docs/pr-proof-ledger.md).
 
-## Try the conversation-to-app workflow locally
+## Optional Legacy Conversation-To-App Workflow
 
 The fastest way to try the full app-production loop without Telegram, provider
 keys, hosting, analytics, payments, or public side effects is the dedicated
@@ -277,7 +280,7 @@ browser, or serve that generated-app directory with any local static-file server
 For the committed review artifact and proof boundary, see
 [docs/month1/full-conversation-app-dogfood.md](docs/month1/full-conversation-app-dogfood.md).
 
-## Run private app operating-profile evaluations
+## Optional Legacy Private App Operating-Profile Evaluations
 
 To test WEAVE's operating-profile model across several private, non-public app
 scenarios in parallel, run:
@@ -311,6 +314,12 @@ evidence, not a canonical byte-for-byte fixture. Regenerated artifacts may diffe
 by timestamps and run hashes/checksums; reviewers should compare schemas, gates,
 non-claims, and proof-boundary fields rather than raw bytes. See
 [docs/month1/private-app-operating-profile-evals.md](docs/month1/private-app-operating-profile-evals.md).
+
+## Advanced Legacy Runtime Onboarding
+
+This section is not the default COS WEAVE vNext path. Use it only for bounded
+developer validation of older runtime, gateway, Telegram, and TUI integration
+surfaces after the file skeleton path is already established.
 
 Run guided onboarding:
 
@@ -374,7 +383,7 @@ bin/weave stop
 ```
 
 Use the read-only TUI operator console before or after the gateway starts to see
-the intended WEAVE flow in one place: onboarding, runtime readiness, Hermes
+the older runtime flow in one place: onboarding, runtime readiness, Hermes
 setup, gateway attachment, app portfolio, lifecycle stage, transcript capture,
 proof/eval state, inconsistencies, and the next deterministic action. It does
 not send messages or start services.
@@ -426,7 +435,10 @@ prompt_packs: 1
 eval_contracts: 12
 ```
 
-## Runtime Model
+## Advanced Legacy Runtime Model
+
+This model is retained for historical and optional integration work. It is not
+the default first-contact product path.
 
 WEAVE is packaged as an importable AI-operated company:
 
@@ -472,8 +484,8 @@ This proves a local instantiation path for the lifecycle runtime. It does not
 claim that a VM service, hosted runtime, paid model route, or production
 deployment is installed.
 
-Telegram is the operator surface for this release. Normal Telegram messages go
-to Hermes only after normal Hermes setup has been confirmed. WEAVE slash
+Telegram is the operator surface for the legacy runtime path. Normal Telegram
+messages go to Hermes only after normal Hermes setup has been confirmed. WEAVE slash
 commands are intercepted by the gateway and answered from deterministic local
 runtime state with `deterministic: true` and `llm_used: false`.
 
