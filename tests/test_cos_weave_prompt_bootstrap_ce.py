@@ -21,9 +21,9 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
             "A normal Codex thread given only a WEAVE repo URL/path plus ordinary app intent "
             "can discover the repo bootstrap contract, begin with a WEAVE state line, become "
             "COS WEAVE, create/load the repo-owned file skeleton, create app intent/todos/ "
-            "lifecycle/proof/review/readback files, and avoid manual commands, manual folder "
-            "setup, manual lifecycle classification, identity-gate rituals, and full "
-            "lifecycle overclaims."
+            "lifecycle/proof/review/readback files, record provider-specific deployment "
+            "gates, and avoid manual commands, manual folder setup, manual lifecycle "
+            "classification, identity-gate rituals, and full lifecycle overclaims."
         )
 
         self.assertIn("Status: default vNext file-skeleton CE contract", text)
@@ -42,6 +42,7 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
             "Slice 3: Lifecycle Truth",
             "Slice 4: Worker Packets",
             "Slice 5: Readback After Restart",
+            "Slice 6: Deployment Provider Gates",
             "observe -> validate -> govern -> review -> sync",
         ]
         for phrase in required:
@@ -57,6 +58,7 @@ class CosWeavePromptBootstrapCETests(unittest.TestCase):
             "Did a missing owner name become a draft owner profile/todo instead of a gate?",
             "Did vague intent create app state immediately?",
             "Did two app ideas create two app folders under one home?",
+            "Did provider gates block deployment while allowing local planning and",
             "Did the agent avoid asking the owner to run commands or classify lifecycle?",
             "Did it avoid full-lifecycle, deploy, tracker, public-send, billing, and credential overclaims?",
         ]

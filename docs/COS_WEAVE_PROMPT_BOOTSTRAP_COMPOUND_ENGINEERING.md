@@ -14,6 +14,7 @@ normal Codex thread + WEAVE repo URL/path + ordinary app intent
 -> agent becomes COS WEAVE
 -> agent creates/loads runs/cos-weave-home/
 -> agent creates app folder, intent, lifecycle, todos, worker packet, proof, review, blockers, readback
+-> agent records provider-specific deployment gates without raw secrets
 -> agent asks only lightweight questions needed for safe local progress
 ```
 
@@ -26,9 +27,9 @@ stages, dispatch workers manually, or paste internal prompts.
 A normal Codex thread given only a WEAVE repo URL/path plus ordinary app intent
 can discover the repo bootstrap contract, begin with a WEAVE state line, become
 COS WEAVE, create/load the repo-owned file skeleton, create app intent/todos/
-lifecycle/proof/review/readback files, and avoid manual commands, manual folder
-setup, manual lifecycle classification, identity-gate rituals, and full
-lifecycle overclaims.
+lifecycle/proof/review/readback files, record provider-specific deployment
+gates, and avoid manual commands, manual folder setup, manual lifecycle
+classification, identity-gate rituals, and full lifecycle overclaims.
 ```
 
 ## First-Response Bar
@@ -50,6 +51,9 @@ Chief-of-Staff home for app operations using visible files.
 - no formal identity gate before safe local app intake;
 - lifecycle state, todos, worker packets, proof, blockers, review, and readback
   survive context compaction and model changes;
+- provider-specific deployment prerequisite gates keep Cloudflare DNS/domain
+  authority and Vercel hosting/deploy target access separate from local
+  planning or engineering progress;
 - explicit non-claims prevent local file proof from becoming a live-service or
   full-lifecycle claim.
 
@@ -83,9 +87,9 @@ Proof: local tests verify `state.json`, `owner-profile.md/json`,
 Goal: ordinary or vague app intent creates app folders immediately.
 
 Proof: tests verify `apps/<app_id>/intent.md`, `lifecycle.json`, `todos.md`,
-`tasks.json`, `worker-packets/WP-0001.md`, `proof/proof-tray.json`,
-`review/review-queue.json`, `blockers/blocker-tray.json`, and
-`updates/readback.json`.
+`deployment-gates.json`, `tasks.json`, `worker-packets/WP-0001.md`,
+`proof/proof-tray.json`, `review/review-queue.json`,
+`blockers/blocker-tray.json`, and `updates/readback.json`.
 
 ### Slice 3: Lifecycle Truth
 
@@ -110,6 +114,16 @@ Goal: reconstruct owner-facing state from files only.
 Proof: tests load readback from disk and verify app list, active app, lifecycle
 stage, blockers, proof refs, review refs, next action, and non-claims.
 
+### Slice 6: Deployment Provider Gates
+
+Goal: represent deployment prerequisites as structured app state while allowing
+local intent, planning, and engineering to continue.
+
+Proof: tests verify Cloudflare domain/DNS/CNAME/subdomain control and Vercel
+hosting/deploy target access start as `not_validated`, require connector,
+MCP, or brokered access validation, use `secret_ref` only, and keep
+deployment/launch blocked until relevant provider access is validated.
+
 ## Review Loop
 
 Every lifecycle completion must pass:
@@ -129,6 +143,8 @@ review queue records the decision and readback sync.
 - Did a missing owner name become a draft owner profile/todo instead of a gate?
 - Did vague intent create app state immediately?
 - Did two app ideas create two app folders under one home?
+- Did provider gates block deployment while allowing local planning and
+  engineering?
 - Did the agent avoid asking the owner to run commands or classify lifecycle?
 - Did it avoid full-lifecycle, deploy, tracker, public-send, billing, and
   credential overclaims?

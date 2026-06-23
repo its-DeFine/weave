@@ -24,6 +24,7 @@ The default path is file-skeleton-first. The agent creates or loads:
 ```text
 runs/cos-weave-home/
   apps/<app-id>/
+    deployment-gates.json
     lifecycle.json
     todos.md
     worker-packets/
@@ -51,3 +52,6 @@ git diff --check
 These commands prove local file-skeleton behavior and public safety. They do
 not prove live workers, tracker mutation, deployment, public sends, billing,
 credentials, or full lifecycle completion.
+The generated `deployment-gates.json` records Cloudflare and Vercel
+prerequisites without raw secrets; it allows local planning/engineering while
+blocking deployment or launch until provider access is validated.

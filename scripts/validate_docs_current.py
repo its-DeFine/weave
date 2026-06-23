@@ -280,6 +280,39 @@ def check_non_claims(root: Path) -> list[str]:
     return findings
 
 
+def check_deployment_provider_gates(root: Path) -> list[str]:
+    findings: list[str] = []
+    required_docs = [
+        "README.md",
+        "docs/COS_WEAVE_REPO_SKELETON.md",
+        "docs/COS_WEAVE_BOOTSTRAP.md",
+        "docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md",
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+    ]
+    aggregate = "\n".join(read_text(root, rel) for rel in required_docs if (root / rel).exists()).lower()
+    required_terms = {
+        "deployment-gates.json": "deployment-gates.json",
+        "Cloudflare": "cloudflare",
+        "Vercel": "vercel",
+        "connector/MCP/brokered validation": r"connector|mcp|brokered",
+        "secret_ref boundary": "secret_ref",
+        "blocked launch boundary": r"block(?:ed|s|ing).{0,80}(?:deployment|launch)|(?:deployment|launch).{0,80}block(?:ed|s|ing)",
+    }
+    for label, pattern in required_terms.items():
+        if not re.search(pattern, aggregate):
+            findings.append(f"deployment provider gate docs missing {label}")
+
+    sample_gate = root / "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/deployment-gates.json"
+    if not sample_gate.exists():
+        findings.append("sample missing deployment gate state: docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/deployment-gates.json")
+    else:
+        text = sample_gate.read_text(encoding="utf-8", errors="replace").lower()
+        for term in ["weave-deployment-gates/v0.1", "cloudflare", "vercel", "not_validated", "secret_ref"]:
+            if term not in text:
+                findings.append(f"sample deployment gate state missing {term!r}")
+    return findings
+
+
 def check_release_assets(root: Path) -> list[str]:
     findings: list[str] = []
     version = read_text(root, "VERSION").strip() if (root / "VERSION").exists() else ""
@@ -506,6 +539,7 @@ def validate_repo(root: Path = REPO_ROOT) -> list[str]:
         check_optional_extension_boundary,
         check_repo_map,
         check_non_claims,
+        check_deployment_provider_gates,
         check_release_assets,
         check_release_trigger,
         check_stage_entry_contract_rule,

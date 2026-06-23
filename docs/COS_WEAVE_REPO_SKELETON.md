@@ -15,6 +15,7 @@ runs/cos-weave-home/
     registry.json
     <app-id>/
       app.json
+      deployment-gates.json
       intent.md
       intent.json
       intent-truth.json
@@ -65,6 +66,9 @@ runs/cos-weave-home/
 - `owner-profile.json`: machine-readable draft owner profile.
 - `app.json`: app metadata, intent truth, current lifecycle pointer, gates, and
   non-claims.
+- `deployment-gates.json`: provider-specific launch prerequisites. It records
+  provider name, required capabilities, proof state, safe validation path,
+  forbidden actions until validation, and non-claims without raw secrets.
 - `intent.md` and `intent.json`: owner words plus normalized intent truth
   inferred from the user's language.
 - `intent-truth.json`: resumable truth/completion boundary for the active slice.
@@ -81,6 +85,22 @@ runs/cos-weave-home/
 - `blockers/`: exact blocker, owner action if any, and safe alternatives.
 - `review/`: review-loop decisions and revision requests.
 - `updates/readback.json`: concise resumable state for the next thread turn.
+
+## Deployment Provider Gates
+
+Every app folder includes structured deployment prerequisites as local state.
+The default gates model Cloudflare DNS/domain authority and Vercel hosting or
+deploy target access. Each provider entry starts as `not_validated`, names the
+safe validation path through an approved connector, MCP, or brokered access
+validator, and records only proof state, proof references, public-safe labels,
+and `secret_ref` values when needed.
+
+Local intent, planning, and engineering can continue without provider access.
+Deployment, launch, DNS mutation, domain attachment, billing, public traffic,
+and provider access claims stay blocked until the relevant provider gate is
+validated. Additional providers can be added by using the same required fields:
+provider, required capabilities, proof state, safe validation path, forbidden
+actions until validation, and non-claims.
 
 ## Lifecycle States
 

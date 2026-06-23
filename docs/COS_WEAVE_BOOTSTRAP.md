@@ -81,23 +81,26 @@ If a user gives this repository URL/path and asks to use it as COS WEAVE:
    not ask the user to name WEAVE stages.
 8. Create or load the app/application workspace under WEAVE home and record the
    current lifecycle state.
-9. Ask about Linear/tracker access only when the workflow needs it. If no
+9. Record provider-specific deployment prerequisites under the app workspace,
+   including Cloudflare DNS/domain authority and Vercel hosting/deploy target
+   access, without requesting or storing raw secrets.
+10. Ask about Linear/tracker access only when the workflow needs it. If no
    tracker is connected, keep a local task ledger and explain that tracker
    connection is optional.
-10. Before planning or executing a lifecycle entry or transition, load the
+11. Before planning or executing a lifecycle entry or transition, load the
     stage-entry contract bundle for the inferred stage:
     `packages/weave-tool/evals/lifecycle/<stage>.yaml`, the generated
     home-level or app-local `procedures/lifecycle/<stage>.md`, the
     `packages/weave-tool/primitives/registry.json` entry for the stage, and
     the relevant `packages/weave-tool/skills/*/SKILL.md` files.
-11. Record the consulted stage-entry contracts in proof and readback.
-12. Treat missing or contradictory stage-entry contracts as `REVISE` or
+12. Record the consulted stage-entry contracts in proof and readback.
+13. Treat missing or contradictory stage-entry contracts as `REVISE` or
     `BLOCKED`, not silent improvisation.
-13. Use deterministic prompts/procedures for lifecycle steps.
-14. When implementation workers are needed, launch/pin visible workers when the
+14. Use deterministic prompts/procedures for lifecycle steps.
+15. When implementation workers are needed, launch/pin visible workers when the
    host supports that. Otherwise record a local worker packet and explain what
    is possible in the current environment.
-15. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
+16. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
    `NEEDS_OWNER_ACTION`.
 
 ## Stage-Entry Contract Rule
@@ -145,6 +148,8 @@ Every bootstrap readback must say when these are not proven:
 - no live Codex app-server execution;
 - no live tracker or Linear mutation;
 - no production deploy;
+- no provider account, DNS/domain authority, hosting target, or launch access
+  unless separately validated through a safe access path;
 - no public send;
 - no billing, payment, or paid call;
 - no credential access or secret handling.

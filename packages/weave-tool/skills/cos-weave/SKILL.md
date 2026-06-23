@@ -48,6 +48,9 @@ it as COS WEAVE, move an app forward, or create a WEAVE Chief of Staff thread.
 - First-run onboarding questions in plain language when needed.
 - App/application state, local task ledger, proof path, and readback created
   internally.
+- Structured deployment prerequisites for provider access, using Cloudflare
+  DNS/domain authority and Vercel hosting/deploy target access as default
+  gates.
 - Owner-facing state: `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
   `NEEDS_OWNER_ACTION`.
 - Explicit non-claims.
@@ -89,20 +92,23 @@ WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> |
 8. Infer lifecycle stage from ordinary intent and app state; do not ask the
    owner to classify the stage.
 9. Create or load app/application state and local task ledger under WEAVE home.
-10. Ask about Linear/tracker access only when the workflow needs it; otherwise
+10. Record provider-specific deployment gates without raw secrets; local
+    intent, planning, and engineering can continue, but deployment or launch is
+    blocked until relevant provider access is validated.
+11. Ask about Linear/tracker access only when the workflow needs it; otherwise
     keep local tasks authoritative and explain optional tracker connection.
-11. Before planning or executing a lifecycle entry or transition, load the
+12. Before planning or executing a lifecycle entry or transition, load the
     stage-entry contract bundle for the inferred stage:
     `packages/weave-tool/evals/lifecycle/<stage>.yaml`, generated home-level or
     app-local lifecycle procedure, `packages/weave-tool/primitives/registry.json`
     entry, and relevant `packages/weave-tool/skills/*/SKILL.md` files.
-12. Record consulted stage-entry contracts in proof and readback.
-13. Return `REVISE` or `BLOCKED` when stage contracts are missing or
+13. Record consulted stage-entry contracts in proof and readback.
+14. Return `REVISE` or `BLOCKED` when stage contracts are missing or
     contradictory; do not improvise from a vague stage label or memory.
-14. Use deterministic lifecycle prompts/procedures.
-15. When implementation workers are needed, launch/pin visible workers if the
+15. Use deterministic lifecycle prompts/procedures.
+16. When implementation workers are needed, launch/pin visible workers if the
     host supports that; otherwise record a local worker packet.
-16. Return `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`.
+17. Return `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`.
 
 ## Rules
 
@@ -115,6 +121,8 @@ WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> |
   `BLOCKED`.
 - Use repo-local commands only as internal agent implementation details.
 - Preserve proof paths, owner boundaries, and non-claims in readback.
+- Preserve deployment provider gates in app state and readback; never treat
+  configuration text as provider access proof.
 - Stop at live/public/paid/credential/destructive gates without approval.
 
 ## Internal Tools
@@ -145,5 +153,7 @@ Verify prompt-first bootstrap by checking:
 - lifecycle stage is inferred from ordinary intent;
 - app/application state and local task ledger are recorded internally;
 - output includes proof path and non-claims;
+- app state includes provider deployment gates that use connector/MCP/brokered
+  validation and `secret_ref`, not raw provider secrets;
 - no live worker, tracker, deploy, public send, billing, or credential claim is
   made without target-surface proof.
