@@ -2,6 +2,22 @@
 
 Use this deterministic procedure after context compaction, model changes, or worker handoff.
 
+## Stage-Entry Contract
+
+Before planning or executing this lifecycle stage, infer the active or requested stage from owner intent and app state, then load these contracts:
+
+- eval: `packages/weave-tool/evals/lifecycle/plan.yaml`
+- home procedure: `procedures/lifecycle/04-plan.md`
+- app-local procedure: `apps/tiny-local-calculator/lifecycle/04-plan/procedure.md`
+- primitive registry: `packages/weave-tool/primitives/registry.json` entry where `lifecycleStage` is `plan`
+- relevant skills:
+- `packages/weave-tool/skills/cos-weave/SKILL.md`
+- `packages/weave-tool/skills/weave-lifecycle/SKILL.md`
+- `packages/weave-tool/skills/evidence-packet/SKILL.md`
+- `packages/weave-tool/skills/implementation-planning/SKILL.md`
+
+Record the consulted contracts in proof and readback. If any contract is missing or contradicts the requested work, return `REVISE` or `BLOCKED` before acting.
+
 ## Inputs
 
 - current app record
