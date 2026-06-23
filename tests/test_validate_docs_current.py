@@ -43,6 +43,15 @@ class ValidateDocsCurrentTests(unittest.TestCase):
             "Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git",
         )
 
+    def test_canonical_user_prompt_is_checked(self) -> None:
+        self.assertEqual(
+            validate_docs_current.CANONICAL_USER_PROMPT,
+            "Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build <ordinary app intent>.",
+        )
+
+    def test_readme_first_contact_and_deployment_gate_validate(self) -> None:
+        self.assertEqual(validate_docs_current.check_first_contact_readme(ROOT), [])
+
     def test_default_boundary_flags_stale_surface_terms(self) -> None:
         stale_term = "Sym" + "phony"
         findings = validate_docs_current.boundary_findings({"docs/example.md": f"requires {stale_term}"})
@@ -68,6 +77,90 @@ class ValidateDocsCurrentTests(unittest.TestCase):
         self.assertGreaterEqual(len(findings), 2)
         self.assertTrue(any("controller diff review" in finding for finding in findings))
         self.assertTrue(any("overclaims" in finding for finding in findings))
+
+    def test_first_contact_check_requires_cloudflare_vercel_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "README.md").write_text(
+                "## First Contact\n"
+                f"{validate_docs_current.CANONICAL_USER_PROMPT}\n"
+                f"{validate_docs_current.LAUNCHER_PREFIX}\n"
+                "The user provides: intent.\n"
+                "The agent does automatically: creates or loads `runs/cos-weave-home/`, app state, proof, readback.\n"
+                "## Default File-Skeleton State\n",
+                encoding="utf-8",
+            )
+            (root / "COS_WEAVE_FIRST_CONTACT.md").write_text(
+                validate_docs_current.CANONICAL_USER_PROMPT,
+                encoding="utf-8",
+            )
+            (root / "COS_WEAVE_LAUNCHER.md").write_text(
+                validate_docs_current.CANONICAL_USER_PROMPT,
+                encoding="utf-8",
+            )
+
+            findings = validate_docs_current.check_first_contact_readme(root)
+
+        self.assertTrue(any("Deployment Gates" in finding for finding in findings))
+
+    def test_first_contact_check_allows_wrapped_deployment_gate_text(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "README.md").write_text(
+                "## First Contact\n"
+                f"{validate_docs_current.CANONICAL_USER_PROMPT}\n"
+                f"{validate_docs_current.LAUNCHER_PREFIX}\n"
+                "The user provides: intent.\n"
+                "The agent does automatically: creates or loads `runs/cos-weave-home/`, app state, proof, readback.\n"
+                "## Default File-Skeleton State\n"
+                "## Deployment Gates\n"
+                "Cloudflare and Vercel are not required for intent capture,\n"
+                "planning, or local engineering. Stop before DNS changes,\n"
+                "provider mutations, and production deploys. Do not paste raw\n"
+                "Cloudflare, Vercel, DNS, OAuth, API, or service credentials into chat.\n"
+                "## Visual Model\n",
+                encoding="utf-8",
+            )
+            (root / "COS_WEAVE_FIRST_CONTACT.md").write_text(
+                validate_docs_current.CANONICAL_USER_PROMPT,
+                encoding="utf-8",
+            )
+            (root / "COS_WEAVE_LAUNCHER.md").write_text(
+                validate_docs_current.CANONICAL_USER_PROMPT,
+                encoding="utf-8",
+            )
+
+            findings = validate_docs_current.check_first_contact_readme(root)
+
+        self.assertEqual(findings, [])
+
+    def test_cli_surface_check_rejects_stale_help_terms(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            bin_dir = root / "bin"
+            scripts_dir = root / "scripts"
+            bin_dir.mkdir()
+            scripts_dir.mkdir()
+            (scripts_dir / "weave_cli.py").write_text("# placeholder\n", encoding="utf-8")
+            wrapper = bin_dir / "weave"
+            wrapper.write_text("#!/usr/bin/env sh\necho 'cos-bootstrap readback eval onboard'\n", encoding="utf-8")
+            wrapper.chmod(0o755)
+
+            findings = validate_docs_current.check_public_cli_surface(root)
+
+        self.assertTrue(any("stale command" in finding for finding in findings))
+
+    def test_root_dotfile_check_rejects_unused_build_context_ignore(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / ".dockerignore").write_text("runs\n", encoding="utf-8")
+
+            findings = validate_docs_current.check_root_dotfiles(root)
+
+        self.assertEqual(
+            findings,
+            [".dockerignore exists but current vNext has no container build-context command"],
+        )
 
 
 if __name__ == "__main__":

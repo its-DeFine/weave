@@ -33,6 +33,8 @@ hard to overclaim.
   extension.
 - Runtime-agent governance was removed from the default lifecycle eval and
   skill surface so the current package does not imply required orchestration.
+- The unused root build-context ignore file was removed because current vNext
+  has no container build or validation command that uses it.
 - Tests were added or updated to catch lifecycle vocabulary drift, package
   boundary drift, and sample/generated skeleton drift.
 
@@ -50,7 +52,6 @@ hard to overclaim.
 | `VERSION` | Current package/repo version marker. | keep | One-line version is cheaper than deriving release identity from prose. |
 | `requirements.txt` | Declares no third-party Python runtime dependency. | keep | Useful negative proof: stdlib-first product. |
 | `.gitignore` | Keeps local runtime artifacts, envs, caches, and generated runs out of the repo. | safety-critical | Prevents private or noisy local state from becoming public. |
-| `.dockerignore` | Keeps Docker/build contexts public-safe if used later. | keep | Boring guardrail; tiny cost, useful if packaging is tested. |
 
 ### GitHub And CI
 

@@ -7,9 +7,7 @@ In a Codex thread with the repo loaded:
 ```text
 Before any commentary or execution packet, open or clone this repository and read COS_WEAVE_FIRST_CONTACT.md, AGENTS.md, and docs/COS_WEAVE_BOOTSTRAP.md. Obey the COS WEAVE first-contact contract from those files: your first meaningful response must start with the WEAVE state line.
 
-Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
-
-I want to build a tiny local calculator app. Work locally only unless I explicitly approve another surface.
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build a tiny local calculator app. Work locally only unless I explicitly approve another surface.
 ```
 
 Expected first meaningful line:

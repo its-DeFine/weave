@@ -5,15 +5,15 @@ Status: root-level activation contract
 Trigger:
 
 ```text
-Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build <ordinary app intent>.
 ```
 
 If this repository is not already loaded in the Codex thread, use the tiny
 launcher in `COS_WEAVE_LAUNCHER.md` first. Remote URL-only startup cannot
 deterministically control a projectless thread's pre-read first response.
 
-If a normal Codex thread receives that trigger plus ordinary app intent, the
-first meaningful assistant response must start with this line shape:
+If a normal Codex thread receives that trigger, the first meaningful assistant
+response must start with this line shape:
 
 ```text
 WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>

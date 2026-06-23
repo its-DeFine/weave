@@ -55,6 +55,14 @@ RELEASE_VISUALS = [
 ]
 
 CANONICAL_RELEASE_TRIGGER = "Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git"
+CANONICAL_USER_PROMPT = (
+    "Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. "
+    "I want to build <ordinary app intent>."
+)
+LAUNCHER_PREFIX = (
+    "Before any commentary or execution packet, open or clone this repository "
+    "and read COS_WEAVE_FIRST_CONTACT.md, AGENTS.md, and docs/COS_WEAVE_BOOTSTRAP.md."
+)
 
 GENERIC_PACKAGE_DOCS = [
     "packages/weave-tool/COMPANY.md",
@@ -87,6 +95,14 @@ def legacy_terms() -> list[str]:
 
 def read_text(root: Path, rel: str) -> str:
     return (root / rel).read_text(encoding="utf-8", errors="replace")
+
+
+def normalize_space(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def contains_phrase(text: str, phrase: str) -> bool:
+    return normalize_space(phrase) in normalize_space(text)
 
 
 def current_files(root: Path) -> list[Path]:
@@ -332,6 +348,121 @@ def check_release_trigger(root: Path) -> list[str]:
     return findings
 
 
+def check_first_contact_readme(root: Path) -> list[str]:
+    findings: list[str] = []
+    readme = read_text(root, "README.md")
+    first_contact = read_text(root, "COS_WEAVE_FIRST_CONTACT.md")
+    launcher = read_text(root, "COS_WEAVE_LAUNCHER.md")
+
+    for rel, text in {
+        "README.md": readme,
+        "COS_WEAVE_FIRST_CONTACT.md": first_contact,
+        "COS_WEAVE_LAUNCHER.md": launcher,
+    }.items():
+        if not contains_phrase(text, CANONICAL_USER_PROMPT):
+            findings.append(f"{rel}: missing canonical user prompt")
+
+    first_contact_section = section_between(readme, "## First Contact", "## Default File-Skeleton State")
+    if not first_contact_section:
+        findings.append("README.md: missing First Contact section before skeleton state")
+    else:
+        if not contains_phrase(first_contact_section, CANONICAL_USER_PROMPT):
+            findings.append("README.md: First Contact section missing canonical user prompt")
+        if not contains_phrase(first_contact_section, LAUNCHER_PREFIX):
+            findings.append("README.md: First Contact section missing projectless launcher prompt")
+        if "The user provides:" not in first_contact_section or "The agent does automatically:" not in first_contact_section:
+            findings.append("README.md: First Contact section must split user inputs from agent actions")
+        required_next = [
+            "creates or loads `runs/cos-weave-home/`",
+            "app state",
+            "proof",
+            "readback",
+        ]
+        for phrase in required_next:
+            if phrase not in first_contact_section:
+                findings.append(f"README.md: First Contact section missing next-step detail {phrase!r}")
+
+    deployment = section_between(readme, "## Deployment Gates", "## Visual Model")
+    if not deployment:
+        findings.append("README.md: missing Deployment Gates section")
+    else:
+        required = [
+            "Cloudflare",
+            "Vercel",
+            "not required for intent capture",
+            "planning",
+            "local engineering",
+            "DNS changes",
+            "provider mutations",
+            "production deploys",
+            "Do not paste raw Cloudflare, Vercel, DNS, OAuth, API, or service credentials into chat",
+        ]
+        for phrase in required:
+            if not contains_phrase(deployment, phrase):
+                findings.append(f"README.md: Deployment Gates section missing {phrase!r}")
+    return findings
+
+
+def check_public_cli_surface(root: Path) -> list[str]:
+    findings: list[str] = []
+    wrapper = root / "bin" / "weave"
+    cli = root / "scripts" / "weave_cli.py"
+    if not wrapper.exists():
+        findings.append("bin/weave is missing")
+    if not cli.exists():
+        findings.append("scripts/weave_cli.py is missing")
+    if findings:
+        return findings
+
+    try:
+        result = subprocess.run(
+            [str(wrapper), "help"],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return [f"bin/weave help could not run: {exc}"]
+
+    output = f"{result.stdout}\n{result.stderr}"
+    if result.returncode != 0:
+        findings.append(f"bin/weave help exited {result.returncode}")
+
+    required = ["cos-bootstrap", "readback", "eval"]
+    for command in required:
+        if command not in output:
+            findings.append(f"bin/weave help missing current command {command!r}")
+
+    forbidden = [
+        "attach-" + "her" + "mes",
+        "her" + "mes",
+        "t" + "ui",
+        "tex" + "tual",
+        "runtime-home",
+        "runtime home",
+        "runtime-agent",
+        "runtime agent",
+        "gate" + "way",
+        "onboard",
+        "sym" + "phony",
+        "sym" + "phone",
+    ]
+    lowered = output.lower()
+    for term in forbidden:
+        if term in lowered:
+            findings.append(f"bin/weave help exposes stale command/surface {term!r}")
+    return findings
+
+
+def check_root_dotfiles(root: Path) -> list[str]:
+    findings: list[str] = []
+    if (root / ".dockerignore").exists():
+        findings.append(".dockerignore exists but current vNext has no container build-context command")
+    return findings
+
+
 def validate_repo(root: Path = REPO_ROOT) -> list[str]:
     findings: list[str] = []
     checks = [
@@ -342,6 +473,9 @@ def validate_repo(root: Path = REPO_ROOT) -> list[str]:
         check_non_claims,
         check_release_assets,
         check_release_trigger,
+        check_first_contact_readme,
+        check_public_cli_surface,
+        check_root_dotfiles,
     ]
     for check in checks:
         findings.extend(check(root))
