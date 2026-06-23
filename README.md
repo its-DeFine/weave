@@ -4,33 +4,21 @@
 
 Current release: `v0.1.0`.
 
-WEAVE vNext is a COS-first repository skeleton for Codex. A user gives a Codex
-thread this repository URL or path plus ordinary app intent. The thread becomes
-COS WEAVE, creates visible local state, and keeps app lifecycle work legible
-through files: intent, todos, lifecycle, worker packets, proof, blockers,
-review, and readback.
+WEAVE is a Chief-of-Staff mode for Codex: paste the public repo URL plus an
+ordinary app idea, and the Codex thread becomes COS WEAVE, a local-file
+operating skeleton for app intent, lifecycle state, worker packets, proof,
+blockers, review, and readback.
 
 WEAVE does not require a terminal UI, external orchestrator, tracker, deployment
 account, credentials, or manual lifecycle classification for first contact.
 
 ## First Contact
 
-Use this in a fresh Codex thread:
+Normal user prompt:
 
 ```text
-Before any commentary or execution packet, open or clone this repository and read COS_WEAVE_FIRST_CONTACT.md, AGENTS.md, and docs/COS_WEAVE_BOOTSTRAP.md. Obey the COS WEAVE first-contact contract from those files: your first meaningful response must start with the WEAVE state line.
-
-Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
-
-I want to build a tiny local calculator app. Work locally only unless I explicitly approve another surface.
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build <ordinary app intent>.
 ```
-
-The WEAVE state line must appear before any execution packet. Do not start with `Execution packet`.
-
-If the thread already has this repo loaded locally, the local-path shorthand in
-[COS_WEAVE_LAUNCHER.md](COS_WEAVE_LAUNCHER.md) is also valid. A remote URL
-alone cannot make the first pre-read model message follow repository
-instructions.
 
 The first meaningful response must begin with:
 
@@ -38,7 +26,43 @@ The first meaningful response must begin with:
 WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> | Scope=local-file-skeleton | State=<state> | Next=<next action>
 ```
 
-This line comes before any execution packet or generic task framing.
+The WEAVE state line must appear before any execution packet. Do not start with `Execution packet`.
+
+Example:
+
+```text
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build a tiny local calculator app.
+```
+
+If the Codex thread is projectless and only has the public Git URL, use this
+stronger launcher prompt instead. It tells the agent to read the repo contract
+before sending a generic execution packet:
+
+```text
+Before any commentary or execution packet, open or clone this repository and read COS_WEAVE_FIRST_CONTACT.md, AGENTS.md, and docs/COS_WEAVE_BOOTSTRAP.md. Obey the COS WEAVE first-contact contract from those files: your first meaningful response must start with the WEAVE state line.
+
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build <ordinary app intent>. Work locally only unless I explicitly approve another surface.
+```
+
+## What Happens Next
+
+1. The Codex agent opens or clones the public repository.
+2. It reads `COS_WEAVE_FIRST_CONTACT.md`, `AGENTS.md`, and
+   `docs/COS_WEAVE_BOOTSTRAP.md`.
+3. It announces itself with the `WEAVE | ...` state line.
+4. It creates or loads `runs/cos-weave-home/` inside the repo workspace.
+5. It infers the app and lifecycle slice from ordinary words.
+6. It writes app state, lifecycle state, todos, worker packets, proof,
+   blockers, review queue, and readback files.
+7. It asks only the owner questions needed for safe local progress.
+8. It reports what is proven, what is not proven, and the next safe action.
+
+The user provides: the repo URL, ordinary app intent, answers to any lightweight
+clarifying questions, and explicit approval for any external surface.
+
+The agent does automatically: repo reading, local WEAVE home creation, app
+folder creation, lifecycle inference, proof/readback writing, and local
+validation. The user should not need to run CLI commands to start WEAVE.
 
 ## Default File-Skeleton State
 
@@ -79,6 +103,18 @@ runs/cos-weave-home/
 ```
 
 These developer commands are not the user-facing first-run path.
+
+## Deployment Gates
+
+Cloudflare and Vercel are useful and expected deployment surfaces when an app
+reaches a deployment stage, but they are not required for intent capture,
+planning, or local engineering. COS WEAVE must stop before DNS changes,
+provider mutations, production deploys, paid actions, or public release unless
+the owner explicitly approves the target surface and the proof required.
+
+Do not paste raw Cloudflare, Vercel, DNS, OAuth, API, or service credentials
+into chat. Use an approved local secret manager or brokered execution path only
+after the deployment gate is intentionally opened.
 
 ## Visual Model
 

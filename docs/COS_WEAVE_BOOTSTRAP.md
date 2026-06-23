@@ -8,7 +8,7 @@ Date: 2026-06-22
 Trigger:
 
 ```text
-Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build <ordinary app intent>.
 ```
 
 If the user gives that trigger with ordinary app intent, the first meaningful
@@ -28,15 +28,13 @@ A Codex thread that is already repo-scoped to WEAVE should be able to start from
 this:
 
 ```text
-Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build <ordinary app intent>.
 ```
 
 or:
 
 ```text
-Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git
-
-I want to build something.
+Use WEAVE release v0.1.0 from https://github.com/its-DeFine/weave.git. I want to build something.
 ```
 
 The user should not need to run a WEAVE command, name a lifecycle stage, create
