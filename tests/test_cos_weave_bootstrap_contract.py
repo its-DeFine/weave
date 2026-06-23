@@ -8,6 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = ROOT / "docs" / "COS_WEAVE_BOOTSTRAP.md"
 SKILL = ROOT / "packages" / "weave-tool" / "skills" / "cos-weave" / "SKILL.md"
+LIFECYCLE_SKILL = ROOT / "packages" / "weave-tool" / "skills" / "weave-lifecycle" / "SKILL.md"
 AGENTS = ROOT / "AGENTS.md"
 README = ROOT / "README.md"
 FIRST_CONTACT = ROOT / "COS_WEAVE_FIRST_CONTACT.md"
@@ -162,12 +163,29 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             "Create or load the app/application workspace under WEAVE home",
             "Record provider-specific deployment prerequisites under the app workspace",
             "Ask about Linear/tracker access only when the workflow needs it",
+            "Before planning or executing a lifecycle entry or transition",
+            "packages/weave-tool/evals/lifecycle/<stage>.yaml",
+            "packages/weave-tool/primitives/registry.json",
+            "Record the consulted stage-entry contracts in proof and readback",
+            "Treat missing or contradictory stage-entry contracts as `REVISE` or `BLOCKED`",
             "Use deterministic prompts/procedures for lifecycle steps",
             "Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
+
+    def test_stage_entry_rule_is_in_bootstrap_and_lifecycle_skills(self) -> None:
+        for path in [BOOTSTRAP, SKILL, LIFECYCLE_SKILL, SKELETON]:
+            text = normalized(path)
+            with self.subTest(path=path):
+                self.assertIn("stage-entry contract", text)
+                self.assertIn("packages/weave-tool/evals/lifecycle/<stage>.yaml", text)
+                self.assertIn("packages/weave-tool/primitives/registry.json", text)
+                self.assertIn("packages/weave-tool/skills/*/SKILL.md", text)
+                self.assertIn("REVISE", text)
+                self.assertIn("BLOCKED", text)
+                self.assertIn("owner", text.lower())
 
     def test_default_bootstrap_read_list_excludes_external_orchestrator_plan(self) -> None:
         text = BOOTSTRAP.read_text(encoding="utf-8")
@@ -237,6 +255,10 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
         self.assertIn("cloudflare", sample_text.lower())
         self.assertIn("vercel", sample_text.lower())
         self.assertIn("observe -> validate -> govern -> review -> sync", sample_text)
+        self.assertIn("stage_entry_contract", sample_text)
+        self.assertIn("consulted_contract_refs", sample_text)
+        self.assertIn("packages/weave-tool/evals/lifecycle/intent.yaml", sample_text)
+        self.assertIn("packages/weave-tool/primitives/registry.json", sample_text)
         self.assertNotIn("external orchestrator", sample_text.lower())
         self.assertNotIn("02-requirements", sample_text.lower())
 

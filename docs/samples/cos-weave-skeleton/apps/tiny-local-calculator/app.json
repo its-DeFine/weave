@@ -1,6 +1,6 @@
 {
   "app_id": "tiny-local-calculator",
-  "created_at": "2026-06-23T16:14:42Z",
+  "created_at": "2026-06-23T20:42:45Z",
   "current_stage": "intent",
   "deployment_gates": {
     "blocked_by_provider_access": true,
@@ -191,7 +191,7 @@
     "message": "Tracker access is optional; local WEAVE task ledger is authoritative until a tracker is connected and approved.",
     "mode": "local"
   },
-  "updated_at": "2026-06-23T16:14:42Z",
+  "updated_at": "2026-06-23T20:42:45Z",
   "worker_orchestration": {
     "mode": "local_packet_recorded",
     "visible_worker_instruction": "Launch/pin visible Codex workers when the host supports thread creation; otherwise keep local packets and report the limitation."

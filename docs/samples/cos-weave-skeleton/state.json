@@ -29,9 +29,223 @@
     "sync"
   ],
   "schema": "weave-cos-skeleton/v0.1",
-  "source_repo": "<weave-repo>",
+  "source_repo": ".",
+  "stage_contract_findings": [],
+  "stage_contract_state": "verified",
+  "stage_entry_contracts": [
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/01-intent/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/intent.yaml",
+      "home_procedure_ref": "procedures/lifecycle/01-intent.md",
+      "label": "Intent",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "intent",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/compound-engineering/SKILL.md"
+      ],
+      "stage": "intent"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/02-research/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/research.yaml",
+      "home_procedure_ref": "procedures/lifecycle/02-research.md",
+      "label": "Research",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "research",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/primitive-market-research/SKILL.md"
+      ],
+      "stage": "research"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/03-selection/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/selection.yaml",
+      "home_procedure_ref": "procedures/lifecycle/03-selection.md",
+      "label": "Selection",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "selection",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/implementation-planning/SKILL.md"
+      ],
+      "stage": "selection"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/04-plan/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/plan.yaml",
+      "home_procedure_ref": "procedures/lifecycle/04-plan.md",
+      "label": "Plan",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "plan",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/implementation-planning/SKILL.md"
+      ],
+      "stage": "plan"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/05-engineering/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/engineering.yaml",
+      "home_procedure_ref": "procedures/lifecycle/05-engineering.md",
+      "label": "Engineering",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "engineering",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+        "packages/weave-tool/skills/engineering-execution/SKILL.md"
+      ],
+      "stage": "engineering"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/06-qa/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/qa.yaml",
+      "home_procedure_ref": "procedures/lifecycle/06-qa.md",
+      "label": "QA",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "qa",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/qa-verification/SKILL.md"
+      ],
+      "stage": "qa"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/07-deployment/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/deployment.yaml",
+      "home_procedure_ref": "procedures/lifecycle/07-deployment.md",
+      "label": "Deployment",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "deployment",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/qa-verification/SKILL.md",
+        "packages/weave-tool/skills/security-release-review/SKILL.md"
+      ],
+      "stage": "deployment"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/08-kpi-setup/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/kpi-setup.yaml",
+      "home_procedure_ref": "procedures/lifecycle/08-kpi-setup.md",
+      "label": "KPI Setup",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "kpi-setup",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md"
+      ],
+      "stage": "kpi-setup"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/09-marketing/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/marketing.yaml",
+      "home_procedure_ref": "procedures/lifecycle/09-marketing.md",
+      "label": "Marketing",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "marketing",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/security-release-review/SKILL.md"
+      ],
+      "stage": "marketing"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/10-iteration/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/iteration.yaml",
+      "home_procedure_ref": "procedures/lifecycle/10-iteration.md",
+      "label": "Iteration",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "iteration",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/compound-engineering/SKILL.md"
+      ],
+      "stage": "iteration"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/11-analysis/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/analysis.yaml",
+      "home_procedure_ref": "procedures/lifecycle/11-analysis.md",
+      "label": "Analysis",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "analysis",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md"
+      ],
+      "stage": "analysis"
+    }
+  ],
+  "stage_entry_rule": "infer stage from owner intent and app state, load eval/procedure/primitive/skills before acting, then record consulted contracts in proof/readback",
   "standard_home": "runs/cos-weave-home",
   "state": "local_skeleton_ready",
   "surface": "codex",
-  "updated_at": "2026-06-23T16:14:42Z"
+  "updated_at": "2026-06-23T20:42:45Z"
 }

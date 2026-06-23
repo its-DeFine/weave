@@ -9,5 +9,24 @@
   ],
   "schema": "weave-cos-stage-state/v0.1",
   "stage": "qa",
+  "stage_entry_contract": {
+    "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/06-qa/procedure.md",
+    "eval_ref": "packages/weave-tool/evals/lifecycle/qa.yaml",
+    "home_procedure_ref": "procedures/lifecycle/06-qa.md",
+    "label": "QA",
+    "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+    "owner_stage_classification_required": false,
+    "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+    "primitive_stage": "qa",
+    "required_before_action": true,
+    "schema": "weave-stage-entry-contract/v0.1",
+    "skill_refs": [
+      "packages/weave-tool/skills/cos-weave/SKILL.md",
+      "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+      "packages/weave-tool/skills/evidence-packet/SKILL.md",
+      "packages/weave-tool/skills/qa-verification/SKILL.md"
+    ],
+    "stage": "qa"
+  },
   "state": "not_started"
 }

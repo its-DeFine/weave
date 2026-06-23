@@ -10,6 +10,47 @@
         "apps/tiny-local-calculator/tasks/worker-packets/WP-0001.md"
       ],
       "claim": "COS WEAVE skeleton home and app state were created locally",
+      "consulted_contract_refs": [
+        {
+          "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/01-intent/procedure.md",
+          "eval_ref": "packages/weave-tool/evals/lifecycle/intent.yaml",
+          "home_procedure_ref": "procedures/lifecycle/01-intent.md",
+          "label": "Intent",
+          "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+          "owner_stage_classification_required": false,
+          "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+          "primitive_stage": "intent",
+          "required_before_action": true,
+          "schema": "weave-stage-entry-contract/v0.1",
+          "skill_refs": [
+            "packages/weave-tool/skills/cos-weave/SKILL.md",
+            "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+            "packages/weave-tool/skills/evidence-packet/SKILL.md",
+            "packages/weave-tool/skills/compound-engineering/SKILL.md"
+          ],
+          "stage": "intent"
+        },
+        {
+          "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/05-engineering/procedure.md",
+          "eval_ref": "packages/weave-tool/evals/lifecycle/engineering.yaml",
+          "home_procedure_ref": "procedures/lifecycle/05-engineering.md",
+          "label": "Engineering",
+          "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+          "owner_stage_classification_required": false,
+          "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+          "primitive_stage": "engineering",
+          "required_before_action": true,
+          "schema": "weave-stage-entry-contract/v0.1",
+          "skill_refs": [
+            "packages/weave-tool/skills/cos-weave/SKILL.md",
+            "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+            "packages/weave-tool/skills/evidence-packet/SKILL.md",
+            "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+            "packages/weave-tool/skills/engineering-execution/SKILL.md"
+          ],
+          "stage": "engineering"
+        }
+      ],
       "non_claims": [
         "does not prove Codex app-server execution",
         "does not prove live tracker or Linear mutation",

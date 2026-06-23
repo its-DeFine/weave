@@ -44,7 +44,7 @@ def cos_bootstrap_message(home: Path, source: Path, intent: str, readback: dict[
 
 
 def blocked_payload(args: argparse.Namespace, source: Path, reason: str, owner_action: str) -> dict[str, object]:
-    home = args.home.expanduser().resolve() if args.home else (Path.cwd() / "runs" / "cos-weave-home").resolve()
+    home = args.home.expanduser() if args.home else Path("runs") / "cos-weave-home"
     return {
         "schema": "weave-cos-bootstrap/v0.1",
         "state": "BLOCKED",
@@ -101,7 +101,7 @@ def print_payload(payload: dict[str, object], output: TextIO, *, as_json: bool) 
 def local_source_from_arg(raw: str) -> Path | None:
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", raw.strip()):
         return None
-    return Path(raw).expanduser().resolve()
+    return Path(raw).expanduser()
 
 
 def cos_bootstrap(args: argparse.Namespace, output: TextIO) -> int:
@@ -117,7 +117,7 @@ def cos_bootstrap(args: argparse.Namespace, output: TextIO) -> int:
         print_payload(payload, output, as_json=args.json)
         return 1
 
-    home = args.home.expanduser().resolve() if args.home else (source / "runs" / "cos-weave-home").resolve()
+    home = args.home.expanduser() if args.home else source / "runs" / "cos-weave-home"
     if not source.exists() or not source.is_dir():
         payload = blocked_payload(args, source, "source path does not exist", "Provide an existing local WEAVE repository path.")
         print_payload(payload, output, as_json=args.json)
@@ -156,7 +156,7 @@ def cos_bootstrap(args: argparse.Namespace, output: TextIO) -> int:
 
 
 def readback(args: argparse.Namespace, output: TextIO) -> int:
-    home = args.home.expanduser().resolve()
+    home = args.home.expanduser()
     if not (home / "state.json").exists():
         raise CliError(f"WEAVE home is missing or incomplete: {home}")
     payload = weave_cos_skeleton.readback(home)

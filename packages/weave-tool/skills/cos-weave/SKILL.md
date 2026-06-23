@@ -89,23 +89,36 @@ WEAVE | Home=<repo>/runs/cos-weave-home | App=<app-or-pending> | Stage=<stage> |
    questions. Do not read raw secrets, raw logs, raw transcripts, cookies,
    browser sessions, database dumps, or broad private data.
 7. Ask first-run owner/app questions in plain language when needed.
-8. Infer lifecycle stage from ordinary intent.
+8. Infer lifecycle stage from ordinary intent and app state; do not ask the
+   owner to classify the stage.
 9. Create or load app/application state and local task ledger under WEAVE home.
 10. Record provider-specific deployment gates without raw secrets; local
     intent, planning, and engineering can continue, but deployment or launch is
     blocked until relevant provider access is validated.
 11. Ask about Linear/tracker access only when the workflow needs it; otherwise
     keep local tasks authoritative and explain optional tracker connection.
-12. Use deterministic lifecycle prompts/procedures.
-13. When implementation workers are needed, launch/pin visible workers if the
+12. Before planning or executing a lifecycle entry or transition, load the
+    stage-entry contract bundle for the inferred stage:
+    `packages/weave-tool/evals/lifecycle/<stage>.yaml`, generated home-level or
+    app-local lifecycle procedure, `packages/weave-tool/primitives/registry.json`
+    entry, and relevant `packages/weave-tool/skills/*/SKILL.md` files.
+13. Record consulted stage-entry contracts in proof and readback.
+14. Return `REVISE` or `BLOCKED` when stage contracts are missing or
+    contradictory; do not improvise from a vague stage label or memory.
+15. Use deterministic lifecycle prompts/procedures.
+16. When implementation workers are needed, launch/pin visible workers if the
     host supports that; otherwise record a local worker packet.
-14. Return `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`.
+17. Return `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`.
 
 ## Rules
 
 - Treat the repo URL/path as the activation surface.
 - Keep the user-facing surface as one COS WEAVE chat.
 - Do not require the user to know WEAVE lifecycle vocabulary.
+- Infer stage entry internally and load eval/procedure/primitive/skill
+  contracts before acting on a lifecycle stage.
+- Keep missing or contradictory stage contracts visible as `REVISE` or
+  `BLOCKED`.
 - Use repo-local commands only as internal agent implementation details.
 - Preserve proof paths, owner boundaries, and non-claims in readback.
 - Preserve deployment provider gates in app state and readback; never treat

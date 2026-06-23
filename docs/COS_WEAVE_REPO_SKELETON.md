@@ -74,7 +74,9 @@ runs/cos-weave-home/
 - `intent-truth.json`: resumable truth/completion boundary for the active slice.
 - `lifecycle.json`: stage state, gates, proofs, blockers, and non-claims.
 - `lifecycle/`: per-stage procedure and state files matching the canonical
-  lifecycle vocabulary.
+  lifecycle vocabulary. Each stage state includes the stage-entry contract
+  refs that must be loaded before acting: eval YAML, generated procedure,
+  primitive registry entry, and relevant skills.
 - `todos.md`: next actions split by agent, owner, and blocked items.
 - `tasks.json` and `tasks/`: local task ledger and worker packet references.
 - `worker-packets/`: packets that a COS WEAVE thread can give to pinned worker
@@ -122,6 +124,20 @@ short alias, but generated files, eval contracts, and primitives use
 
 Not every task uses every stage. A narrow task can be accepted for its stated
 scope, but the agent must explicitly say which stages were not attempted.
+
+## Stage-Entry Contracts
+
+Before a COS WEAVE agent plans or executes any lifecycle entry or transition,
+it infers the stage from owner intent and app state, loads the matching
+`packages/weave-tool/evals/lifecycle/<stage>.yaml`, reads the generated
+home-level or app-local procedure, checks the stage entry in
+`packages/weave-tool/primitives/registry.json`, and selects relevant
+`packages/weave-tool/skills/*/SKILL.md` files.
+
+The generated lifecycle state, stage procedure, proof tray, worker packet, and
+readback record those consulted contracts. Missing or contradictory contracts
+produce `REVISE` or `BLOCKED`; they are not permission for the agent to
+improvise from memory. The owner still does not need to name lifecycle stages.
 
 ## Core Rule
 

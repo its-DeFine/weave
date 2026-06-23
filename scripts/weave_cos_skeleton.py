@@ -36,6 +36,32 @@ LIFECYCLE_STAGES: list[tuple[str, str]] = [
     ("analysis", "Analysis"),
 ]
 
+BASE_STAGE_SKILLS = [
+    "packages/weave-tool/skills/cos-weave/SKILL.md",
+    "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+    "packages/weave-tool/skills/evidence-packet/SKILL.md",
+]
+
+STAGE_SKILL_REFS: dict[str, list[str]] = {
+    "intent": ["packages/weave-tool/skills/compound-engineering/SKILL.md"],
+    "research": ["packages/weave-tool/skills/primitive-market-research/SKILL.md"],
+    "selection": ["packages/weave-tool/skills/implementation-planning/SKILL.md"],
+    "plan": ["packages/weave-tool/skills/implementation-planning/SKILL.md"],
+    "engineering": [
+        "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+        "packages/weave-tool/skills/engineering-execution/SKILL.md",
+    ],
+    "qa": ["packages/weave-tool/skills/qa-verification/SKILL.md"],
+    "deployment": [
+        "packages/weave-tool/skills/qa-verification/SKILL.md",
+        "packages/weave-tool/skills/security-release-review/SKILL.md",
+    ],
+    "kpi-setup": ["packages/weave-tool/skills/evidence-packet/SKILL.md"],
+    "marketing": ["packages/weave-tool/skills/security-release-review/SKILL.md"],
+    "iteration": ["packages/weave-tool/skills/compound-engineering/SKILL.md"],
+    "analysis": ["packages/weave-tool/skills/evidence-packet/SKILL.md"],
+}
+
 REVIEW_LOOP = ["observe", "validate", "govern", "review", "sync"]
 
 ONBOARDING_QUESTIONS = [
@@ -50,6 +76,11 @@ SAFE_CONTEXT_CHECKED = [
     "docs/COS_WEAVE_BOOTSTRAP.md",
     "docs/COS_WEAVE_REPO_SKELETON.md",
     "packages/weave-tool/skills/cos-weave/SKILL.md",
+    "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+    "packages/weave-tool/evals/lifecycle/<stage>.yaml",
+    "packages/weave-tool/primitives/registry.json",
+    "runs/cos-weave-home/procedures/lifecycle/<stage>.md",
+    "runs/cos-weave-home/apps/<app-id>/lifecycle/<stage>/procedure.md",
 ]
 
 SAFE_CONTEXT_AVOIDED = [
@@ -167,6 +198,78 @@ def stage_index(stage_id: str) -> int:
         if candidate == stage_id:
             return index
     return 0
+
+
+def stage_skill_refs(stage_id: str) -> list[str]:
+    refs = BASE_STAGE_SKILLS + STAGE_SKILL_REFS.get(stage_id, [])
+    deduped: list[str] = []
+    for ref in refs:
+        if ref not in deduped:
+            deduped.append(ref)
+    return deduped
+
+
+def stage_contract(stage_id: str, label: str, index: int, app_id: str | None = None) -> dict[str, Any]:
+    stage_dir = f"{index:02d}-{stage_id}"
+    app_procedure_ref = (
+        f"apps/{app_id}/lifecycle/{stage_dir}/procedure.md"
+        if app_id
+        else f"apps/<app-id>/lifecycle/{stage_dir}/procedure.md"
+    )
+    return {
+        "schema": "weave-stage-entry-contract/v0.1",
+        "stage": stage_id,
+        "label": label,
+        "eval_ref": f"packages/weave-tool/evals/lifecycle/{stage_id}.yaml",
+        "home_procedure_ref": f"procedures/lifecycle/{stage_dir}.md",
+        "app_procedure_ref": app_procedure_ref,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": stage_id,
+        "skill_refs": stage_skill_refs(stage_id),
+        "required_before_action": True,
+        "owner_stage_classification_required": False,
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+    }
+
+
+def all_stage_contracts(app_id: str | None = None) -> list[dict[str, Any]]:
+    return [
+        stage_contract(stage_id, label, index, app_id=app_id)
+        for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES, start=1)
+    ]
+
+
+def verify_stage_contracts(source: Path) -> tuple[list[dict[str, Any]], list[str]]:
+    contracts = all_stage_contracts()
+    findings: list[str] = []
+    primitive_registry = source / "packages/weave-tool/primitives/registry.json"
+    primitive_stages: set[str] = set()
+    if primitive_registry.exists():
+        try:
+            payload = json.loads(primitive_registry.read_text(encoding="utf-8"))
+            primitives = payload.get("primitives", [])
+            if isinstance(primitives, list):
+                primitive_stages = {
+                    str(item.get("lifecycleStage"))
+                    for item in primitives
+                    if isinstance(item, dict) and item.get("lifecycleStage")
+                }
+        except json.JSONDecodeError as exc:
+            findings.append(f"packages/weave-tool/primitives/registry.json is not valid JSON: {exc}")
+    else:
+        findings.append("missing packages/weave-tool/primitives/registry.json")
+
+    for contract in contracts:
+        eval_ref = str(contract["eval_ref"])
+        if not (source / eval_ref).exists():
+            findings.append(f"missing {eval_ref}")
+        stage = str(contract["stage"])
+        if stage not in primitive_stages:
+            findings.append(f"missing primitive registry entry for lifecycle stage {stage}")
+        for skill_ref in contract["skill_refs"]:
+            if not (source / str(skill_ref)).exists():
+                findings.append(f"missing {skill_ref}")
+    return contracts, findings
 
 
 def infer_requested_stage(intent: str) -> str:
@@ -399,16 +502,17 @@ def intent_truth_record(app_id: str, app_name: str, intent: str, requested_stage
     }
 
 
-def lifecycle_rows(current_stage: str, requested_stage: str) -> list[dict[str, Any]]:
+def lifecycle_rows(current_stage: str, requested_stage: str, app_id: str) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     current_index = stage_index(current_stage)
     requested_index = stage_index(requested_stage)
-    for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES):
-        if index < current_index:
+    for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES, start=1):
+        zero_index = index - 1
+        if zero_index < current_index:
             state = "complete"
-        elif index == current_index:
+        elif zero_index == current_index:
             state = "active"
-        elif index <= requested_index:
+        elif zero_index <= requested_index:
             state = "blocked_by_prior_gates"
         else:
             state = "not_started"
@@ -417,7 +521,9 @@ def lifecycle_rows(current_stage: str, requested_stage: str) -> list[dict[str, A
                 "stage": stage_id,
                 "label": label,
                 "state": state,
-                "procedure_ref": f"procedures/lifecycle/{index + 1:02d}-{stage_id}.md",
+                "procedure_ref": f"procedures/lifecycle/{index:02d}-{stage_id}.md",
+                "app_procedure_ref": f"apps/{app_id}/lifecycle/{index:02d}-{stage_id}/procedure.md",
+                "stage_entry_contract": stage_contract(stage_id, label, index, app_id=app_id),
                 "proof_state": "missing" if state in {"active", "blocked_by_prior_gates"} else "not_required_yet",
             }
         )
@@ -436,6 +542,15 @@ def write_text(path: Path, text: str) -> None:
 
 def append_event(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    event_key = (payload.get("event"), payload.get("app_id"), payload.get("intent"))
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            try:
+                existing = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if (existing.get("event"), existing.get("app_id"), existing.get("intent")) == event_key:
+                return
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, sort_keys=True) + "\n")
 
@@ -446,11 +561,23 @@ def load_json(path: Path, default: dict[str, Any] | list[Any]) -> dict[str, Any]
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def procedure_text(stage_id: str, label: str) -> str:
+def procedure_text(stage_id: str, label: str, contract: dict[str, Any] | None = None) -> str:
     loop = " -> ".join(REVIEW_LOOP)
+    stage_number = stage_index(stage_id) + 1
+    contract = contract or stage_contract(stage_id, label, stage_number)
+    skills = "\n".join(f"- `{ref}`" for ref in contract["skill_refs"])
     return (
         f"# {label} Procedure\n\n"
         "Use this deterministic procedure after context compaction, model changes, or worker handoff.\n\n"
+        "## Stage-Entry Contract\n\n"
+        "Before planning or executing this lifecycle stage, infer the active or requested stage from owner intent and app state, then load these contracts:\n\n"
+        f"- eval: `{contract['eval_ref']}`\n"
+        f"- home procedure: `{contract['home_procedure_ref']}`\n"
+        f"- app-local procedure: `{contract['app_procedure_ref']}`\n"
+        f"- primitive registry: `{contract['primitive_registry_ref']}` entry where `lifecycleStage` is `{contract['primitive_stage']}`\n"
+        "- relevant skills:\n"
+        f"{skills}\n\n"
+        "Record the consulted contracts in proof and readback. If any contract is missing or contradicts the requested work, return `REVISE` or `BLOCKED` before acting.\n\n"
         "## Inputs\n\n"
         "- current app record\n"
         "- lifecycle-state.json\n"
@@ -481,11 +608,29 @@ def worker_packet_text(app: dict[str, Any], packet_id: str) -> str:
         for item in deployment_summary["providers"]
     )
     intent_truth = app["intent_truth"]
+    active_contract = stage_contract(
+        app["current_stage"],
+        titleize(app["current_stage"]),
+        stage_index(app["current_stage"]) + 1,
+        app_id=app["app_id"],
+    )
+    contract_refs = [
+        active_contract["eval_ref"],
+        active_contract["home_procedure_ref"],
+        active_contract["app_procedure_ref"],
+        f"{active_contract['primitive_registry_ref']}#lifecycleStage={active_contract['primitive_stage']}",
+        *active_contract["skill_refs"],
+    ]
+    contract_refs_text = "\n".join(f"- `{ref}`" for ref in contract_refs)
     return (
         f"# Worker Packet {packet_id}\n\n"
         f"App: {app['name']} (`{app['app_id']}`)\n"
         f"Current lifecycle stage: `{app['current_stage']}`\n"
         f"Requested stage from owner words: `{app['requested_stage']}`\n\n"
+        "## Stage-Entry Contract\n\n"
+        "Before planning or executing this packet, load the active lifecycle stage contract inferred from owner intent and app state. Consulted contract refs must include:\n\n"
+        f"{contract_refs_text}\n\n"
+        "If the eval, generated procedure, primitive registry entry, or selected skill files are missing or contradictory, return `REVISE` or `BLOCKED` instead of improvising.\n\n"
         "## Intent Truth Boundary\n\n"
         f"Active slice: `{intent_truth['scope_lattice']['active_slice']}`\n"
         f"Allowed done state: `{intent_truth['completion_contract']['allowed_done_state']}`\n"
@@ -570,7 +715,7 @@ def ensure_global_procedures(home: Path) -> list[str]:
     refs: list[str] = []
     for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES, start=1):
         rel = f"procedures/lifecycle/{index:02d}-{stage_id}.md"
-        write_text(home / rel, procedure_text(stage_id, label))
+        write_text(home / rel, procedure_text(stage_id, label, stage_contract(stage_id, label, index)))
         refs.append(rel)
     return refs
 
@@ -586,7 +731,9 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "current_stage": app["current_stage"],
         "requested_stage": app["requested_stage"],
         "updated_at": utc_now(),
-        "stages": lifecycle_rows(app["current_stage"], app["requested_stage"]),
+        "stages": lifecycle_rows(app["current_stage"], app["requested_stage"], str(app["app_id"])),
+        "stage_entry_rule": "infer stage from owner intent and app state, load eval/procedure/primitive/skills before acting, then record consulted contracts in proof/readback",
+        "stage_contracts": all_stage_contracts(app_id=str(app["app_id"])),
         "missing_gates": app["missing_gates"] if "missing_gates" in app else app["scope_truth"]["missing_gates"],
         "deployment_gates": deployment_summary,
         "review_loop": REVIEW_LOOP,
@@ -615,6 +762,11 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
             f"apps/{app['app_id']}/intent-truth.json",
             f"apps/{app['app_id']}/lifecycle/lifecycle-state.json",
             f"apps/{app['app_id']}/tasks/worker-packets/{packet_id}.md",
+        ],
+        "consulted_contract_refs": [
+            row["stage_entry_contract"]
+            for row in lifecycle["stages"]
+            if row["stage"] in {app["current_stage"], app["requested_stage"]}
         ],
         "review_loop_state": {
             "observe": "recorded",
@@ -663,6 +815,11 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "state": app["state"],
         "current_stage": app["current_stage"],
         "requested_stage": app["requested_stage"],
+        "consulted_contract_refs": [
+            row["stage_entry_contract"]
+            for row in lifecycle["stages"]
+            if row["stage"] in {app["current_stage"], app["requested_stage"]}
+        ],
         "missing_gates": app["scope_truth"]["missing_gates"],
         "deployment_gates": deployment_summary,
         "deployment_readiness": deployment_gates["deployment_readiness"],
@@ -707,20 +864,19 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
     write_json(app_root / "lifecycle" / "lifecycle-state.json", lifecycle)
     for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES, start=1):
         stage_root = app_root / "lifecycle" / f"{index:02d}-{stage_id}"
-        write_text(stage_root / "procedure.md", procedure_text(stage_id, label))
+        contract = stage_contract(stage_id, label, index, app_id=str(app["app_id"]))
+        write_text(stage_root / "procedure.md", procedure_text(stage_id, label, contract))
         stage_state = {
             "schema": "weave-cos-stage-state/v0.1",
             "app_id": app["app_id"],
             "stage": stage_id,
             "state": next(row["state"] for row in lifecycle["stages"] if row["stage"] == stage_id),
+            "stage_entry_contract": contract,
             "review_loop": REVIEW_LOOP,
         }
         if stage_id == "deployment":
             stage_state["deployment_gates"] = deployment_summary
-        write_json(
-            stage_root / "state.json",
-            stage_state,
-        )
+        write_json(stage_root / "state.json", stage_state)
     write_json(app_root / "tasks" / "tasks.json", {"schema": "weave-cos-task-ledger/v0.1", "tasks": [task]})
     write_text(
         app_root / "todos.md",
@@ -767,7 +923,15 @@ def update_registry(home: Path, app: dict[str, Any]) -> dict[str, Any]:
     return registry
 
 
-def write_global_state(home: Path, source: Path, surface: str, registry: dict[str, Any], procedure_refs: list[str]) -> None:
+def write_global_state(
+    home: Path,
+    source: Path,
+    surface: str,
+    registry: dict[str, Any],
+    procedure_refs: list[str],
+    stage_entry_contracts: list[dict[str, Any]],
+    stage_contract_findings: list[str],
+) -> None:
     write_json(
         home / "owner-profile.json",
         {
@@ -799,6 +963,10 @@ def write_global_state(home: Path, source: Path, surface: str, registry: dict[st
             "state": "local_skeleton_ready",
             "standard_home": "runs/cos-weave-home",
             "procedure_refs": procedure_refs,
+            "stage_entry_rule": "infer stage from owner intent and app state, load eval/procedure/primitive/skills before acting, then record consulted contracts in proof/readback",
+            "stage_entry_contracts": stage_entry_contracts,
+            "stage_contract_state": "verified" if not stage_contract_findings else "revise",
+            "stage_contract_findings": stage_contract_findings,
             "review_loop": REVIEW_LOOP,
             "non_claims": NON_CLAIMS,
         },
@@ -855,6 +1023,10 @@ def readback(home: Path) -> dict[str, Any]:
         "schema": READBACK_SCHEMA,
         "home": str(home),
         "state": state.get("state", "local_skeleton_ready"),
+        "stage_entry_rule": state.get("stage_entry_rule", ""),
+        "stage_entry_contracts": state.get("stage_entry_contracts", []),
+        "stage_contract_state": state.get("stage_contract_state", "unknown"),
+        "stage_contract_findings": state.get("stage_contract_findings", []),
         "active_app_id": active_app_id,
         "apps": apps,
         "active_app": active,
@@ -875,6 +1047,7 @@ def bootstrap(
     app_id: str | None = None,
     app_name: str | None = None,
 ) -> dict[str, Any]:
+    stage_entry_contracts, stage_contract_findings = verify_stage_contracts(source)
     inferred_apps = infer_apps(intent, app_id=app_id, app_name=app_name)
     procedure_refs = ensure_global_procedures(home)
     app_readbacks: list[dict[str, Any]] = []
@@ -889,7 +1062,7 @@ def bootstrap(
     assert active_app is not None
     active_app_id = str(registry["active_app_id"])
     active_app = app_record(active_app_id, next(name for app_id_value, name in inferred_apps if app_id_value == active_app_id), intent)
-    write_global_state(home, source, surface, registry, procedure_refs)
+    write_global_state(home, source, surface, registry, procedure_refs, stage_entry_contracts, stage_contract_findings)
     write_global_trays(home, registry)
     append_event(
         home / "updates" / "events.jsonl",
@@ -899,13 +1072,14 @@ def bootstrap(
             "event": "cos_bootstrap.app_recorded",
             "app_id": active_app_id,
             "intent": intent,
-            "state": "local_skeleton_ready",
+            "state": "local_skeleton_ready" if not stage_contract_findings else "revise_stage_entry_contracts",
+            "stage_contract_findings": stage_contract_findings,
         },
     )
     full_readback = readback(home)
     payload = {
         "schema": BOOTSTRAP_SCHEMA,
-        "state": "ACCEPT_FOR_SCOPE",
+        "state": "ACCEPT_FOR_SCOPE" if not stage_contract_findings else "REVISE",
         "surface": surface,
         "home": str(home),
         "source": str(source),
@@ -929,6 +1103,11 @@ def bootstrap(
         "owner_profile_path": str(home / "owner-profile.json"),
         "readback_path": str(home / "updates" / "readback.json"),
         "procedure_refs": procedure_refs,
+        "stage_entry_rule": "infer stage from owner intent and app state, load eval/procedure/primitive/skills before acting, then record consulted contracts in proof/readback",
+        "stage_entry_contracts": stage_entry_contracts,
+        "stage_contract_state": "verified" if not stage_contract_findings else "revise",
+        "stage_contract_findings": stage_contract_findings,
+        "revise_reason": "missing or contradictory stage-entry contracts" if stage_contract_findings else "",
         "inferred_lifecycle_stage": active_app["current_stage"],
         "requested_lifecycle_stage": active_app["requested_stage"],
         "missing_gates": active_app["scope_truth"]["missing_gates"],

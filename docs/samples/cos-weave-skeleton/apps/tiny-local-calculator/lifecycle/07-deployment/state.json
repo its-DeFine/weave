@@ -46,5 +46,25 @@
   ],
   "schema": "weave-cos-stage-state/v0.1",
   "stage": "deployment",
+  "stage_entry_contract": {
+    "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/07-deployment/procedure.md",
+    "eval_ref": "packages/weave-tool/evals/lifecycle/deployment.yaml",
+    "home_procedure_ref": "procedures/lifecycle/07-deployment.md",
+    "label": "Deployment",
+    "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+    "owner_stage_classification_required": false,
+    "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+    "primitive_stage": "deployment",
+    "required_before_action": true,
+    "schema": "weave-stage-entry-contract/v0.1",
+    "skill_refs": [
+      "packages/weave-tool/skills/cos-weave/SKILL.md",
+      "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+      "packages/weave-tool/skills/evidence-packet/SKILL.md",
+      "packages/weave-tool/skills/qa-verification/SKILL.md",
+      "packages/weave-tool/skills/security-release-review/SKILL.md"
+    ],
+    "stage": "deployment"
+  },
   "state": "not_started"
 }
