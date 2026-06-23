@@ -84,7 +84,13 @@ If a user gives this repository URL/path and asks to use it as COS WEAVE:
 9. Ask about Linear/tracker access only when the workflow needs it. If no
    tracker is connected, keep a local task ledger and explain that tracker
    connection is optional.
-10. Use deterministic prompts/procedures for lifecycle steps.
+10. Use deterministic prompts/procedures for lifecycle steps. The Research
+    procedure must treat product research, alternatives/substitutes,
+    competitors/antagonists, disconfirming evidence, constraints/risks,
+    technical feasibility, source list, and separated facts, assumptions, and
+    opinions as first-class outputs when relevant. Use
+    `primitive-market-research` before Selection when product uncertainty is
+    material; technical feasibility alone is insufficient in that case.
 11. When implementation workers are needed, launch/pin visible workers when the
    host supports that. Otherwise record a local worker packet and explain what
    is possible in the current environment.

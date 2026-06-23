@@ -35,6 +35,29 @@
       "label": "Research",
       "procedure_ref": "procedures/lifecycle/02-research.md",
       "proof_state": "missing",
+      "research_contract": {
+        "cannot_pass_with": "technical feasibility evidence alone when product, user, customer, alternative, substitute, competitor, antagonist, or value uncertainty is still central",
+        "claim_buckets": [
+          "sourced_facts",
+          "assumptions",
+          "opinions"
+        ],
+        "recommended_skill": "primitive-market-research",
+        "required_outputs": [
+          "product-market facts",
+          "target users and use cases",
+          "customer or audience segment",
+          "alternatives and substitutes",
+          "competitors and antagonists",
+          "disconfirming evidence and reasons the app may not matter",
+          "constraints and risk gates",
+          "technical feasibility evidence",
+          "source list",
+          "facts, assumptions, and opinions separated clearly",
+          "decision readiness for Selection"
+        ],
+        "skill_trigger": "Use primitive-market-research before Selection when product, user, customer, market, pricing, competitor, substitute, or antagonist uncertainty is material."
+      },
       "stage": "research",
       "state": "blocked_by_prior_gates"
     },

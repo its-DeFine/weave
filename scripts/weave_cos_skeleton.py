@@ -37,6 +37,30 @@ LIFECYCLE_STAGES: list[tuple[str, str]] = [
 
 REVIEW_LOOP = ["observe", "validate", "govern", "review", "sync"]
 
+RESEARCH_REQUIRED_OUTPUTS = [
+    "product-market facts",
+    "target users and use cases",
+    "customer or audience segment",
+    "alternatives and substitutes",
+    "competitors and antagonists",
+    "disconfirming evidence and reasons the app may not matter",
+    "constraints and risk gates",
+    "technical feasibility evidence",
+    "source list",
+    "facts, assumptions, and opinions separated clearly",
+    "decision readiness for Selection",
+]
+
+RESEARCH_CLAIM_BUCKETS = ["sourced_facts", "assumptions", "opinions"]
+
+RESEARCH_CONTRACT = {
+    "required_outputs": RESEARCH_REQUIRED_OUTPUTS,
+    "claim_buckets": RESEARCH_CLAIM_BUCKETS,
+    "recommended_skill": "primitive-market-research",
+    "skill_trigger": "Use primitive-market-research before Selection when product, user, customer, market, pricing, competitor, substitute, or antagonist uncertainty is material.",
+    "cannot_pass_with": "technical feasibility evidence alone when product, user, customer, alternative, substitute, competitor, antagonist, or value uncertainty is still central",
+}
+
 ONBOARDING_QUESTIONS = [
     "What should I call you, if you want the draft owner profile personalized?",
     "What app or application should we work on first?",
@@ -255,15 +279,16 @@ def lifecycle_rows(current_stage: str, requested_stage: str) -> list[dict[str, A
             state = "blocked_by_prior_gates"
         else:
             state = "not_started"
-        rows.append(
-            {
-                "stage": stage_id,
-                "label": label,
-                "state": state,
-                "procedure_ref": f"procedures/lifecycle/{index + 1:02d}-{stage_id}.md",
-                "proof_state": "missing" if state in {"active", "blocked_by_prior_gates"} else "not_required_yet",
-            }
-        )
+        row = {
+            "stage": stage_id,
+            "label": label,
+            "state": state,
+            "procedure_ref": f"procedures/lifecycle/{index + 1:02d}-{stage_id}.md",
+            "proof_state": "missing" if state in {"active", "blocked_by_prior_gates"} else "not_required_yet",
+        }
+        if stage_id == "research":
+            row["research_contract"] = RESEARCH_CONTRACT
+        rows.append(row)
     return rows
 
 
@@ -291,6 +316,48 @@ def load_json(path: Path, default: dict[str, Any] | list[Any]) -> dict[str, Any]
 
 def procedure_text(stage_id: str, label: str) -> str:
     loop = " -> ".join(REVIEW_LOOP)
+    if stage_id == "research":
+        outputs = "\n".join(f"- {item}" for item in RESEARCH_REQUIRED_OUTPUTS)
+        buckets = "\n".join(f"- {bucket}" for bucket in RESEARCH_CLAIM_BUCKETS)
+        return (
+            "# Research Procedure\n\n"
+            "Use this deterministic procedure after context compaction, model changes, or worker handoff.\n\n"
+            "Research is not only technical feasibility. When product uncertainty exists, a Research packet must make product research, alternatives, substitutes, competitors, antagonists, disconfirming evidence, and decision readiness visible before Selection.\n\n"
+            "## Inputs\n\n"
+            "- current app record\n"
+            "- lifecycle-state.json\n"
+            "- blockers and proof tray\n"
+            "- owner constraints and hard gates\n"
+            "- allowed public/local sources and source-refresh needs\n"
+            "- primitive-market-research output when product, user, customer, pricing, competitor, substitute, or antagonist uncertainty is material\n\n"
+            "## Required Research Outputs\n\n"
+            f"{outputs}\n\n"
+            "## Claim Readback Buckets\n\n"
+            "Record each material claim in exactly one bucket so readback can separate proof from interpretation:\n\n"
+            f"{buckets}\n\n"
+            "Facts need source references or explicit observed evidence. Assumptions need the condition that would confirm or falsify them. Opinions need an owner/agent attribution and must not be presented as facts.\n\n"
+            "## Steps\n\n"
+            "1. Observe current `research` state, artifacts, blockers, prior proof, and product uncertainty.\n"
+            "2. Validate product-market facts, target users, use cases, customer or audience segment, alternatives, substitutes, competitors, antagonists, constraints, risks, and technical feasibility evidence.\n"
+            "3. Use `primitive-market-research` before Selection when product, user, customer, pricing, competitor, substitute, or antagonist uncertainty is material.\n"
+            "4. Identify disconfirming evidence and reasons the app may not matter; park attractive alternatives explicitly.\n"
+            "5. Separate sourced facts, assumptions, and opinions in readback and proof artifacts.\n"
+            "6. Govern hard gates before any external, public, paid, credential, or destructive action.\n"
+            "7. Review worker output or local artifacts before accepting completion.\n"
+            "8. Sync readback files, proof tray, blockers, and next action.\n\n"
+            "## Review Loop\n\n"
+            f"`{loop}` is mandatory before a lifecycle step can be accepted.\n\n"
+            "## Cannot Pass\n\n"
+            "- technical feasibility evidence alone when product, user, customer, alternative, substitute, competitor, antagonist, or value uncertainty is still central\n"
+            "- uncited pricing, competitor, API, or capability claims presented as facts\n"
+            "- unlabeled assumptions or opinions\n"
+            "- missing source list for material factual claims\n\n"
+            "## Forbidden Defaults\n\n"
+            "- do not claim full lifecycle completion from this stage alone\n"
+            "- do not mutate trackers, deploy, send public messages, spend money, or touch credentials without approval\n"
+            "- do not require hidden orchestration for default first-run WEAVE behavior\n"
+            "- do not require exhaustive industry reports for trivial internal tools where product fit is not part of the decision\n"
+        )
     return (
         f"# {label} Procedure\n\n"
         "Use this deterministic procedure after context compaction, model changes, or worker handoff.\n\n"
@@ -387,6 +454,7 @@ def app_record(app_id: str, app_name: str, intent: str) -> dict[str, Any]:
             "visible_worker_instruction": "Launch/pin visible Codex workers when the host supports thread creation; otherwise keep local packets and report the limitation.",
         },
         "review_loop": REVIEW_LOOP,
+        "research_contract": RESEARCH_CONTRACT,
         "non_claims": NON_CLAIMS,
         "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
     }
@@ -483,6 +551,14 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "blockers": blockers["blockers"],
         "proof_refs": [f"apps/{app['app_id']}/proof/proof-tray.json"],
         "review_refs": [f"apps/{app['app_id']}/review/review-queue.json"],
+        "research_readback": {
+            "state": "not_started",
+            "required_when": "before Selection when Research is requested or product uncertainty is material",
+            "required_outputs": RESEARCH_REQUIRED_OUTPUTS,
+            "recommended_skill": "primitive-market-research",
+            "claim_buckets": {bucket: [] for bucket in RESEARCH_CLAIM_BUCKETS},
+            "cannot_pass_with": RESEARCH_CONTRACT["cannot_pass_with"],
+        },
         "next_action": app["next_action"],
         "non_claims": NON_CLAIMS,
     }
@@ -514,16 +590,16 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
     for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES, start=1):
         stage_root = app_root / "lifecycle" / f"{index:02d}-{stage_id}"
         write_text(stage_root / "procedure.md", procedure_text(stage_id, label))
-        write_json(
-            stage_root / "state.json",
-            {
-                "schema": "weave-cos-stage-state/v0.1",
-                "app_id": app["app_id"],
-                "stage": stage_id,
-                "state": next(row["state"] for row in lifecycle["stages"] if row["stage"] == stage_id),
-                "review_loop": REVIEW_LOOP,
-            },
-        )
+        stage_state = {
+            "schema": "weave-cos-stage-state/v0.1",
+            "app_id": app["app_id"],
+            "stage": stage_id,
+            "state": next(row["state"] for row in lifecycle["stages"] if row["stage"] == stage_id),
+            "review_loop": REVIEW_LOOP,
+        }
+        if stage_id == "research":
+            stage_state["research_contract"] = RESEARCH_CONTRACT
+        write_json(stage_root / "state.json", stage_state)
     write_json(app_root / "tasks" / "tasks.json", {"schema": "weave-cos-task-ledger/v0.1", "tasks": [task]})
     write_text(
         app_root / "todos.md",

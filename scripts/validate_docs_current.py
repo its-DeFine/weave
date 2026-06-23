@@ -312,7 +312,7 @@ def check_release_assets(root: Path) -> list[str]:
         if not path.exists():
             findings.append(f"missing release visual: {visual}")
             continue
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = " ".join(path.read_text(encoding="utf-8", errors="replace").split())
         if "<svg" not in text or "<title" not in text or "<desc" not in text:
             findings.append(f"{visual}: SVG needs title and desc accessibility metadata")
         if visual not in readme and visual.replace("assets/", "../assets/") not in user_flow:
@@ -463,6 +463,67 @@ def check_root_dotfiles(root: Path) -> list[str]:
     return findings
 
 
+def check_research_product_contract(root: Path) -> list[str]:
+    findings: list[str] = []
+    required_by_path = {
+        "docs/COS_WEAVE_REPO_SKELETON.md": [
+            "product-market facts",
+            "alternatives and substitutes",
+            "competitors and antagonists",
+            "disconfirming evidence",
+            "primitive-market-research",
+            "technical feasibility alone",
+        ],
+        "docs/samples/cos-weave-skeleton/procedures/lifecycle/02-research.md": [
+            "product-market facts",
+            "target users and use cases",
+            "customer or audience segment",
+            "alternatives and substitutes",
+            "competitors and antagonists",
+            "disconfirming evidence",
+            "source list",
+            "sourced_facts",
+            "assumptions",
+            "opinions",
+            "primitive-market-research",
+            "technical feasibility evidence alone",
+        ],
+        "packages/weave-tool/evals/lifecycle/research.yaml": [
+            "product_research_coverage_when_uncertain",
+            "not_technical_feasibility_only",
+            "product-market facts",
+            "alternatives and substitutes",
+            "competitors and antagonists",
+            "disconfirming evidence",
+            "technical feasibility evidence",
+            "claim_taxonomy",
+        ],
+        "packages/weave-tool/skills/primitive-market-research/SKILL.md": [
+            "alternatives and substitutes",
+            "competitor, antagonist, and pricing evidence",
+            "disconfirming evidence",
+            "technical feasibility alone",
+            "sourced facts, assumptions, and opinions",
+        ],
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md": [
+            "alternatives/substitutes",
+            "competitors/antagonists",
+            "primitive-market-research",
+            "Technical feasibility alone is insufficient Research",
+        ],
+    }
+    for rel, phrases in required_by_path.items():
+        path = root / rel
+        if not path.exists():
+            findings.append(f"{rel}: missing research product contract surface")
+            continue
+        text = " ".join(path.read_text(encoding="utf-8", errors="replace").split())
+        for phrase in phrases:
+            if phrase not in text:
+                findings.append(f"{rel}: missing research product contract phrase {phrase!r}")
+    return findings
+
+
 def validate_repo(root: Path = REPO_ROOT) -> list[str]:
     findings: list[str] = []
     checks = [
@@ -476,6 +537,7 @@ def validate_repo(root: Path = REPO_ROOT) -> list[str]:
         check_first_contact_readme,
         check_public_cli_surface,
         check_root_dotfiles,
+        check_research_product_contract,
     ]
     for check in checks:
         findings.extend(check(root))

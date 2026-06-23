@@ -162,6 +162,37 @@ class ValidateDocsCurrentTests(unittest.TestCase):
             [".dockerignore exists but current vNext has no container build-context command"],
         )
 
+    def test_research_product_contract_is_checked(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "docs" / "samples" / "cos-weave-skeleton" / "procedures" / "lifecycle").mkdir(parents=True)
+            (root / "packages" / "weave-tool" / "evals" / "lifecycle").mkdir(parents=True)
+            (root / "packages" / "weave-tool" / "skills" / "primitive-market-research").mkdir(parents=True)
+            (root / "packages" / "weave-tool" / "skills" / "weave-lifecycle").mkdir(parents=True)
+            (root / "docs" / "COS_WEAVE_REPO_SKELETON.md").write_text("Research only checks feasibility.\n", encoding="utf-8")
+            (root / "docs" / "samples" / "cos-weave-skeleton" / "procedures" / "lifecycle" / "02-research.md").write_text(
+                "Research Procedure\n",
+                encoding="utf-8",
+            )
+            (root / "packages" / "weave-tool" / "evals" / "lifecycle" / "research.yaml").write_text(
+                '{"stage":"Research"}\n',
+                encoding="utf-8",
+            )
+            (root / "packages" / "weave-tool" / "skills" / "primitive-market-research" / "SKILL.md").write_text(
+                "market skill\n",
+                encoding="utf-8",
+            )
+            (root / "packages" / "weave-tool" / "skills" / "weave-lifecycle" / "SKILL.md").write_text(
+                "lifecycle skill\n",
+                encoding="utf-8",
+            )
+
+            findings = validate_docs_current.check_research_product_contract(root)
+
+        self.assertGreaterEqual(len(findings), 5)
+        self.assertTrue(any("product-market facts" in finding for finding in findings))
+        self.assertTrue(any("not_technical_feasibility_only" in finding for finding in findings))
+
 
 if __name__ == "__main__":
     unittest.main()

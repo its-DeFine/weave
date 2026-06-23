@@ -72,6 +72,55 @@ class WeaveCliTests(unittest.TestCase):
             registry = json.loads((home / "apps" / "registry.json").read_text(encoding="utf-8"))
             self.assertGreaterEqual(len(registry["apps"]), 2)
 
+    def test_research_procedure_and_readback_require_product_claim_taxonomy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "home"
+            output = io.StringIO()
+            rc = weave_cli.main(
+                [
+                    "cos-bootstrap",
+                    "--source",
+                    str(REPO_ROOT),
+                    "--home",
+                    str(home),
+                    "--intent",
+                    "Research an invoice tracker app against competitors and alternatives before building.",
+                    "--json",
+                ],
+                output=output,
+            )
+            self.assertEqual(rc, 0, output.getvalue())
+            payload = json.loads(output.getvalue())
+            app_root = home / "apps" / payload["app_id"]
+
+            procedure = (home / "procedures" / "lifecycle" / "02-research.md").read_text(encoding="utf-8")
+            for phrase in [
+                "product-market facts",
+                "target users and use cases",
+                "customer or audience segment",
+                "alternatives and substitutes",
+                "competitors and antagonists",
+                "disconfirming evidence",
+                "source list",
+                "primitive-market-research",
+                "technical feasibility evidence alone",
+            ]:
+                with self.subTest(surface="procedure", phrase=phrase):
+                    self.assertIn(phrase, procedure)
+
+            readback = json.loads((app_root / "updates" / "readback.json").read_text(encoding="utf-8"))
+            research_readback = readback["research_readback"]
+            self.assertEqual(research_readback["recommended_skill"], "primitive-market-research")
+            self.assertIn("product-market facts", research_readback["required_outputs"])
+            self.assertIn("competitors and antagonists", research_readback["required_outputs"])
+            self.assertIn("technical feasibility evidence alone", research_readback["cannot_pass_with"])
+            self.assertEqual(set(research_readback["claim_buckets"]), {"sourced_facts", "assumptions", "opinions"})
+
+            research_state = json.loads((app_root / "lifecycle" / "02-research" / "state.json").read_text(encoding="utf-8"))
+            contract = research_state["research_contract"]
+            self.assertIn("alternatives and substitutes", contract["required_outputs"])
+            self.assertIn("primitive-market-research", contract["recommended_skill"])
+
     def test_cos_bootstrap_blocks_url_in_local_cli_without_overclaiming(self) -> None:
         output = io.StringIO()
         rc = weave_cli.main(
