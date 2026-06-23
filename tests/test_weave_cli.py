@@ -44,10 +44,20 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(payload["role"], "COS WEAVE")
             self.assertEqual(payload["manual_steps_required"], [])
             self.assertFalse(payload["manual_lifecycle_classification_required"])
+            self.assertEqual(payload["stage_contract_state"], "verified")
+            self.assertEqual(payload["stage_contract_findings"], [])
             self.assertIn("WEAVE | Home=", payload["state_line"])
             self.assertTrue((home / "apps" / payload["app_id"] / "lifecycle.json").exists())
             self.assertTrue((home / "apps" / payload["app_id"] / "worker-packets" / "WP-0001.md").exists())
             self.assertTrue((home / "updates" / "readback.json").exists())
+            lifecycle = json.loads((home / "apps" / payload["app_id"] / "lifecycle.json").read_text(encoding="utf-8"))
+            active_stage = next(row for row in lifecycle["stages"] if row["stage"] == "intent")
+            contract = active_stage["stage_entry_contract"]
+            self.assertEqual(contract["eval_ref"], "packages/weave-tool/evals/lifecycle/intent.yaml")
+            self.assertEqual(contract["primitive_registry_ref"], "packages/weave-tool/primitives/registry.json")
+            self.assertIn("packages/weave-tool/skills/weave-lifecycle/SKILL.md", contract["skill_refs"])
+            readback = json.loads((home / "apps" / payload["app_id"] / "updates" / "readback.json").read_text(encoding="utf-8"))
+            self.assertIn("consulted_contract_refs", readback)
 
     def test_cos_bootstrap_handles_multiple_app_ideas(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -116,6 +126,25 @@ class WeaveCliTests(unittest.TestCase):
             self.assertEqual(payload["state"], "local_skeleton_ready")
             self.assertEqual(payload["active_app"]["requested_stage"], "qa")
             self.assertIn("does not prove full lifecycle completion", payload["non_claims"])
+
+    def test_cos_bootstrap_returns_revise_when_stage_contracts_are_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "broken-weave"
+            home = Path(tmpdir) / "home"
+            (source / "packages" / "weave-tool").mkdir(parents=True)
+            payload = weave_cli.weave_cos_skeleton.bootstrap(
+                source=source,
+                home=home,
+                surface="codex",
+                intent="build a local calculator app",
+                app_id="demo",
+                app_name="Demo",
+            )
+            self.assertEqual(payload["state"], "REVISE")
+            self.assertEqual(payload["stage_contract_state"], "revise")
+            self.assertTrue(payload["stage_contract_findings"])
+            self.assertIn("missing packages/weave-tool/evals/lifecycle/intent.yaml", payload["stage_contract_findings"])
+            self.assertTrue((home / "updates" / "readback.json").exists())
 
     def test_help_lists_only_current_core_commands(self) -> None:
         output = io.StringIO()

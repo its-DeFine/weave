@@ -348,6 +348,41 @@ def check_release_trigger(root: Path) -> list[str]:
     return findings
 
 
+def check_stage_entry_contract_rule(root: Path) -> list[str]:
+    findings: list[str] = []
+    required_surfaces = [
+        "docs/COS_WEAVE_BOOTSTRAP.md",
+        "docs/COS_WEAVE_REPO_SKELETON.md",
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+    ]
+    required_phrases = [
+        "stage-entry contract",
+        "packages/weave-tool/evals/lifecycle/<stage>.yaml",
+        "packages/weave-tool/primitives/registry.json",
+        "packages/weave-tool/skills/*/SKILL.md",
+        "REVISE",
+        "BLOCKED",
+    ]
+    for rel in required_surfaces:
+        text = read_text(root, rel)
+        for phrase in required_phrases:
+            if phrase not in text:
+                findings.append(f"{rel}: missing stage-entry contract phrase {phrase!r}")
+
+    sample_files = [
+        "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/lifecycle.json",
+        "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/lifecycle/01-intent/procedure.md",
+        "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/proof/proof-tray.json",
+        "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/updates/readback.json",
+    ]
+    for rel in sample_files:
+        text = read_text(root, rel)
+        if "stage_entry_contract" not in text and "Stage-Entry Contract" not in text and "consulted_contract_refs" not in text:
+            findings.append(f"{rel}: missing generated stage-entry contract record")
+    return findings
+
+
 def check_first_contact_readme(root: Path) -> list[str]:
     findings: list[str] = []
     readme = read_text(root, "README.md")
@@ -473,6 +508,7 @@ def validate_repo(root: Path = REPO_ROOT) -> list[str]:
         check_non_claims,
         check_release_assets,
         check_release_trigger,
+        check_stage_entry_contract_rule,
         check_first_contact_readme,
         check_public_cli_surface,
         check_root_dotfiles,
