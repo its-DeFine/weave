@@ -118,6 +118,51 @@ class WeaveEvalTests(unittest.TestCase):
             self.assertIn("decision: revise", text)
             self.assertIn("rubric evidence missing: correctness", text)
 
+    def test_research_eval_blocks_technical_feasibility_only_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            review = {
+                "schema": "weave.eval-review/v0.1",
+                "stage": "Research",
+                "artifact": "current",
+                "hard_gates": {
+                    "source_refs_present": {
+                        "passed": True,
+                        "evidence": ["sources.md lists framework docs"],
+                    },
+                    "facts_assumptions_split": {
+                        "passed": True,
+                        "evidence": ["research.md has facts and assumptions sections"],
+                    },
+                    "product_research_coverage_when_uncertain": {
+                        "passed": False,
+                        "evidence": ["review found no users, alternatives, competitors, antagonists, or disconfirming evidence"],
+                    },
+                    "not_technical_feasibility_only": {
+                        "passed": False,
+                        "evidence": ["packet only proves a prototype can be built"],
+                    },
+                },
+                "scores": {
+                    "source_quality": {"score": 4, "evidence": ["framework docs cited"], "notes": ""},
+                    "product_market_coverage": {"score": 0, "evidence": ["no product-market coverage"], "notes": ""},
+                    "risk_identification": {"score": 1, "evidence": ["technical risk only"], "notes": ""},
+                    "technical_feasibility": {"score": 4, "evidence": ["prototype spike passes"], "notes": ""},
+                    "claim_taxonomy": {"score": 3, "evidence": ["facts and assumptions sections exist"], "notes": ""},
+                    "decision_readiness": {"score": 0, "evidence": ["Selection would be based only on feasibility"], "notes": ""},
+                },
+            }
+            review_path = root / "research-review.json"
+            review_path.write_text(json.dumps(review), encoding="utf-8")
+
+            output = io.StringIO()
+            rc = weave_eval.main(["research", "--review-file", str(review_path), "--strict"], output=output)
+            text = output.getvalue()
+            self.assertEqual(rc, 1, text)
+            self.assertIn("hard gate failed: product_research_coverage_when_uncertain", text)
+            self.assertIn("hard gate failed: not_technical_feasibility_only", text)
+            self.assertIn("decision: blocked", text)
+
     def test_command_hard_gate_runs_when_requested(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

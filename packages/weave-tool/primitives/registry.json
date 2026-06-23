@@ -22,7 +22,7 @@
       "name": "Research Brief",
       "lifecycleStage": "research",
       "fileSurface": "apps/<app-id>/lifecycle/02-research/",
-      "customerUse": "Records facts, assumptions, source needs, and risks before selection."
+      "customerUse": "Records product-market facts, users, alternatives, substitutes, competitors, antagonists, disconfirming evidence, feasibility, source needs, assumptions, opinions, and risks before selection."
     },
     {
       "id": "selection-record",

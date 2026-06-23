@@ -3,9 +3,10 @@
   "blockers": [
     "uncited claims",
     "stale or irrelevant sources",
-    "unlabeled assumptions"
+    "unlabeled assumptions",
+    "technical feasibility only when product uncertainty is material"
   ],
-  "description": "Evaluate whether research evidence is credible enough to support a selection decision.",
+  "description": "Evaluate whether research evidence covers product, market, user, antagonist, risk, and technical feasibility enough to support a selection decision.",
   "hard_gates": [
     {
       "description": "Research packet cites source references or explicit observed evidence.",
@@ -16,14 +17,32 @@
       "description": "Facts, assumptions, and opinions are labeled separately.",
       "id": "facts_assumptions_split",
       "kind": "manual"
+    },
+    {
+      "description": "When product uncertainty is material, Research uses or explicitly considers primitive-market-research before Selection and covers users, customers, alternatives, substitutes, competitors, antagonists, disconfirming evidence, constraints, risks, and product-market facts.",
+      "id": "product_research_coverage_when_uncertain",
+      "kind": "manual"
+    },
+    {
+      "description": "Research does not pass on technical feasibility evidence alone while product, user, customer, alternative, substitute, competitor, antagonist, or value uncertainty remains central.",
+      "id": "not_technical_feasibility_only",
+      "kind": "manual"
     }
   ],
   "require_evidence_for_scores": true,
   "required_inputs": [
     "source list",
-    "findings",
+    "product-market facts",
+    "target users and use cases",
+    "customer or audience segment",
+    "alternatives and substitutes",
+    "competitors and antagonists",
+    "disconfirming evidence",
+    "constraints and risk gates",
+    "technical feasibility evidence",
     "assumptions",
-    "risk notes"
+    "opinions",
+    "decision readiness for Selection"
   ],
   "requires_review": true,
   "rubric": [
@@ -33,14 +52,24 @@
       "question": "Are sources credible, current, and relevant?"
     },
     {
-      "id": "coverage",
+      "id": "product_market_coverage",
       "max_score": 4,
-      "question": "Does research cover the key alternatives, users, competitors, and constraints?"
+      "question": "Does research cover product-market facts, target users/use cases, customer or audience segment, alternatives, substitutes, competitors, antagonists, and constraints?"
     },
     {
       "id": "risk_identification",
       "max_score": 4,
-      "question": "Are major risks, unknowns, and disconfirming evidence named?"
+      "question": "Are major risks, unknowns, constraints, and disconfirming evidence named, including reasons the app may not matter?"
+    },
+    {
+      "id": "technical_feasibility",
+      "max_score": 4,
+      "question": "Is technical feasibility supported without treating feasibility as sufficient product research?"
+    },
+    {
+      "id": "claim_taxonomy",
+      "max_score": 4,
+      "question": "Are sourced facts, assumptions, and opinions separated clearly in the research packet and readback?"
     },
     {
       "id": "decision_readiness",

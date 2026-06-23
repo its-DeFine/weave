@@ -1,6 +1,6 @@
 {
   "app_id": "tiny-local-calculator",
-  "created_at": "2026-06-23T20:42:45Z",
+  "created_at": "2026-06-23T20:47:20Z",
   "current_stage": "intent",
   "deployment_gates": {
     "blocked_by_provider_access": true,
@@ -156,6 +156,29 @@
   ],
   "owner_intent": "build a tiny local calculator app",
   "requested_stage": "engineering",
+  "research_contract": {
+    "cannot_pass_with": "technical feasibility evidence alone when product, user, customer, alternative, substitute, competitor, antagonist, or value uncertainty is still central",
+    "claim_buckets": [
+      "sourced_facts",
+      "assumptions",
+      "opinions"
+    ],
+    "recommended_skill": "primitive-market-research",
+    "required_outputs": [
+      "product-market facts",
+      "target users and use cases",
+      "customer or audience segment",
+      "alternatives and substitutes",
+      "competitors and antagonists",
+      "disconfirming evidence and reasons the app may not matter",
+      "constraints and risk gates",
+      "technical feasibility evidence",
+      "source list",
+      "facts, assumptions, and opinions separated clearly",
+      "decision readiness for Selection"
+    ],
+    "skill_trigger": "Use primitive-market-research before Selection when product, user, customer, market, pricing, competitor, substitute, or antagonist uncertainty is material."
+  },
   "review_loop": [
     "observe",
     "validate",
@@ -191,7 +214,7 @@
     "message": "Tracker access is optional; local WEAVE task ledger is authoritative until a tracker is connected and approved.",
     "mode": "local"
   },
-  "updated_at": "2026-06-23T20:42:45Z",
+  "updated_at": "2026-06-23T20:47:20Z",
   "worker_orchestration": {
     "mode": "local_packet_recorded",
     "visible_worker_instruction": "Launch/pin visible Codex workers when the host supports thread creation; otherwise keep local packets and report the limitation."

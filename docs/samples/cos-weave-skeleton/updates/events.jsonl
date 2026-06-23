@@ -1,1 +1,1 @@
-{"app_id": "tiny-local-calculator", "at": "2026-06-23T20:42:45Z", "event": "cos_bootstrap.app_recorded", "intent": "build a tiny local calculator app", "schema": "weave-cos-event/v0.1", "stage_contract_findings": [], "state": "local_skeleton_ready"}
+{"app_id": "tiny-local-calculator", "at": "2026-06-23T20:47:20Z", "event": "cos_bootstrap.app_recorded", "intent": "build a tiny local calculator app", "schema": "weave-cos-event/v0.1", "stage_contract_findings": [], "state": "local_skeleton_ready"}

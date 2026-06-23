@@ -127,6 +127,14 @@ contradictory, or cannot be reconciled with the requested work, return
 `REVISE` for locally fixable contract drift or `BLOCKED` for unavailable source
 or unsafe external dependencies.
 
+The Research contract is product research and technical feasibility, not
+technical feasibility alone. When product uncertainty is material, Research
+must record product-market facts, target users and use cases, customer or
+audience segment, alternatives and substitutes, competitors and antagonists,
+disconfirming evidence, constraints and risk gates, technical feasibility
+evidence, source list, and separated facts, assumptions, and opinions before
+Selection. Use `primitive-market-research` before Selection in those cases.
+
 ## First Response Template
 
 Use this shape before implementation work:

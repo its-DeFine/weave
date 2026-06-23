@@ -160,6 +160,30 @@
       "apps/tiny-local-calculator/proof/proof-tray.json"
     ],
     "requested_stage": "engineering",
+    "research_readback": {
+      "cannot_pass_with": "technical feasibility evidence alone when product, user, customer, alternative, substitute, competitor, antagonist, or value uncertainty is still central",
+      "claim_buckets": {
+        "assumptions": [],
+        "opinions": [],
+        "sourced_facts": []
+      },
+      "recommended_skill": "primitive-market-research",
+      "required_outputs": [
+        "product-market facts",
+        "target users and use cases",
+        "customer or audience segment",
+        "alternatives and substitutes",
+        "competitors and antagonists",
+        "disconfirming evidence and reasons the app may not matter",
+        "constraints and risk gates",
+        "technical feasibility evidence",
+        "source list",
+        "facts, assumptions, and opinions separated clearly",
+        "decision readiness for Selection"
+      ],
+      "required_when": "before Selection when Research is requested or product uncertainty is material",
+      "state": "not_started"
+    },
     "review_refs": [
       "apps/tiny-local-calculator/review/review-queue.json"
     ],
@@ -329,6 +353,30 @@
         "apps/tiny-local-calculator/proof/proof-tray.json"
       ],
       "requested_stage": "engineering",
+      "research_readback": {
+        "cannot_pass_with": "technical feasibility evidence alone when product, user, customer, alternative, substitute, competitor, antagonist, or value uncertainty is still central",
+        "claim_buckets": {
+          "assumptions": [],
+          "opinions": [],
+          "sourced_facts": []
+        },
+        "recommended_skill": "primitive-market-research",
+        "required_outputs": [
+          "product-market facts",
+          "target users and use cases",
+          "customer or audience segment",
+          "alternatives and substitutes",
+          "competitors and antagonists",
+          "disconfirming evidence and reasons the app may not matter",
+          "constraints and risk gates",
+          "technical feasibility evidence",
+          "source list",
+          "facts, assumptions, and opinions separated clearly",
+          "decision readiness for Selection"
+        ],
+        "required_when": "before Selection when Research is requested or product uncertainty is material",
+        "state": "not_started"
+      },
       "review_refs": [
         "apps/tiny-local-calculator/review/review-queue.json"
       ],

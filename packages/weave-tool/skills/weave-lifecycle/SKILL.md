@@ -43,7 +43,10 @@ Use this skill when operating a WEAVE company, project, or task.
   fixable or `BLOCKED` when source access or an external dependency is
   unavailable. Do not proceed from memory or a vague stage label.
 - Intent unlocks Research.
-- Research unlocks Selection.
+- Research unlocks Selection only after product-market facts, users/customers,
+  alternatives/substitutes, competitors/antagonists, disconfirming evidence,
+  constraints/risks, feasibility evidence, source list, and separated facts,
+  assumptions, and opinions are visible when relevant.
 - Selection unlocks Plan.
 - Plan unlocks Engineering.
 - Engineering unlocks QA.
@@ -54,6 +57,11 @@ Use this skill when operating a WEAVE company, project, or task.
 - Missing live stages must be emitted as unavailable or omitted with a reason.
 - Volatile API, pricing, model, or capability claims require a current
   source check before stage completion.
+- Use `primitive-market-research` before Selection when product, user,
+  customer, market, pricing, competitor, substitute, antagonist, or value
+  uncertainty is material.
+- Technical feasibility alone is insufficient Research when product or user
+  uncertainty is central.
 - Approval-gated actions must stop before execution.
 - Returning to an earlier stage requires an overwrite record that names the
   reason and affected downstream stages.

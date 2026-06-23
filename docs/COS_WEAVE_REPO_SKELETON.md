@@ -125,6 +125,16 @@ short alias, but generated files, eval contracts, and primitives use
 Not every task uses every stage. A narrow task can be accepted for its stated
 scope, but the agent must explicitly say which stages were not attempted.
 
+Research is product research and technical feasibility, not technical feasibility alone.
+When product uncertainty is relevant, Research must record product-market
+facts, target users and use cases, customer or audience segment, alternatives
+and substitutes, competitors and antagonists, disconfirming evidence and reasons
+the app may not matter, constraints and risk gates, technical feasibility
+evidence, source list, and separated facts, assumptions, and opinions before
+Selection. Use `primitive-market-research` before Selection when product, user,
+customer, market, pricing, competitor, substitute, or antagonist uncertainty is
+material.
+
 ## Stage-Entry Contracts
 
 Before a COS WEAVE agent plans or executes any lifecycle entry or transition,
