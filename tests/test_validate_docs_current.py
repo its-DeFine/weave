@@ -193,6 +193,34 @@ class ValidateDocsCurrentTests(unittest.TestCase):
         self.assertTrue(any("product-market facts" in finding for finding in findings))
         self.assertTrue(any("not_technical_feasibility_only" in finding for finding in findings))
 
+    def test_deployment_provider_gate_docs_require_sample_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            docs = root / "docs" / "samples" / "cos-weave-skeleton" / "apps" / "tiny-local-calculator"
+            docs.mkdir(parents=True)
+            for rel in [
+                "README.md",
+                "docs/COS_WEAVE_REPO_SKELETON.md",
+                "docs/COS_WEAVE_BOOTSTRAP.md",
+                "docs/COS_WEAVE_PROMPT_BOOTSTRAP_COMPOUND_ENGINEERING.md",
+                "packages/weave-tool/skills/cos-weave/SKILL.md",
+            ]:
+                path = root / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    "deployment-gates.json Cloudflare Vercel connector MCP brokered secret_ref deployment blocked launch blocked",
+                    encoding="utf-8",
+                )
+
+            findings = validate_docs_current.check_deployment_provider_gates(root)
+
+        self.assertEqual(
+            findings,
+            [
+                "sample missing deployment gate state: docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/deployment-gates.json",
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

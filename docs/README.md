@@ -28,9 +28,12 @@ The default path is prompt-first and file-skeleton-first:
 Codex thread + WEAVE repo URL/path + ordinary intent
 -> COS WEAVE state line
 -> runs/cos-weave-home/
--> app folders with lifecycle.json, todos.md, worker-packets/, proof, blockers,
-   review, and updates/readback.json
+-> app folders with lifecycle.json, deployment-gates.json, todos.md,
+   worker-packets/, proof, blockers, review, and updates/readback.json
 ```
 
 No legacy UI, external orchestration layer, tracker mutation, deployment,
 public send, billing, or credential path is part of first contact.
+Cloudflare and Vercel deployment prerequisites are recorded as local structured
+state, but deployment or launch remains blocked until provider access is
+validated through a safe connector, MCP, or brokered access path.

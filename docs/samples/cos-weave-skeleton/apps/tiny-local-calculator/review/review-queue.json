@@ -4,6 +4,7 @@
     {
       "artifact_refs": [
         "apps/tiny-local-calculator/app.json",
+        "apps/tiny-local-calculator/deployment-gates.json",
         "apps/tiny-local-calculator/intent-truth.json",
         "apps/tiny-local-calculator/lifecycle/lifecycle-state.json",
         "apps/tiny-local-calculator/tasks/worker-packets/WP-0001.md"

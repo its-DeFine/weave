@@ -29,6 +29,19 @@ Use this skill when operating a WEAVE company, project, or task.
 
 ## Rules
 
+- On every lifecycle entry or transition, infer the active or requested stage
+  from owner intent and app state before acting. Do not ask the owner to
+  classify the lifecycle stage manually.
+- Load the stage-entry contract bundle before planning or executing:
+  `packages/weave-tool/evals/lifecycle/<stage>.yaml`, the generated home-level
+  or app-local lifecycle procedure, the matching
+  `packages/weave-tool/primitives/registry.json` entry, and the relevant
+  `packages/weave-tool/skills/*/SKILL.md` files.
+- Record the consulted eval, procedure, primitive registry entry, and selected
+  skills in proof and readback.
+- Missing or contradictory stage-entry contracts return `REVISE` when locally
+  fixable or `BLOCKED` when source access or an external dependency is
+  unavailable. Do not proceed from memory or a vague stage label.
 - Intent unlocks Research.
 - Research unlocks Selection only after product-market facts, users/customers,
   alternatives/substitutes, competitors/antagonists, disconfirming evidence,

@@ -16,9 +16,135 @@
         ],
         "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
         "state": "open_question"
+      },
+      {
+        "id": "deployment-provider-access-not-validated",
+        "missing": [
+          {
+            "proof_state": "not_validated",
+            "provider": "cloudflare",
+            "required_capabilities": [
+              "domain_authority",
+              "dns_zone_read_access",
+              "dns_record_write_authority",
+              "cname_control",
+              "subdomain_control"
+            ]
+          },
+          {
+            "proof_state": "not_validated",
+            "provider": "vercel",
+            "required_capabilities": [
+              "hosting_project_access",
+              "deployment_target_access",
+              "production_environment_access",
+              "domain_alias_control"
+            ]
+          }
+        ],
+        "next_action": "continue local intent, planning, and engineering; block deployment or launch until provider access is validated through connector/MCP/brokered access proof",
+        "state": "blocked_until_validated"
+      }
+    ],
+    "consulted_contract_refs": [
+      {
+        "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/01-intent/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/intent.yaml",
+        "home_procedure_ref": "procedures/lifecycle/01-intent.md",
+        "label": "Intent",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "intent",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/compound-engineering/SKILL.md"
+        ],
+        "stage": "intent"
+      },
+      {
+        "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/05-engineering/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/engineering.yaml",
+        "home_procedure_ref": "procedures/lifecycle/05-engineering.md",
+        "label": "Engineering",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "engineering",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+          "packages/weave-tool/skills/engineering-execution/SKILL.md"
+        ],
+        "stage": "engineering"
       }
     ],
     "current_stage": "intent",
+    "deployment_gates": {
+      "blocked_by_provider_access": true,
+      "launch_allowed": false,
+      "local_progress_allowed": true,
+      "non_claims": [
+        "does not prove provider account access",
+        "does not prove deployment target access",
+        "does not prove DNS or domain authority",
+        "does not prove DNS mutation",
+        "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets"
+      ],
+      "providers": [
+        {
+          "proof_state": "not_validated",
+          "provider": "cloudflare",
+          "required_capabilities": [
+            "domain_authority",
+            "dns_zone_read_access",
+            "dns_record_write_authority",
+            "cname_control",
+            "subdomain_control"
+          ]
+        },
+        {
+          "proof_state": "not_validated",
+          "provider": "vercel",
+          "required_capabilities": [
+            "hosting_project_access",
+            "deployment_target_access",
+            "production_environment_access",
+            "domain_alias_control"
+          ]
+        }
+      ],
+      "schema": "weave-deployment-gates/v0.1",
+      "state": "deployment_blocked_until_provider_access_validated"
+    },
+    "deployment_readiness": {
+      "blocked_by_provider_access": true,
+      "blocked_provider_capabilities": [
+        "cloudflare:domain_authority",
+        "cloudflare:dns_zone_read_access",
+        "cloudflare:dns_record_write_authority",
+        "cloudflare:cname_control",
+        "cloudflare:subdomain_control",
+        "vercel:hosting_project_access",
+        "vercel:deployment_target_access",
+        "vercel:production_environment_access",
+        "vercel:domain_alias_control"
+      ],
+      "deployment_requested": false,
+      "launch_allowed": false
+    },
+    "local_progress": {
+      "intent_planning_engineering_allowed": true,
+      "reason": "local intent, planning, and engineering do not require provider access"
+    },
     "missing_gates": [
       "Intent gate is not complete",
       "Research gate is not complete",
@@ -67,21 +193,21 @@
     "schema": "weave-cos-readback/v0.1",
     "state": "local_skeleton_ready"
   },
-  "app_registry_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/registry.json",
-  "app_state_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/app.json",
+  "app_registry_path": "docs/samples/cos-weave-skeleton/apps/registry.json",
+  "app_state_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/app.json",
   "apps": [
     {
       "app_id": "tiny-local-calculator",
       "name": "Tiny Local Calculator"
     }
   ],
-  "blocker_tray_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/blockers/blocker-tray.json",
-  "cos_message": "WEAVE | Home=<weave-repo>/docs/samples/cos-weave-skeleton | App=Tiny Local Calculator | Stage=Intent | Scope=local-file-skeleton | State=local_skeleton_ready | Truth=partial | Proof=local-skeleton | Next=continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks\nI am COS WEAVE in this Codex thread. I use this repository as a visible file skeleton for app intent, lifecycle state, todos, worker packets, proof, blockers, review, and readback.\nWEAVE home: <weave-repo>/docs/samples/cos-weave-skeleton\nSource repo: <weave-repo>\nOwner intent: build a tiny local calculator app\nProof path: <weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/proof/proof-tray.json\nNext safe action: continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks\nNo live workers, tracker mutation, deploy, public send, billing, credential access, or production effect is claimed.",
-  "home": "<weave-repo>/docs/samples/cos-weave-skeleton",
+  "blocker_tray_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/blockers/blocker-tray.json",
+  "cos_message": "WEAVE | Home=docs/samples/cos-weave-skeleton | App=Tiny Local Calculator | Stage=Intent | Scope=local-file-skeleton | State=local_skeleton_ready | Truth=partial | Proof=local-skeleton | Next=continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks\nI am COS WEAVE in this Codex thread. I use this repository as a visible file skeleton for app intent, lifecycle state, todos, worker packets, proof, blockers, review, and readback.\nWEAVE home: docs/samples/cos-weave-skeleton\nSource repo: .\nOwner intent: build a tiny local calculator app\nProof path: docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/proof/proof-tray.json\nNext safe action: continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks\nNo live workers, tracker mutation, deploy, public send, billing, credential access, or production effect is claimed.",
+  "home": "docs/samples/cos-weave-skeleton",
   "inferred_lifecycle_stage": "intent",
   "intent": "build a tiny local calculator app",
-  "intent_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/intent.md",
-  "lifecycle_state_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/lifecycle.json",
+  "intent_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/intent.md",
+  "lifecycle_state_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/lifecycle.json",
   "live_effects": false,
   "manual_lifecycle_classification_required": false,
   "manual_queue_commands_required": false,
@@ -105,7 +231,7 @@
     "What outcome would make this first WEAVE session useful?",
     "What constraints or hard gates apply, such as no deploy, no public send, no tracker mutation, no paid calls, or credential restrictions?"
   ],
-  "owner_profile_path": "<weave-repo>/docs/samples/cos-weave-skeleton/owner-profile.json",
+  "owner_profile_path": "docs/samples/cos-weave-skeleton/owner-profile.json",
   "procedure_refs": [
     "procedures/lifecycle/01-intent.md",
     "procedures/lifecycle/02-research.md",
@@ -119,7 +245,7 @@
     "procedures/lifecycle/10-iteration.md",
     "procedures/lifecycle/11-analysis.md"
   ],
-  "proof_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/proof/proof-tray.json",
+  "proof_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/proof/proof-tray.json",
   "readback": {
     "active_app": {
       "app_id": "tiny-local-calculator",
@@ -135,9 +261,135 @@
           ],
           "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
           "state": "open_question"
+        },
+        {
+          "id": "deployment-provider-access-not-validated",
+          "missing": [
+            {
+              "proof_state": "not_validated",
+              "provider": "cloudflare",
+              "required_capabilities": [
+                "domain_authority",
+                "dns_zone_read_access",
+                "dns_record_write_authority",
+                "cname_control",
+                "subdomain_control"
+              ]
+            },
+            {
+              "proof_state": "not_validated",
+              "provider": "vercel",
+              "required_capabilities": [
+                "hosting_project_access",
+                "deployment_target_access",
+                "production_environment_access",
+                "domain_alias_control"
+              ]
+            }
+          ],
+          "next_action": "continue local intent, planning, and engineering; block deployment or launch until provider access is validated through connector/MCP/brokered access proof",
+          "state": "blocked_until_validated"
+        }
+      ],
+      "consulted_contract_refs": [
+        {
+          "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/01-intent/procedure.md",
+          "eval_ref": "packages/weave-tool/evals/lifecycle/intent.yaml",
+          "home_procedure_ref": "procedures/lifecycle/01-intent.md",
+          "label": "Intent",
+          "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+          "owner_stage_classification_required": false,
+          "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+          "primitive_stage": "intent",
+          "required_before_action": true,
+          "schema": "weave-stage-entry-contract/v0.1",
+          "skill_refs": [
+            "packages/weave-tool/skills/cos-weave/SKILL.md",
+            "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+            "packages/weave-tool/skills/evidence-packet/SKILL.md",
+            "packages/weave-tool/skills/compound-engineering/SKILL.md"
+          ],
+          "stage": "intent"
+        },
+        {
+          "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/05-engineering/procedure.md",
+          "eval_ref": "packages/weave-tool/evals/lifecycle/engineering.yaml",
+          "home_procedure_ref": "procedures/lifecycle/05-engineering.md",
+          "label": "Engineering",
+          "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+          "owner_stage_classification_required": false,
+          "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+          "primitive_stage": "engineering",
+          "required_before_action": true,
+          "schema": "weave-stage-entry-contract/v0.1",
+          "skill_refs": [
+            "packages/weave-tool/skills/cos-weave/SKILL.md",
+            "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+            "packages/weave-tool/skills/evidence-packet/SKILL.md",
+            "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+            "packages/weave-tool/skills/engineering-execution/SKILL.md"
+          ],
+          "stage": "engineering"
         }
       ],
       "current_stage": "intent",
+      "deployment_gates": {
+        "blocked_by_provider_access": true,
+        "launch_allowed": false,
+        "local_progress_allowed": true,
+        "non_claims": [
+          "does not prove provider account access",
+          "does not prove deployment target access",
+          "does not prove DNS or domain authority",
+          "does not prove DNS mutation",
+          "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets"
+        ],
+        "providers": [
+          {
+            "proof_state": "not_validated",
+            "provider": "cloudflare",
+            "required_capabilities": [
+              "domain_authority",
+              "dns_zone_read_access",
+              "dns_record_write_authority",
+              "cname_control",
+              "subdomain_control"
+            ]
+          },
+          {
+            "proof_state": "not_validated",
+            "provider": "vercel",
+            "required_capabilities": [
+              "hosting_project_access",
+              "deployment_target_access",
+              "production_environment_access",
+              "domain_alias_control"
+            ]
+          }
+        ],
+        "schema": "weave-deployment-gates/v0.1",
+        "state": "deployment_blocked_until_provider_access_validated"
+      },
+      "deployment_readiness": {
+        "blocked_by_provider_access": true,
+        "blocked_provider_capabilities": [
+          "cloudflare:domain_authority",
+          "cloudflare:dns_zone_read_access",
+          "cloudflare:dns_record_write_authority",
+          "cloudflare:cname_control",
+          "cloudflare:subdomain_control",
+          "vercel:hosting_project_access",
+          "vercel:deployment_target_access",
+          "vercel:production_environment_access",
+          "vercel:domain_alias_control"
+        ],
+        "deployment_requested": false,
+        "launch_allowed": false
+      },
+      "local_progress": {
+        "intent_planning_engineering_allowed": true,
+        "reason": "local intent, planning, and engineering do not require provider access"
+      },
       "missing_gates": [
         "Intent gate is not complete",
         "Research gate is not complete",
@@ -202,9 +454,135 @@
             ],
             "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
             "state": "open_question"
+          },
+          {
+            "id": "deployment-provider-access-not-validated",
+            "missing": [
+              {
+                "proof_state": "not_validated",
+                "provider": "cloudflare",
+                "required_capabilities": [
+                  "domain_authority",
+                  "dns_zone_read_access",
+                  "dns_record_write_authority",
+                  "cname_control",
+                  "subdomain_control"
+                ]
+              },
+              {
+                "proof_state": "not_validated",
+                "provider": "vercel",
+                "required_capabilities": [
+                  "hosting_project_access",
+                  "deployment_target_access",
+                  "production_environment_access",
+                  "domain_alias_control"
+                ]
+              }
+            ],
+            "next_action": "continue local intent, planning, and engineering; block deployment or launch until provider access is validated through connector/MCP/brokered access proof",
+            "state": "blocked_until_validated"
+          }
+        ],
+        "consulted_contract_refs": [
+          {
+            "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/01-intent/procedure.md",
+            "eval_ref": "packages/weave-tool/evals/lifecycle/intent.yaml",
+            "home_procedure_ref": "procedures/lifecycle/01-intent.md",
+            "label": "Intent",
+            "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+            "owner_stage_classification_required": false,
+            "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+            "primitive_stage": "intent",
+            "required_before_action": true,
+            "schema": "weave-stage-entry-contract/v0.1",
+            "skill_refs": [
+              "packages/weave-tool/skills/cos-weave/SKILL.md",
+              "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+              "packages/weave-tool/skills/evidence-packet/SKILL.md",
+              "packages/weave-tool/skills/compound-engineering/SKILL.md"
+            ],
+            "stage": "intent"
+          },
+          {
+            "app_procedure_ref": "apps/tiny-local-calculator/lifecycle/05-engineering/procedure.md",
+            "eval_ref": "packages/weave-tool/evals/lifecycle/engineering.yaml",
+            "home_procedure_ref": "procedures/lifecycle/05-engineering.md",
+            "label": "Engineering",
+            "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+            "owner_stage_classification_required": false,
+            "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+            "primitive_stage": "engineering",
+            "required_before_action": true,
+            "schema": "weave-stage-entry-contract/v0.1",
+            "skill_refs": [
+              "packages/weave-tool/skills/cos-weave/SKILL.md",
+              "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+              "packages/weave-tool/skills/evidence-packet/SKILL.md",
+              "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+              "packages/weave-tool/skills/engineering-execution/SKILL.md"
+            ],
+            "stage": "engineering"
           }
         ],
         "current_stage": "intent",
+        "deployment_gates": {
+          "blocked_by_provider_access": true,
+          "launch_allowed": false,
+          "local_progress_allowed": true,
+          "non_claims": [
+            "does not prove provider account access",
+            "does not prove deployment target access",
+            "does not prove DNS or domain authority",
+            "does not prove DNS mutation",
+            "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets"
+          ],
+          "providers": [
+            {
+              "proof_state": "not_validated",
+              "provider": "cloudflare",
+              "required_capabilities": [
+                "domain_authority",
+                "dns_zone_read_access",
+                "dns_record_write_authority",
+                "cname_control",
+                "subdomain_control"
+              ]
+            },
+            {
+              "proof_state": "not_validated",
+              "provider": "vercel",
+              "required_capabilities": [
+                "hosting_project_access",
+                "deployment_target_access",
+                "production_environment_access",
+                "domain_alias_control"
+              ]
+            }
+          ],
+          "schema": "weave-deployment-gates/v0.1",
+          "state": "deployment_blocked_until_provider_access_validated"
+        },
+        "deployment_readiness": {
+          "blocked_by_provider_access": true,
+          "blocked_provider_capabilities": [
+            "cloudflare:domain_authority",
+            "cloudflare:dns_zone_read_access",
+            "cloudflare:dns_record_write_authority",
+            "cloudflare:cname_control",
+            "cloudflare:subdomain_control",
+            "vercel:hosting_project_access",
+            "vercel:deployment_target_access",
+            "vercel:production_environment_access",
+            "vercel:domain_alias_control"
+          ],
+          "deployment_requested": false,
+          "launch_allowed": false
+        },
+        "local_progress": {
+          "intent_planning_engineering_allowed": true,
+          "reason": "local intent, planning, and engineering do not require provider access"
+        },
         "missing_gates": [
           "Intent gate is not complete",
           "Research gate is not complete",
@@ -254,7 +632,7 @@
         "state": "local_skeleton_ready"
       }
     ],
-    "home": "<weave-repo>/docs/samples/cos-weave-skeleton",
+    "home": "docs/samples/cos-weave-skeleton",
     "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
     "non_claims": [
       "does not prove Codex app-server execution",
@@ -271,11 +649,226 @@
       "sync"
     ],
     "schema": "weave-cos-readback/v0.1",
+    "stage_contract_findings": [],
+    "stage_contract_state": "verified",
+    "stage_entry_contracts": [
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/01-intent/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/intent.yaml",
+        "home_procedure_ref": "procedures/lifecycle/01-intent.md",
+        "label": "Intent",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "intent",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/compound-engineering/SKILL.md"
+        ],
+        "stage": "intent"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/02-research/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/research.yaml",
+        "home_procedure_ref": "procedures/lifecycle/02-research.md",
+        "label": "Research",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "research",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/primitive-market-research/SKILL.md"
+        ],
+        "stage": "research"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/03-selection/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/selection.yaml",
+        "home_procedure_ref": "procedures/lifecycle/03-selection.md",
+        "label": "Selection",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "selection",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/implementation-planning/SKILL.md"
+        ],
+        "stage": "selection"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/04-plan/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/plan.yaml",
+        "home_procedure_ref": "procedures/lifecycle/04-plan.md",
+        "label": "Plan",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "plan",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/implementation-planning/SKILL.md"
+        ],
+        "stage": "plan"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/05-engineering/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/engineering.yaml",
+        "home_procedure_ref": "procedures/lifecycle/05-engineering.md",
+        "label": "Engineering",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "engineering",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+          "packages/weave-tool/skills/engineering-execution/SKILL.md"
+        ],
+        "stage": "engineering"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/06-qa/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/qa.yaml",
+        "home_procedure_ref": "procedures/lifecycle/06-qa.md",
+        "label": "QA",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "qa",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/qa-verification/SKILL.md"
+        ],
+        "stage": "qa"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/07-deployment/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/deployment.yaml",
+        "home_procedure_ref": "procedures/lifecycle/07-deployment.md",
+        "label": "Deployment",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "deployment",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/qa-verification/SKILL.md",
+          "packages/weave-tool/skills/security-release-review/SKILL.md"
+        ],
+        "stage": "deployment"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/08-kpi-setup/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/kpi-setup.yaml",
+        "home_procedure_ref": "procedures/lifecycle/08-kpi-setup.md",
+        "label": "KPI Setup",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "kpi-setup",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md"
+        ],
+        "stage": "kpi-setup"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/09-marketing/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/marketing.yaml",
+        "home_procedure_ref": "procedures/lifecycle/09-marketing.md",
+        "label": "Marketing",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "marketing",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/security-release-review/SKILL.md"
+        ],
+        "stage": "marketing"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/10-iteration/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/iteration.yaml",
+        "home_procedure_ref": "procedures/lifecycle/10-iteration.md",
+        "label": "Iteration",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "iteration",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md",
+          "packages/weave-tool/skills/compound-engineering/SKILL.md"
+        ],
+        "stage": "iteration"
+      },
+      {
+        "app_procedure_ref": "apps/<app-id>/lifecycle/11-analysis/procedure.md",
+        "eval_ref": "packages/weave-tool/evals/lifecycle/analysis.yaml",
+        "home_procedure_ref": "procedures/lifecycle/11-analysis.md",
+        "label": "Analysis",
+        "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+        "owner_stage_classification_required": false,
+        "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+        "primitive_stage": "analysis",
+        "required_before_action": true,
+        "schema": "weave-stage-entry-contract/v0.1",
+        "skill_refs": [
+          "packages/weave-tool/skills/cos-weave/SKILL.md",
+          "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+          "packages/weave-tool/skills/evidence-packet/SKILL.md"
+        ],
+        "stage": "analysis"
+      }
+    ],
+    "stage_entry_rule": "infer stage from owner intent and app state, load eval/procedure/primitive/skills before acting, then record consulted contracts in proof/readback",
     "state": "local_skeleton_ready"
   },
-  "readback_path": "<weave-repo>/docs/samples/cos-weave-skeleton/updates/readback.json",
+  "readback_path": "docs/samples/cos-weave-skeleton/updates/readback.json",
   "requested_lifecycle_stage": "engineering",
-  "review_queue_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/review/review-queue.json",
+  "review_queue_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/review/review-queue.json",
+  "revise_reason": "",
   "role": "COS WEAVE",
   "role_explanation": "WEAVE is one Chief-of-Staff chat for organizing and executing multiple app/application efforts through lifecycle steps.",
   "safe_context_policy": {
@@ -292,15 +885,234 @@
       "AGENTS.md",
       "docs/COS_WEAVE_BOOTSTRAP.md",
       "docs/COS_WEAVE_REPO_SKELETON.md",
-      "packages/weave-tool/skills/cos-weave/SKILL.md"
+      "packages/weave-tool/skills/cos-weave/SKILL.md",
+      "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+      "packages/weave-tool/evals/lifecycle/<stage>.yaml",
+      "packages/weave-tool/primitives/registry.json",
+      "runs/cos-weave-home/procedures/lifecycle/<stage>.md",
+      "runs/cos-weave-home/apps/<app-id>/lifecycle/<stage>/procedure.md"
     ]
   },
   "schema": "weave-cos-bootstrap/v0.1",
-  "source": "<weave-repo>",
+  "source": ".",
+  "stage_contract_findings": [],
+  "stage_contract_state": "verified",
+  "stage_entry_contracts": [
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/01-intent/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/intent.yaml",
+      "home_procedure_ref": "procedures/lifecycle/01-intent.md",
+      "label": "Intent",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "intent",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/compound-engineering/SKILL.md"
+      ],
+      "stage": "intent"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/02-research/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/research.yaml",
+      "home_procedure_ref": "procedures/lifecycle/02-research.md",
+      "label": "Research",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "research",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/primitive-market-research/SKILL.md"
+      ],
+      "stage": "research"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/03-selection/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/selection.yaml",
+      "home_procedure_ref": "procedures/lifecycle/03-selection.md",
+      "label": "Selection",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "selection",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/implementation-planning/SKILL.md"
+      ],
+      "stage": "selection"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/04-plan/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/plan.yaml",
+      "home_procedure_ref": "procedures/lifecycle/04-plan.md",
+      "label": "Plan",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "plan",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/implementation-planning/SKILL.md"
+      ],
+      "stage": "plan"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/05-engineering/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/engineering.yaml",
+      "home_procedure_ref": "procedures/lifecycle/05-engineering.md",
+      "label": "Engineering",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "engineering",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/codebase-orientation/SKILL.md",
+        "packages/weave-tool/skills/engineering-execution/SKILL.md"
+      ],
+      "stage": "engineering"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/06-qa/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/qa.yaml",
+      "home_procedure_ref": "procedures/lifecycle/06-qa.md",
+      "label": "QA",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "qa",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/qa-verification/SKILL.md"
+      ],
+      "stage": "qa"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/07-deployment/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/deployment.yaml",
+      "home_procedure_ref": "procedures/lifecycle/07-deployment.md",
+      "label": "Deployment",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "deployment",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/qa-verification/SKILL.md",
+        "packages/weave-tool/skills/security-release-review/SKILL.md"
+      ],
+      "stage": "deployment"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/08-kpi-setup/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/kpi-setup.yaml",
+      "home_procedure_ref": "procedures/lifecycle/08-kpi-setup.md",
+      "label": "KPI Setup",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "kpi-setup",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md"
+      ],
+      "stage": "kpi-setup"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/09-marketing/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/marketing.yaml",
+      "home_procedure_ref": "procedures/lifecycle/09-marketing.md",
+      "label": "Marketing",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "marketing",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/security-release-review/SKILL.md"
+      ],
+      "stage": "marketing"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/10-iteration/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/iteration.yaml",
+      "home_procedure_ref": "procedures/lifecycle/10-iteration.md",
+      "label": "Iteration",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "iteration",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md",
+        "packages/weave-tool/skills/compound-engineering/SKILL.md"
+      ],
+      "stage": "iteration"
+    },
+    {
+      "app_procedure_ref": "apps/<app-id>/lifecycle/11-analysis/procedure.md",
+      "eval_ref": "packages/weave-tool/evals/lifecycle/analysis.yaml",
+      "home_procedure_ref": "procedures/lifecycle/11-analysis.md",
+      "label": "Analysis",
+      "missing_or_contradictory_contract_state": "REVISE_OR_BLOCKED",
+      "owner_stage_classification_required": false,
+      "primitive_registry_ref": "packages/weave-tool/primitives/registry.json",
+      "primitive_stage": "analysis",
+      "required_before_action": true,
+      "schema": "weave-stage-entry-contract/v0.1",
+      "skill_refs": [
+        "packages/weave-tool/skills/cos-weave/SKILL.md",
+        "packages/weave-tool/skills/weave-lifecycle/SKILL.md",
+        "packages/weave-tool/skills/evidence-packet/SKILL.md"
+      ],
+      "stage": "analysis"
+    }
+  ],
+  "stage_entry_rule": "infer stage from owner intent and app state, load eval/procedure/primitive/skills before acting, then record consulted contracts in proof/readback",
   "state": "ACCEPT_FOR_SCOPE",
-  "state_line": "WEAVE | Home=<weave-repo>/docs/samples/cos-weave-skeleton | App=Tiny Local Calculator | Stage=Intent | Scope=local-file-skeleton | State=local_skeleton_ready | Truth=partial | Proof=local-skeleton | Next=continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
+  "state_line": "WEAVE | Home=docs/samples/cos-weave-skeleton | App=Tiny Local Calculator | Stage=Intent | Scope=local-file-skeleton | State=local_skeleton_ready | Truth=partial | Proof=local-skeleton | Next=continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
   "surface": "codex",
-  "todos_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/todos.md",
+  "todos_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/todos.md",
   "tracker": {
     "linear_required": false,
     "message": "Tracker access is optional; local WEAVE task ledger is authoritative until a tracker is connected and approved.",
@@ -310,5 +1122,5 @@
     "mode": "local_packet_recorded",
     "visible_worker_instruction": "Launch/pin visible Codex workers when the host supports thread creation; otherwise keep local packets and report the limitation."
   },
-  "worker_packet_path": "<weave-repo>/docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/worker-packets/WP-0001.md"
+  "worker_packet_path": "docs/samples/cos-weave-skeleton/apps/tiny-local-calculator/worker-packets/WP-0001.md"
 }

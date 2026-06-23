@@ -1,0 +1,129 @@
+{
+  "app_id": "tiny-local-calculator",
+  "app_name": "Tiny Local Calculator",
+  "deployment_readiness": {
+    "blocked_by_provider_access": true,
+    "blocked_provider_capabilities": [
+      "cloudflare:domain_authority",
+      "cloudflare:dns_zone_read_access",
+      "cloudflare:dns_record_write_authority",
+      "cloudflare:cname_control",
+      "cloudflare:subdomain_control",
+      "vercel:hosting_project_access",
+      "vercel:deployment_target_access",
+      "vercel:production_environment_access",
+      "vercel:domain_alias_control"
+    ],
+    "deployment_requested": false,
+    "launch_allowed": false
+  },
+  "extension_contract": {
+    "provider_template_required_fields": [
+      "provider",
+      "required_capabilities",
+      "proof_state",
+      "safe_validation_path",
+      "forbidden_until_validated",
+      "non_claims"
+    ],
+    "supports_additional_providers": true
+  },
+  "local_progress": {
+    "intent_planning_engineering_allowed": true,
+    "reason": "local intent, planning, and engineering do not require provider access"
+  },
+  "non_claims": [
+    "does not prove provider account access",
+    "does not prove deployment target access",
+    "does not prove DNS or domain authority",
+    "does not prove DNS mutation",
+    "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets"
+  ],
+  "providers": [
+    {
+      "category": "dns_domain_authority",
+      "display_name": "Cloudflare",
+      "forbidden_until_validated": [
+        "claim Cloudflare account, zone, DNS, CNAME, or subdomain control",
+        "change DNS records",
+        "attach production domains",
+        "launch public traffic through Cloudflare"
+      ],
+      "non_claims": [
+        "does not prove provider account access",
+        "does not prove deployment target access",
+        "does not prove DNS or domain authority",
+        "does not prove DNS mutation",
+        "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets"
+      ],
+      "proof_state": "not_validated",
+      "proof_state_values": [
+        "unknown",
+        "not_validated",
+        "validated",
+        "blocked"
+      ],
+      "provider": "cloudflare",
+      "required_capabilities": [
+        "domain_authority",
+        "dns_zone_read_access",
+        "dns_record_write_authority",
+        "cname_control",
+        "subdomain_control"
+      ],
+      "safe_validation_path": [
+        "use an approved connector, MCP, or brokered access validator",
+        "validate zone/domain authority and target record permissions without exposing raw tokens",
+        "record only validation status, proof reference, account/project label if public-safe, and secret_ref if needed"
+      ],
+      "secret_boundary": {
+        "allowed_reference": "secret_ref",
+        "raw_secrets_allowed": false,
+        "validation_method": "connector_mcp_or_brokered_access_validation"
+      }
+    },
+    {
+      "category": "hosting_deploy_target",
+      "display_name": "Vercel",
+      "forbidden_until_validated": [
+        "claim Vercel project, team, hosting, deployment target, or production environment access",
+        "create or mutate deployments",
+        "attach or promote production domains",
+        "launch public traffic through Vercel"
+      ],
+      "non_claims": [
+        "does not prove provider account access",
+        "does not prove deployment target access",
+        "does not prove DNS or domain authority",
+        "does not prove DNS mutation",
+        "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets"
+      ],
+      "proof_state": "not_validated",
+      "proof_state_values": [
+        "unknown",
+        "not_validated",
+        "validated",
+        "blocked"
+      ],
+      "provider": "vercel",
+      "required_capabilities": [
+        "hosting_project_access",
+        "deployment_target_access",
+        "production_environment_access",
+        "domain_alias_control"
+      ],
+      "safe_validation_path": [
+        "use an approved connector, MCP, or brokered access validator",
+        "validate project/team/deploy-target access without exposing raw tokens",
+        "record only validation status, proof reference, project/team label if public-safe, and secret_ref if needed"
+      ],
+      "secret_boundary": {
+        "allowed_reference": "secret_ref",
+        "raw_secrets_allowed": false,
+        "validation_method": "connector_mcp_or_brokered_access_validation"
+      }
+    }
+  ],
+  "schema": "weave-deployment-gates/v0.1",
+  "state": "deployment_blocked_until_provider_access_validated"
+}

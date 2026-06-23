@@ -11,6 +11,34 @@
       ],
       "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
       "state": "open_question"
+    },
+    {
+      "id": "deployment-provider-access-not-validated",
+      "missing": [
+        {
+          "proof_state": "not_validated",
+          "provider": "cloudflare",
+          "required_capabilities": [
+            "domain_authority",
+            "dns_zone_read_access",
+            "dns_record_write_authority",
+            "cname_control",
+            "subdomain_control"
+          ]
+        },
+        {
+          "proof_state": "not_validated",
+          "provider": "vercel",
+          "required_capabilities": [
+            "hosting_project_access",
+            "deployment_target_access",
+            "production_environment_access",
+            "domain_alias_control"
+          ]
+        }
+      ],
+      "next_action": "continue local intent, planning, and engineering; block deployment or launch until provider access is validated through connector/MCP/brokered access proof",
+      "state": "blocked_until_validated"
     }
   ],
   "schema": "weave-cos-blocker-tray/v0.1"

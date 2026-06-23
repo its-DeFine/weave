@@ -32,8 +32,8 @@ happens next.
 6. The agent captures a lightweight owner profile and asks only the missing
    questions that materially change the work.
 7. The agent infers intent from ordinary language.
-8. The agent creates an app folder with intent, lifecycle, todos, proof,
-   blockers, worker packets, review queue, and readback state.
+8. The agent creates an app folder with intent, lifecycle, deployment gates,
+   todos, proof, blockers, worker packets, review queue, and readback state.
 9. The agent executes the next safe lifecycle slice or creates worker packets
    for parallel work.
 10. The agent runs review, records evidence, and reports `ACCEPT_FOR_SCOPE`,
@@ -46,6 +46,8 @@ happens next.
 - Keep vague intent moving by recording assumptions and todos.
 - Ask questions only when the answer changes the next safe action.
 - Never claim a lifecycle stage is complete without proof in the app folder.
+- Never claim Cloudflare DNS/domain authority, Vercel hosting/deploy target
+  access, deployment readiness, or launch access from configuration text alone.
 - Never claim deployment, public send, paid action, tracker mutation, or
   credential access unless that exact step was authorized and proven.
 
@@ -57,6 +59,7 @@ runs/cos-weave-home/
   apps/registry.json
   apps/<app-id>/
     app.json
+    deployment-gates.json
     intent.md
     lifecycle.json
     todos.md

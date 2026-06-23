@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -7,6 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = ROOT / "docs" / "COS_WEAVE_BOOTSTRAP.md"
 SKILL = ROOT / "packages" / "weave-tool" / "skills" / "cos-weave" / "SKILL.md"
+LIFECYCLE_SKILL = ROOT / "packages" / "weave-tool" / "skills" / "weave-lifecycle" / "SKILL.md"
 AGENTS = ROOT / "AGENTS.md"
 README = ROOT / "README.md"
 FIRST_CONTACT = ROOT / "COS_WEAVE_FIRST_CONTACT.md"
@@ -159,13 +161,31 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             "Ask first-run owner/app questions in plain language",
             "Infer lifecycle stage from ordinary user intent",
             "Create or load the app/application workspace under WEAVE home",
+            "Record provider-specific deployment prerequisites under the app workspace",
             "Ask about Linear/tracker access only when the workflow needs it",
+            "Before planning or executing a lifecycle entry or transition",
+            "packages/weave-tool/evals/lifecycle/<stage>.yaml",
+            "packages/weave-tool/primitives/registry.json",
+            "Record the consulted stage-entry contracts in proof and readback",
+            "Treat missing or contradictory stage-entry contracts as `REVISE` or `BLOCKED`",
             "Use deterministic prompts/procedures for lifecycle steps",
             "Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or `NEEDS_OWNER_ACTION`",
         ]
         for phrase in required:
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, text)
+
+    def test_stage_entry_rule_is_in_bootstrap_and_lifecycle_skills(self) -> None:
+        for path in [BOOTSTRAP, SKILL, LIFECYCLE_SKILL, SKELETON]:
+            text = normalized(path)
+            with self.subTest(path=path):
+                self.assertIn("stage-entry contract", text)
+                self.assertIn("packages/weave-tool/evals/lifecycle/<stage>.yaml", text)
+                self.assertIn("packages/weave-tool/primitives/registry.json", text)
+                self.assertIn("packages/weave-tool/skills/*/SKILL.md", text)
+                self.assertIn("REVISE", text)
+                self.assertIn("BLOCKED", text)
+                self.assertIn("owner", text.lower())
 
     def test_default_bootstrap_read_list_excludes_external_orchestrator_plan(self) -> None:
         text = BOOTSTRAP.read_text(encoding="utf-8")
@@ -200,6 +220,7 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             "README.md",
             "apps/registry.json",
             "apps/tiny-local-calculator/app.json",
+            "apps/tiny-local-calculator/deployment-gates.json",
             "apps/tiny-local-calculator/intent-truth.json",
             "apps/tiny-local-calculator/intent.json",
             "apps/tiny-local-calculator/intent.md",
@@ -230,9 +251,77 @@ class CosWeaveBootstrapContractTests(unittest.TestCase):
             if path.is_file()
         )
         self.assertIn("tiny local calculator", sample_text.lower())
+        self.assertIn("deployment-gates.json", sample_text)
+        self.assertIn("cloudflare", sample_text.lower())
+        self.assertIn("vercel", sample_text.lower())
         self.assertIn("observe -> validate -> govern -> review -> sync", sample_text)
+        self.assertIn("stage_entry_contract", sample_text)
+        self.assertIn("consulted_contract_refs", sample_text)
+        self.assertIn("packages/weave-tool/evals/lifecycle/intent.yaml", sample_text)
+        self.assertIn("packages/weave-tool/primitives/registry.json", sample_text)
         self.assertNotIn("external orchestrator", sample_text.lower())
         self.assertNotIn("02-requirements", sample_text.lower())
+
+    def test_generated_app_has_structured_deployment_provider_gates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir) / "sample"
+            result = subprocess.run(
+                [
+                    str(ROOT / "bin" / "weave"),
+                    "cos-bootstrap",
+                    "--source",
+                    str(ROOT),
+                    "--home",
+                    str(home),
+                    "--intent",
+                    "build and deploy a tiny local calculator app",
+                    "--app-id",
+                    "tiny-local-calculator",
+                    "--app-name",
+                    "Tiny Local Calculator",
+                    "--json",
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+            gates_path = home / "apps" / "tiny-local-calculator" / "deployment-gates.json"
+            gates = json.loads(gates_path.read_text(encoding="utf-8"))
+            providers = {item["provider"]: item for item in gates["providers"]}
+
+            self.assertEqual(gates["schema"], "weave-deployment-gates/v0.1")
+            self.assertTrue(gates["local_progress"]["intent_planning_engineering_allowed"])
+            self.assertFalse(gates["deployment_readiness"]["launch_allowed"])
+            self.assertTrue(gates["deployment_readiness"]["deployment_requested"])
+            self.assertTrue(gates["deployment_readiness"]["blocked_by_provider_access"])
+            self.assertTrue(gates["extension_contract"]["supports_additional_providers"])
+            self.assertIn("cloudflare", providers)
+            self.assertIn("vercel", providers)
+
+            cloudflare = providers["cloudflare"]
+            self.assertEqual(cloudflare["proof_state"], "not_validated")
+            for capability in ["domain_authority", "dns_record_write_authority", "cname_control", "subdomain_control"]:
+                self.assertIn(capability, cloudflare["required_capabilities"])
+
+            vercel = providers["vercel"]
+            self.assertEqual(vercel["proof_state"], "not_validated")
+            for capability in ["hosting_project_access", "deployment_target_access"]:
+                self.assertIn(capability, vercel["required_capabilities"])
+
+            for gate in providers.values():
+                self.assertFalse(gate["secret_boundary"]["raw_secrets_allowed"])
+                self.assertEqual(gate["secret_boundary"]["allowed_reference"], "secret_ref")
+                self.assertIn("connector", " ".join(gate["safe_validation_path"]))
+                self.assertIn("MCP", " ".join(gate["safe_validation_path"]))
+                self.assertGreater(len(gate["forbidden_until_validated"]), 0)
+
+            readback = json.loads((home / "apps" / "tiny-local-calculator" / "updates" / "readback.json").read_text(encoding="utf-8"))
+            self.assertTrue(readback["local_progress"]["intent_planning_engineering_allowed"])
+            self.assertFalse(readback["deployment_readiness"]["launch_allowed"])
+            self.assertEqual(readback["deployment_gates"]["providers"][0]["proof_state"], "not_validated")
 
     def test_repo_skeleton_sample_matches_generated_file_shape(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
