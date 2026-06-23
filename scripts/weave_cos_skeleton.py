@@ -20,6 +20,7 @@ from typing import Any
 SCHEMA = "weave-cos-skeleton/v0.1"
 BOOTSTRAP_SCHEMA = "weave-cos-bootstrap/v0.1"
 READBACK_SCHEMA = "weave-cos-readback/v0.1"
+DEPLOYMENT_GATES_SCHEMA = "weave-deployment-gates/v0.1"
 
 LIFECYCLE_STAGES: list[tuple[str, str]] = [
     ("intent", "Intent"),
@@ -77,6 +78,62 @@ HARD_GATES = [
     "tracker_mutation_requires_owner_approval",
     "live_worker_orchestration_requires_host_support",
 ]
+
+DEPLOYMENT_GATE_NON_CLAIMS = [
+    "does not prove provider account access",
+    "does not prove deployment target access",
+    "does not prove DNS or domain authority",
+    "does not prove DNS mutation",
+    "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets",
+]
+
+PROVIDER_GATE_TEMPLATES: dict[str, dict[str, Any]] = {
+    "cloudflare": {
+        "provider": "cloudflare",
+        "display_name": "Cloudflare",
+        "category": "dns_domain_authority",
+        "required_capabilities": [
+            "domain_authority",
+            "dns_zone_read_access",
+            "dns_record_write_authority",
+            "cname_control",
+            "subdomain_control",
+        ],
+        "safe_validation_path": [
+            "use an approved connector, MCP, or brokered access validator",
+            "validate zone/domain authority and target record permissions without exposing raw tokens",
+            "record only validation status, proof reference, account/project label if public-safe, and secret_ref if needed",
+        ],
+        "forbidden_until_validated": [
+            "claim Cloudflare account, zone, DNS, CNAME, or subdomain control",
+            "change DNS records",
+            "attach production domains",
+            "launch public traffic through Cloudflare",
+        ],
+    },
+    "vercel": {
+        "provider": "vercel",
+        "display_name": "Vercel",
+        "category": "hosting_deploy_target",
+        "required_capabilities": [
+            "hosting_project_access",
+            "deployment_target_access",
+            "production_environment_access",
+            "domain_alias_control",
+        ],
+        "safe_validation_path": [
+            "use an approved connector, MCP, or brokered access validator",
+            "validate project/team/deploy-target access without exposing raw tokens",
+            "record only validation status, proof reference, project/team label if public-safe, and secret_ref if needed",
+        ],
+        "forbidden_until_validated": [
+            "claim Vercel project, team, hosting, deployment target, or production environment access",
+            "create or mutate deployments",
+            "attach or promote production domains",
+            "launch public traffic through Vercel",
+        ],
+    },
+}
 
 
 def utc_now() -> str:
@@ -199,6 +256,106 @@ def missing_gates_for(requested_stage: str) -> list[str]:
     return gates
 
 
+def provider_gate(provider: str, template: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "provider": provider,
+        "display_name": template["display_name"],
+        "category": template["category"],
+        "required_capabilities": template["required_capabilities"],
+        "proof_state": "not_validated",
+        "proof_state_values": ["unknown", "not_validated", "validated", "blocked"],
+        "safe_validation_path": template["safe_validation_path"],
+        "secret_boundary": {
+            "raw_secrets_allowed": False,
+            "allowed_reference": "secret_ref",
+            "validation_method": "connector_mcp_or_brokered_access_validation",
+        },
+        "forbidden_until_validated": template["forbidden_until_validated"],
+        "non_claims": DEPLOYMENT_GATE_NON_CLAIMS,
+    }
+
+
+def deployment_gates_record(app_id: str, app_name: str, requested_stage: str, providers: list[str] | None = None) -> dict[str, Any]:
+    requested_index = stage_index(requested_stage)
+    provider_names = providers or list(PROVIDER_GATE_TEMPLATES)
+    provider_gates: list[dict[str, Any]] = []
+    for provider_name in provider_names:
+        template = PROVIDER_GATE_TEMPLATES.get(provider_name)
+        if template is None:
+            template = {
+                "display_name": titleize(provider_name),
+                "category": "custom_provider_prerequisite",
+                "required_capabilities": ["provider_access_validation"],
+                "safe_validation_path": [
+                    "use an approved connector, MCP, or brokered access validator",
+                    "record only validation status, proof reference, public-safe labels, and secret_ref if needed",
+                ],
+                "forbidden_until_validated": [
+                    f"claim {provider_name} access",
+                    f"mutate {provider_name} resources",
+                    f"launch public traffic through {provider_name}",
+                ],
+            }
+        provider_gates.append(provider_gate(provider_name, template))
+
+    blocked_provider_refs = [
+        f"{gate['provider']}:{capability}"
+        for gate in provider_gates
+        for capability in gate["required_capabilities"]
+        if gate["proof_state"] != "validated"
+    ]
+    deployment_requested = requested_index >= stage_index("deployment")
+    return {
+        "schema": DEPLOYMENT_GATES_SCHEMA,
+        "app_id": app_id,
+        "app_name": app_name,
+        "state": "deployment_blocked_until_provider_access_validated",
+        "local_progress": {
+            "intent_planning_engineering_allowed": True,
+            "reason": "local intent, planning, and engineering do not require provider access",
+        },
+        "deployment_readiness": {
+            "launch_allowed": False,
+            "deployment_requested": deployment_requested,
+            "blocked_by_provider_access": True,
+            "blocked_provider_capabilities": blocked_provider_refs,
+        },
+        "providers": provider_gates,
+        "extension_contract": {
+            "supports_additional_providers": True,
+            "provider_template_required_fields": [
+                "provider",
+                "required_capabilities",
+                "proof_state",
+                "safe_validation_path",
+                "forbidden_until_validated",
+                "non_claims",
+            ],
+        },
+        "non_claims": DEPLOYMENT_GATE_NON_CLAIMS,
+    }
+
+
+def deployment_gate_summary(deployment_gates: dict[str, Any]) -> dict[str, Any]:
+    providers = deployment_gates["providers"]
+    return {
+        "schema": DEPLOYMENT_GATES_SCHEMA,
+        "state": deployment_gates["state"],
+        "local_progress_allowed": deployment_gates["local_progress"]["intent_planning_engineering_allowed"],
+        "launch_allowed": deployment_gates["deployment_readiness"]["launch_allowed"],
+        "blocked_by_provider_access": deployment_gates["deployment_readiness"]["blocked_by_provider_access"],
+        "providers": [
+            {
+                "provider": gate["provider"],
+                "required_capabilities": gate["required_capabilities"],
+                "proof_state": gate["proof_state"],
+            }
+            for gate in providers
+        ],
+        "non_claims": deployment_gates["non_claims"],
+    }
+
+
 def intent_truth_record(app_id: str, app_name: str, intent: str, requested_stage: str, missing_gates: list[str]) -> dict[str, Any]:
     not_required = []
     for stage_id, label in LIFECYCLE_STAGES:
@@ -318,6 +475,11 @@ def worker_packet_text(app: dict[str, Any], packet_id: str) -> str:
     loop = " -> ".join(REVIEW_LOOP)
     missing = "\n".join(f"- {item}" for item in app["missing_gates"])
     non_claims = "\n".join(f"- {item}" for item in NON_CLAIMS)
+    deployment_summary = app["deployment_gates_summary"]
+    provider_lines = "\n".join(
+        f"- {item['provider']}: `{item['proof_state']}` for {', '.join(item['required_capabilities'])}"
+        for item in deployment_summary["providers"]
+    )
     intent_truth = app["intent_truth"]
     return (
         f"# Worker Packet {packet_id}\n\n"
@@ -334,6 +496,13 @@ def worker_packet_text(app: dict[str, Any], packet_id: str) -> str:
         "If no visible worker surface is available, keep this packet local and report that limitation.\n\n"
         "## Missing Gates\n\n"
         f"{missing}\n\n"
+        "## Deployment Provider Gates\n\n"
+        f"Local intent/planning/engineering allowed: `{deployment_summary['local_progress_allowed']}`\n"
+        f"Launch allowed: `{deployment_summary['launch_allowed']}`\n"
+        f"Blocked by provider access: `{deployment_summary['blocked_by_provider_access']}`\n"
+        f"Gate state file: `apps/{app['app_id']}/deployment-gates.json`\n\n"
+        f"{provider_lines}\n\n"
+        "Use connector/MCP/brokered access validation and `secret_ref` only. Do not request or store raw provider secrets.\n\n"
         "## Review Loop\n\n"
         f"Worker output must pass `{loop}` before COS WEAVE accepts a lifecycle step.\n\n"
         "## Allowed\n\n"
@@ -355,6 +524,8 @@ def app_record(app_id: str, app_name: str, intent: str) -> dict[str, Any]:
     current_stage = "intent"
     missing_gates = missing_gates_for(requested_stage)
     intent_truth = intent_truth_record(app_id, app_name, intent, requested_stage, missing_gates)
+    deployment_gates = deployment_gates_record(app_id, app_name, requested_stage)
+    deployment_summary = deployment_gate_summary(deployment_gates)
     return {
         "schema": "weave-cos-app/v0.1",
         "app_id": app_id,
@@ -376,6 +547,7 @@ def app_record(app_id: str, app_name: str, intent: str) -> dict[str, Any]:
             "missing_gates": missing_gates,
         },
         "intent_truth": intent_truth,
+        "deployment_gates": deployment_summary,
         "missing_gates": missing_gates,
         "tracker": {
             "mode": "local",
@@ -388,6 +560,8 @@ def app_record(app_id: str, app_name: str, intent: str) -> dict[str, Any]:
         },
         "review_loop": REVIEW_LOOP,
         "non_claims": NON_CLAIMS,
+        "deployment_gates_record": deployment_gates,
+        "deployment_gates_summary": deployment_summary,
         "next_action": "continue with local planning while collecting lightweight answers for outcome, constraints, and acceptance checks",
     }
 
@@ -404,6 +578,8 @@ def ensure_global_procedures(home: Path) -> list[str]:
 def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
     app_root = home / "apps" / str(app["app_id"])
     packet_id = "WP-0001"
+    deployment_gates = app["deployment_gates_record"]
+    deployment_summary = app["deployment_gates_summary"]
     lifecycle = {
         "schema": "weave-cos-lifecycle/v0.1",
         "app_id": app["app_id"],
@@ -412,6 +588,7 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "updated_at": utc_now(),
         "stages": lifecycle_rows(app["current_stage"], app["requested_stage"]),
         "missing_gates": app["missing_gates"] if "missing_gates" in app else app["scope_truth"]["missing_gates"],
+        "deployment_gates": deployment_summary,
         "review_loop": REVIEW_LOOP,
         "non_claims": NON_CLAIMS,
     }
@@ -434,6 +611,7 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "proof_surface": "TOOL_VERIFIED_LOCAL",
         "artifact_refs": [
             f"apps/{app['app_id']}/app.json",
+            f"apps/{app['app_id']}/deployment-gates.json",
             f"apps/{app['app_id']}/intent-truth.json",
             f"apps/{app['app_id']}/lifecycle/lifecycle-state.json",
             f"apps/{app['app_id']}/tasks/worker-packets/{packet_id}.md",
@@ -456,7 +634,13 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
                 "state": "open_question",
                 "missing": app["scope_truth"]["missing_gates"],
                 "next_action": app["next_action"],
-            }
+            },
+            {
+                "id": "deployment-provider-access-not-validated",
+                "state": "blocked_until_validated",
+                "missing": deployment_summary["providers"],
+                "next_action": "continue local intent, planning, and engineering; block deployment or launch until provider access is validated through connector/MCP/brokered access proof",
+            },
         ],
     }
     review_queue = {
@@ -480,6 +664,9 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "current_stage": app["current_stage"],
         "requested_stage": app["requested_stage"],
         "missing_gates": app["scope_truth"]["missing_gates"],
+        "deployment_gates": deployment_summary,
+        "deployment_readiness": deployment_gates["deployment_readiness"],
+        "local_progress": deployment_gates["local_progress"],
         "blockers": blockers["blockers"],
         "proof_refs": [f"apps/{app['app_id']}/proof/proof-tray.json"],
         "review_refs": [f"apps/{app['app_id']}/review/review-queue.json"],
@@ -487,7 +674,13 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
         "non_claims": NON_CLAIMS,
     }
 
-    write_json(app_root / "app.json", app)
+    app_state = {
+        key: value
+        for key, value in app.items()
+        if key not in {"deployment_gates_record", "deployment_gates_summary"}
+    }
+    write_json(app_root / "app.json", app_state)
+    write_json(app_root / "deployment-gates.json", deployment_gates)
     write_text(
         app_root / "intent.md",
         f"# Intent\n\nOwner words:\n\n> {app['owner_intent']}\n\n"
@@ -505,6 +698,7 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
             "current_stage": app["current_stage"],
             "requested_stage": app["requested_stage"],
             "missing_gates": app["scope_truth"]["missing_gates"],
+            "deployment_gates": deployment_summary,
             "non_claims": NON_CLAIMS,
         },
     )
@@ -514,15 +708,18 @@ def write_app(home: Path, app: dict[str, Any]) -> dict[str, Any]:
     for index, (stage_id, label) in enumerate(LIFECYCLE_STAGES, start=1):
         stage_root = app_root / "lifecycle" / f"{index:02d}-{stage_id}"
         write_text(stage_root / "procedure.md", procedure_text(stage_id, label))
+        stage_state = {
+            "schema": "weave-cos-stage-state/v0.1",
+            "app_id": app["app_id"],
+            "stage": stage_id,
+            "state": next(row["state"] for row in lifecycle["stages"] if row["stage"] == stage_id),
+            "review_loop": REVIEW_LOOP,
+        }
+        if stage_id == "deployment":
+            stage_state["deployment_gates"] = deployment_summary
         write_json(
             stage_root / "state.json",
-            {
-                "schema": "weave-cos-stage-state/v0.1",
-                "app_id": app["app_id"],
-                "stage": stage_id,
-                "state": next(row["state"] for row in lifecycle["stages"] if row["stage"] == stage_id),
-                "review_loop": REVIEW_LOOP,
-            },
+            stage_state,
         )
     write_json(app_root / "tasks" / "tasks.json", {"schema": "weave-cos-task-ledger/v0.1", "tasks": [task]})
     write_text(
@@ -609,7 +806,10 @@ def write_global_state(home: Path, source: Path, surface: str, registry: dict[st
     write_text(
         home / "README.md",
         "# COS WEAVE Home\n\n"
-        "This repo-owned home stores app registry, app lifecycle records, worker packets, proof, blockers, review queue, updates, and readback.\n\n"
+        "This is a generated, public-safe sample of `runs/cos-weave-home/` when stored under `docs/samples/`. "
+        "Private local paths in committed samples are replaced with `<weave-repo>`.\n\n"
+        "This repo-owned home stores app registry, app lifecycle records, task ledgers, worker packets, "
+        "proof, blockers, review queue, procedures, updates, and readback.\n\n"
         "WEAVE is one Chief-of-Staff chat for operating applications through lifecycle steps. "
         "No hidden orchestration backend is required for first-run app intake.\n",
     )

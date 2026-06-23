@@ -1,6 +1,43 @@
 {
   "app_id": "tiny-local-calculator",
   "current_stage": "intent",
+  "deployment_gates": {
+    "blocked_by_provider_access": true,
+    "launch_allowed": false,
+    "local_progress_allowed": true,
+    "non_claims": [
+      "does not prove provider account access",
+      "does not prove deployment target access",
+      "does not prove DNS or domain authority",
+      "does not prove DNS mutation",
+      "does not request or store raw API keys, cookies, private keys, session values, or other raw secrets"
+    ],
+    "providers": [
+      {
+        "proof_state": "not_validated",
+        "provider": "cloudflare",
+        "required_capabilities": [
+          "domain_authority",
+          "dns_zone_read_access",
+          "dns_record_write_authority",
+          "cname_control",
+          "subdomain_control"
+        ]
+      },
+      {
+        "proof_state": "not_validated",
+        "provider": "vercel",
+        "required_capabilities": [
+          "hosting_project_access",
+          "deployment_target_access",
+          "production_environment_access",
+          "domain_alias_control"
+        ]
+      }
+    ],
+    "schema": "weave-deployment-gates/v0.1",
+    "state": "deployment_blocked_until_provider_access_validated"
+  },
   "missing_gates": [
     "Intent gate is not complete",
     "Research gate is not complete",
@@ -102,5 +139,5 @@
       "state": "not_started"
     }
   ],
-  "updated_at": "2026-06-22T16:52:35Z"
+  "updated_at": "2026-06-23T16:14:42Z"
 }

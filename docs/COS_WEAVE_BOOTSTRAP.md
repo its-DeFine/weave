@@ -81,14 +81,17 @@ If a user gives this repository URL/path and asks to use it as COS WEAVE:
    WEAVE stages.
 8. Create or load the app/application workspace under WEAVE home and record the
    current lifecycle state.
-9. Ask about Linear/tracker access only when the workflow needs it. If no
+9. Record provider-specific deployment prerequisites under the app workspace,
+   including Cloudflare DNS/domain authority and Vercel hosting/deploy target
+   access, without requesting or storing raw secrets.
+10. Ask about Linear/tracker access only when the workflow needs it. If no
    tracker is connected, keep a local task ledger and explain that tracker
    connection is optional.
-10. Use deterministic prompts/procedures for lifecycle steps.
-11. When implementation workers are needed, launch/pin visible workers when the
+11. Use deterministic prompts/procedures for lifecycle steps.
+12. When implementation workers are needed, launch/pin visible workers when the
    host supports that. Otherwise record a local worker packet and explain what
    is possible in the current environment.
-12. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
+13. Report one of `ACCEPT_FOR_SCOPE`, `REVISE`, `BLOCKED`, or
    `NEEDS_OWNER_ACTION`.
 
 ## First Response Template
@@ -112,6 +115,8 @@ Every bootstrap readback must say when these are not proven:
 - no live Codex app-server execution;
 - no live tracker or Linear mutation;
 - no production deploy;
+- no provider account, DNS/domain authority, hosting target, or launch access
+  unless separately validated through a safe access path;
 - no public send;
 - no billing, payment, or paid call;
 - no credential access or secret handling.

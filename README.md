@@ -7,7 +7,7 @@ Current release: `v0.1.0`.
 WEAVE is a Chief-of-Staff mode for Codex: paste the public repo URL plus an
 ordinary app idea, and the Codex thread becomes COS WEAVE, a local-file
 operating skeleton for app intent, lifecycle state, worker packets, proof,
-blockers, review, and readback.
+blockers, review, deployment prerequisite gates, and readback.
 
 WEAVE does not require a terminal UI, external orchestrator, tracker, deployment
 account, credentials, or manual lifecycle classification for first contact.
@@ -77,6 +77,7 @@ runs/cos-weave-home/
     registry.json
     <app-id>/
       app.json
+      deployment-gates.json
       intent.md
       intent.json
       intent-truth.json
@@ -132,11 +133,17 @@ proof and review.
 - Infers the app and lifecycle slice from ordinary user words.
 - Creates app state immediately for safe local scope.
 - Records what is missing as todos, blockers, or owner questions.
+- Records provider-specific deployment prerequisites, including Cloudflare
+  DNS/domain authority and Vercel hosting/deploy target access, without raw
+  secrets.
 - Produces worker packets when a visible worker thread is useful.
 - Requires the review loop before accepting meaningful claims:
   `observe -> validate -> govern -> review -> sync`.
 - Keeps non-claims explicit so local file proof is not mistaken for live,
   deployed, public, paid, credentialed, or full-lifecycle proof.
+- Keeps local intent, planning, and engineering separate from deployment
+  readiness; deployment or launch stays blocked until relevant provider access
+  is validated through a safe connector, MCP, or brokered access path.
 - Records review-ready cleanup scope in
   [docs/WEAVE_REVIEW_READY_COMPOUND_ENGINEERING.md](docs/WEAVE_REVIEW_READY_COMPOUND_ENGINEERING.md).
 - Records cleanup proof in
